@@ -85,7 +85,7 @@ function setup_workspace () {
         cp -rf /tmp/pypi_temp/yr/yr_sdk*.data/purelib/adaptor ${PYPI_BUILD_DIR}/src/
     fi
 
-    YR_REQUIREMENTS=$(find /tmp/pypi_temp/yr/yr-*.dist-info -name "METADATA" | xargs -I {} grep "Requires-Dist" {} \
+    YR_REQUIREMENTS=$(find /tmp/pypi_temp/yr/yr*.dist-info -name "METADATA" | xargs -I {} grep "Requires-Dist" {} \
                       | grep -v "extra ==" | awk -F ': ' '{print $2}')
 }
 
