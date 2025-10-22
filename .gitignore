@@ -1,0 +1,45 @@
+bazel-*
+.vscode
+.clangd
+.cache
+.idea
+.clwb
+.ijwb
+external
+api/cpp/example/3rd
+genhtml
+compile_commands.json
+pyrightconfig.json
+
+# cpp
+*.pb.*
+lib*_proto.*
+
+# java
+target/
+*.jar
+*.lst
+dependency-reduced-pom.xml
+
+# python
+__pycache__
+api/python/yr.egg-info
+api/python/dist/*.whl
+api/python/yr/*.so*
+api/python/yr/libruntime_pb2.py
+test/st/python/**/*.log*
+test/st/python/pkg
+
+# test
+test/st/cpp/gtest
+test/st/yuanrong/
+test/st/**/output.txt
+test/st/functions/pkg
+test/st/functions/**/*.so
+test/st/functions/**/*.zip
+test/st/functions/**/*.xml
+
+#thirdparty
+thirdparty
+go/pkg/mod/
+cmake-build-debug
