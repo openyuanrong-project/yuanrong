@@ -403,10 +403,10 @@ class InvokeOptions:
     recover_retry_times: int = 0
     #: Whether to enable order-preserving. Only effective for stateful functions.
     need_order: bool = False
-    #: Used to specify the ID of the instance. When `namespace` is specified, the instance ID is `namespace-name`,
+    #: Used to specify the name of the instance. When `namespace` is specified, the instance name is `namespace-name`,
     #: otherwise it is `name`.
     name: str = ""
-    #: Used to specify the ID of the instance.
+    #: Used to specify the namespace of the instance.
     namespace: str = ""
 
     #: Set affinity condition list.
