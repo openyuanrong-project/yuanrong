@@ -1,5 +1,5 @@
 abseil-cpp,20240722.0,functionsystem,https://gitee.com/mirrors/abseil-cpp/repository/archive/20240722.0.zip,104dead3edd7b67ddeb70c37578245130d6118efad5dad4b618d7e26a5331f55,
-boost,1.82.0,runtime,https://sourceforge.net/projects/boost/files/boost/1.82.0/boost_1_82_0.tar.gz,66a469b6e608a51f8347236f4912e27dc5c60c60d7d53ae9bfe4683316c6f04c
+boost,1.82.0,runtime,https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.gz,b62bd839ea6c28265af9a1f68393eda37fab3611425d3b28882d8e424535ec9d,
 c-ares,1.19.1,functionsystem,https://gitee.com/mirrors/c-ares/repository/archive/cares-1_19_1.zip,edcaac184aff0e6b6eb7b9ede7a55f36c7fc04085d67fecff2434779155dd8ce,
 etcd,v3.5.11,functionsystem,https://gitee.com/mirrors/etcd/repository/archive/v3.5.11.zip,7af745a2bf75c7b04f9b168b85deb35fb73d30d60f751046564b54dbd483277a,
 gogo-protobuf,v1.3.2,functionsystem,https://gitee.com/mirrors_gogo/protobuf/repository/archive/v1.3.2.zip,11e863712289bf1e6ba86239b5b896704bb63815bee8710e5032daf63fd9efe7,
