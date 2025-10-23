@@ -36,7 +36,7 @@ YR_DATASYSTEM_BIN_DIR="${RUNTIME_SRC_DIR}/.."
 YR_METRICS_BIN_DIR="${RUNTIME_SRC_DIR}/../metrics"
 THIRD_PARTY_DIR="${RUNTIME_SRC_DIR}/../thirdparty/"
 MODULES="runtime"
-bash ${BASE_DIR}/download_opensource.sh -M $MODULES -T $THIRD_PARTY_DIR
+bash -x ${BASE_DIR}/download_opensource.sh -M $MODULES -T $THIRD_PARTY_DIR
 
 function check_datasystem() {
     # check whether datasystem exist

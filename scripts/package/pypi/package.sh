@@ -78,11 +78,9 @@ function setup_workspace () {
     if [[ ${PYTHON_VERSION} =~ "Python 3.11" ]]; then
         find ${PREBUILD_BIN_PATH_YUANRONG} -name ${whl_name} | xargs -I {} unzip {} -d /tmp/pypi_temp/yr/
         cp -rf /tmp/pypi_temp/yr/yr/* ${PYPI_BUILD_DIR}/src/yr/
-        cp -rf /tmp/pypi_temp/yr/adaptor ${PYPI_BUILD_DIR}/src/
     else
         find ${PREBUILD_BIN_PATH_YUANRONG} -name ${whl_name} | xargs -I {} unzip {} -d /tmp/pypi_temp/yr/
         cp -rf /tmp/pypi_temp/yr/yr_sdk*.data/purelib/yr/* ${PYPI_BUILD_DIR}/src/yr/
-        cp -rf /tmp/pypi_temp/yr/yr_sdk*.data/purelib/adaptor ${PYPI_BUILD_DIR}/src/
     fi
 
     YR_REQUIREMENTS=$(find /tmp/pypi_temp/yr/yr*.dist-info -name "METADATA" | xargs -I {} grep "Requires-Dist" {} \

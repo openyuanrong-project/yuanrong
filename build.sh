@@ -178,7 +178,7 @@ function build_multi_python_version() {
         do
             PYTHON_BIN_PATH=$item
             if command -v $PYTHON_BIN_PATH;then
-                PYTHON_INCLUDE=$($PYTHON_BIN_PATH -c "import sysconfig;print(sysconfig.get_path('include'))")
+                PYTHON_INCLUDE=$($PYTHON_BIN_PATH -c "from __future__ import print_function;import sysconfig;print(sysconfig.get_path('include'))")
                 if [ ! -e "${PYTHON_INCLUDE}/Python.h" ]; then
                   log_warning "${PYTHON_INCLUDE}/Python.h not exit"
                   continue
@@ -304,7 +304,7 @@ while getopts 'thr:v:S:DcCgPET:p:bm:j:g' opt; do
 done
 
 if [ "$BAZEL_COMMAND" != "clean" ]; then
-   bash ${BASE_DIR}/tools/download_dependency.sh
+   bash -x ${BASE_DIR}/tools/download_dependency.sh
 fi
 
 API_DIR="${BASE_DIR}/api"
