@@ -29,7 +29,7 @@ case "$ARCH" in
         ;;
     aarch64)
         ARCH_TAG="aarch64"
-        BAZEL_ARCH="aarch64"
+        BAZEL_ARCH="arm64"
         echo "Detected aarch64 (ARM64) architecture"
         ;;
     *)
