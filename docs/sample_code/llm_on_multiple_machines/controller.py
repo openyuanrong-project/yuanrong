@@ -172,8 +172,6 @@ class Controller:
 
         # start VllmInstance
         await self.scale_out_inference_ins(self.config.prefill_instances_num, self.config.decode_instances_num)
-        # start instance health monitor
-        await self.balancer.start_monitor_instance_health.invoke()
 
     async def scale_out_inference_ins(self, prefill_ins_to_scale, decode_ins_to_scale):
         """

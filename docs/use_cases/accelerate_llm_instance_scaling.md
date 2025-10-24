@@ -20,9 +20,9 @@
 
 2. 下载 Qwen2.5-7B-Instruct 模型文件到主机，存放在 `/workspace/models/qwen2.5_7B` 目录下。
 
-3. 下载使用 openYuanrong 开发的 [模型部署脚本](https://gitee.com/openeuler/yuanrong-runtime/files?ref=br_opensource_master&filePath=docs%2Fsample_code%2Fllm_on_multiple_machines){target="_blank"}(包含目录内的所有文件)，存放在 `/workspace/tools/deploy` 目录下。
+3. 下载使用 openYuanrong 开发的 [模型部署脚本](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/sample_code/llm_on_multiple_machines){target="_blank"}(包含目录内的所有文件)，存放在 `/workspace/tools/deploy` 目录下。
 
-4. 下载 [vLLM Ascend 补丁](https://gitee.com/openeuler/yuanrong-datasystem/files?ref=br_opensource_master&filePath=tests%2Fkvconnector%2Fpatch){target="_blank"}(包含目录内的所有文件)，存放在 `/workspace/tools/patch` 目录下。
+4. 下载 [vLLM Ascend 补丁](https://gitee.com/openeuler/yuanrong-datasystem/blob/master/tests/kvconnector/patch/0001-implement-yr-datasystem-connector-and-support-multimoda.patch){target="_blank"}，存放在 `/workspace/tools/patch` 目录下。
 
 5. 在 `/workspace/tools` 目录下创建 vLLM 补丁文件 `vllm.patch`，内容如下：
 
@@ -258,6 +258,9 @@ docker run \
 
    ```bash
    pip install openyuanrong
+
+   # 安装数据系统 SDK
+   pip install yr_datasystem
    ```
 
 4. 部署 openYuanrong
@@ -269,7 +272,7 @@ docker run \
    yr start --master -l DEBUG --runtime_direct_connection_enable=true --enable_separated_redirect_runtime_std=true --etcd_addr_list=${MASTER_IP}  --etcd_port=22440 --etcd_peer_port=22441
    ```
 
-   记录命令输出 `Cluster master info:` 中的 `ds_master_port` 端口，例如 11373。配置环境变量：`export DS_WORKER_ADDR=${MASTER_IP}:11373`
+   记录命令输出 `Cluster master info:` 中的 `ds_master_port` 端口，例如 11373。配置环境变量 `export DS_WORKER_ADDR=${MASTER_IP}:11373`，用于在部署推理实例时连接到数据系统。
 
    检查部署状态，显示 agent 个数为 1：
 
@@ -286,7 +289,8 @@ docker run \
 在容器内分别配置如下环境变量：
 
 ```bash
-# 推理服务端口
+# 推理服务的 IP 和端口，可自定义
+export SERVER_IP=127.0.0.1
 export SERVER_PORT=9000
 
 # 模型文件路径
@@ -308,6 +312,7 @@ export HCL_OP_EXPANSION_MODE="AIV"
 # 是否启用 openYuanrong 多级缓存前缀匹配能力，值为 1 表示启动
 export USING_PREFIX_CONNECTOR=1
 
+# 部署 PD 合并的推理实例
 export PREFILL_INS_NUM=1
 export DECODE_INS_NUM=0
 export PTP=2
@@ -316,28 +321,37 @@ export PDP=1
 export DDP=0
 ```
 
-在 openYuanrong 主节点所在容器 `/workspace/tools/deploy` 目录下，执行如下命令部署：
+在 openYuanrong 主节点所在容器 `/workspace/tools/deploy` 目录下，运行如下脚本部署：
 
 ```bash
+# 部署失败或完成案例后可通过 bash run_vllm_on_yr.sh clean 清理环境
 bash run_vllm_on_yr.sh deploy
 
 # 查看部署日志
 tail -f deploy.log
+
+# 成功将输出如下信息
+# [2025-10-21 03:10:47.616 INFO init apis.py:168 281472883448096] Succeeded to init YR, jobID is job-6dc821f8
+# [2025-10-21 03:10:47.665 INFO _invoke instance_proxy.py:256 281472883448096] [Reference Counting] put code with id = ca1e22047396342d9ea3;7a72051c-e04b-429f-ac50-db6a428bfb0b, className = Controller
+# INFO:     Started server process [921319]
+# INFO:     Waiting for application startup.
+# INFO:     Application startup complete.
+# INFO:     Uvicorn running on http://127.0.0.1:9000 (Press CTRL+C to quit)
 ```
 
-预期输出如下，模型加载用时约 15.8 秒：
+在 `/tmp/yr_session/latest/log/` 目录下查看推理实例的运行日志文件 `runtime-{runtime_id}.out`，预期有如下输出，模型加载用时约 15.8 秒。
 
 ![](../images/accelerate_llm_instance_scaling_1.png)
 
 ## 扩容一个 Qwen 推理实例
 
-在容器中执行如下命令扩容推理实例：
+在容器中执行如下命令扩容一个相同的推理实例：
 
 ```bash
 # 替换 MASTER_IP 为您当前主机 IP
-curl --location --request POST 'http://${MASTER_IP}:9000/scaleout' --data ''
+curl --location --request POST 'http://${SERVER_IP}:${SERVER_PORT}/scaleout'
 ```
 
-预期输出如下，模型加载用时约 1.5 秒，10 倍的加速性能提升：
+在 `/tmp/yr_session/latest/log/` 目录下查看新扩容推理实例的运行日志文件 `runtime-{runtime_id}.out`，预期有如下输出，模型加载用时约 1.5 秒，10 倍的加速性能提升。
 
 ![](../images/accelerate_llm_instance_scaling_2.png)

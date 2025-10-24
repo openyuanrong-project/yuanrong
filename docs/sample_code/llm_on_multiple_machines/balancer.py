@@ -163,12 +163,6 @@ class Balancer:
             await asyncio.sleep(1)
         logger.info(f"All instances are already")
 
-    async def start_monitor_instance_health(self):
-        """
-        start to monitor instance
-        """
-        asyncio.create_task(self._monitor_instance_health())
-
     async def remove_failed_instance(self, instance_id: str):
         """
         Controller调用此方法通知Balancer删除实例

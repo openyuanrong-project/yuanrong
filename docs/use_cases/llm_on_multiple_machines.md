@@ -26,9 +26,9 @@ openYuanrong 提供了分布式多级缓存 (HBM/DRAM/SSD) 和高性能 D2D(devi
 
 2. 下载 Qwen2.5-7B-Instruct 模型文件到主机，存放在 `/workspace/models/qwen2.5_7B` 目录下。
 
-3. 下载使用 openYuanrong 开发的 [模型部署脚本](https://gitee.com/openeuler/yuanrong-runtime/files?ref=br_opensource_master&filePath=docs%2Fsample_code%2Fllm_on_multiple_machines){target="_blank"}(包含目录内的所有文件)，存放在 `/workspace/tools/deploy` 目录下。
+3. 下载使用 openYuanrong 开发的 [模型部署脚本](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/sample_code/llm_on_multiple_machines){target="_blank"}(包含目录内的所有文件)，存放在 `/workspace/tools/deploy` 目录下。
 
-4. 下载 [vLLM Ascend 补丁](https://gitee.com/openeuler/yuanrong-datasystem/files?ref=br_opensource_master&filePath=tests%2Fkvconnector%2Fpatch){target="_blank"}(包含目录内的所有文件)，存放在 `/workspace/tools/patch` 目录下。
+4. 下载 [vLLM Ascend 补丁](https://gitee.com/openeuler/yuanrong-datasystem/blob/master/tests/kvconnector/patch/0001-implement-yr-datasystem-connector-and-support-multimoda.patch){target="_blank"}，存放在 `/workspace/tools/patch` 目录下。
 
 ## 在容器中部署 openYuanrong
 
@@ -115,7 +115,8 @@ docker run \
 在 openYuanrong 主从节点所在容器内分别配置如下环境变量并保持配置一致：
 
 ```bash
-# 推理服务端口
+# 推理服务 IP 和端口，可自定义
+export SERVER_IP=127.0.0.1
 export SERVER_PORT=9000
 
 # 模型文件路径
@@ -136,6 +137,14 @@ export LD_LIBRARY_PATH=${YR_INSTALL_PATH}/function_system/lib:$LD_LIBRARY_PATH
 export HCL_OP_EXPANSION_MODE="AIV"
 # 是否启用 openYuanrong 多级缓存前缀匹配能力，值为 1 表示启动
 export USING_PREFIX_CONNECTOR=1
+
+# 部署 PD 分离的推理实例
+export PREFILL_INS_NUM=1
+export DECODE_INS_NUM=1
+export PTP=4
+export DTP=2
+export PDP=1
+export DDP=1
 ```
 
 在 openYuanrong 主节点所在容器 `/workspace/tools/deploy` 目录下，执行如下命令部署：
@@ -145,14 +154,22 @@ bash run_vllm_on_yr.sh deploy
 
 # 查看部署日志
 tail -f deploy.log
+
+# 成功将输出如下信息
+# [2025-10-21 07:40:32.217 INFO init apis.py:168 281473354348832] Succeeded to init YR, jobID is job-d9f59ff7
+# [2025-10-21 07:40:32.263 INFO _invoke instance_proxy.py:256 281473354348832] [Reference Counting] put code with id = abc96a95d6bacfab2607;e67745d5-955b-4d80-8d7e-919e5aa0f923, className = Controller
+# INFO:     Started server process [40250]
+# INFO:     Waiting for application startup.
+# INFO:     Application startup complete.
+# INFO:     Uvicorn running on http://:9000 (Press CTRL+C to quit)
 ```
 
-PD 实例日志可在 openYuanrong 日志路径 `/tmp/yr_sessions/latest/log` 中查看。
+PD 实例的日志可在 openYuanrong 日志路径 `/tmp/yr_sessions/latest/log` 中查看。
 
 参考如下示例验证推理服务正常工作：
 
 ```bash
-curl -X POST "http://${MASTER_IP}:${SERVER_PORT}/v1/completions" \
+curl -X POST "http://${SERVER_IP}:${SERVER_PORT}/v1/completions" \
      -H "Content-Type: application/json" \
      -d '{
           "model": "'"${MODEL_PATH}"'",
