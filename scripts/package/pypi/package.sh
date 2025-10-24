@@ -73,6 +73,9 @@ function setup_workspace () {
         # Extract major.minor version and remove dot (e.g., 3.11 → 311)
         ver="${BASH_REMATCH[1]//./}"
         whl_name="yr_sdk*-cp${ver}-cp${ver}*.whl"
+        short_ver=$(echo "$PYTHON_VERSION" | grep -Eo '[0-9]+\.[0-9]+')
+        sed -i "s/[Pp]ython[0-9.]\+/python$short_ver/" \
+        ${PYPI_BUILD_DIR}/src/yr/inner/deploy/process/services.yaml
     fi
 
     if [[ ${PYTHON_VERSION} =~ "Python 3.11" ]]; then
