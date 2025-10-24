@@ -422,7 +422,7 @@ yr.cancel(result_ref)
 
 # 取消成功将在获取对象引用的值时抛出 RuntimeError 异常
 try:
-    yr.get(ret)
+    yr.get(result_ref)
 except RuntimeError as e:
     print(e)
 
