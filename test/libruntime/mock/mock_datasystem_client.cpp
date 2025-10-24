@@ -382,7 +382,7 @@ Status HeteroClient::DevMSet(const std::vector<std::string> &keys, const std::ve
     return Status::OK();
 }
 
-Status HeteroClient::DevMGet(const std::vector<std::string> &keys, const std::vector<DeviceBlobList> &devBlobList,
+Status HeteroClient::DevMGet(const std::vector<std::string> &keys, std::vector<DeviceBlobList> &devBlobList,
                              std::vector<std::string> &failedKeys, int32_t subTimeoutMs)
 {
     return Status::OK();
