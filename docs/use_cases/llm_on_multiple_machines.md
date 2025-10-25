@@ -82,6 +82,9 @@ docker run \
 
    ```bash
    pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/openyuanrong-0.5.0a0-cp311-cp311-manylinux_2_34_x86_64.whl
+
+   # 安装数据系统 SDK
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/yr_datasystem-0.5.0a0-cp311-cp311-manylinux2014_x86_64.whl
    ```
 
 3. 部署 openYuanrong
@@ -142,7 +145,7 @@ export USING_PREFIX_CONNECTOR=1
 export PREFILL_INS_NUM=1
 export DECODE_INS_NUM=1
 export PTP=4
-export DTP=2
+export DTP=4
 export PDP=1
 export DDP=1
 ```
