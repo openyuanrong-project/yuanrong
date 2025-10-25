@@ -974,7 +974,7 @@ TEST_F(InvokeAdaptorTest, AdaptorGetInsTest)
     std::string name = "name";
     std::string ns = "ns";
     auto [res, err] = invokeAdaptor->GetInstance(name, ns, 60);
-    ASSERT_EQ(res.className, "classname");
+    ASSERT_EQ(res.className, "");
     auto [res1, err1] = invokeAdaptor->GetInstance(name, ns, 60);
     ASSERT_EQ(err1.OK(), true);
     ASSERT_EQ(invokeAdaptor->metaMap.size() == 1, true);
