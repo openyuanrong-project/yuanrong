@@ -224,7 +224,7 @@ while getopts 'thr:v:S:DcCgPET:p:bm:j:g' opt; do
     case "$opt" in
     t)
         BAZEL_COMMAND="test"
-        BAZEL_TARGETS="//test/... //api/python/yr/tests/... //api/java:java_tests"
+        BAZEL_TARGETS="//test/... //api/python/yr/tests/..."
         install_python_requirements
         ;;
     T)
