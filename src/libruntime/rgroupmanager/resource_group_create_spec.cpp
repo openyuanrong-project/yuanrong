@@ -41,12 +41,6 @@ void ResourceGroupCreateSpec::BuildCreateResourceGroupRequest()
     for (auto &bundle : this->rGroupSpec.bundles) {
         Bundle specBundle;
         auto *resources = specBundle.mutable_resources();
-        if (auto it = bundle.find(std::string(CPU_RESOURCE_NAME)); it == bundle.end() || it->second == 0) {
-            resources->insert({CPU_RESOURCE_NAME, DEFAULT_RG_CPU});
-        }
-        if (auto it = bundle.find(std::string(MEMORY_RESOURCE_NAME)); it == bundle.end() || it->second == 0) {
-            resources->insert({MEMORY_RESOURCE_NAME, DEFAULT_RG_MEMORY});
-        }
         for (auto &pair : bundle) {
             if (pair.second > 0) {
                 resources->insert({pair.first, pair.second});
