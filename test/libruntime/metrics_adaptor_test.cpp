@@ -144,7 +144,7 @@ nlohmann::json GetExportConfigs()
 std::string GetLibPath()
 {
     auto path = GetCurrentPath();
-    auto idx = path.find("runtime");
+    auto idx = path.rfind("yuanrong-runtime");
     if (idx != std::string::npos) {
         std::string subPath = path.substr(0, idx);
         return subPath + "metrics/lib";

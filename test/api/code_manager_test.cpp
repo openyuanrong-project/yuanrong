@@ -45,7 +45,7 @@ TEST_F(CodeManagerTest, LoadFunctionsSuccessfullyTest)
 {
     fs::path currentPath = fs::current_path();
     auto path = currentPath.string();
-    auto idx = path.find("runtime");
+    auto idx = path.rfind("yuanrong-runtime");
     std::string subPath = path.substr(0, idx);
     auto libPath = subPath + "metrics/lib";
     InitGlobalTimer();
