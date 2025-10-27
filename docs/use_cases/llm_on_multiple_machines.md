@@ -119,7 +119,7 @@ docker run \
 
 ```bash
 # 推理服务 IP 和端口，可自定义
-export SERVER_IP=127.0.0.1
+export SERVER_IP=xx.xx.xx.xx # 此处替换为自己的主/从节点 IP
 export SERVER_PORT=9000
 
 # 模型文件路径
@@ -172,6 +172,7 @@ PD 实例的日志可在 openYuanrong 日志路径 `/tmp/yr_sessions/latest/log`
 参考如下示例验证推理服务正常工作：
 
 ```bash
+# 将 SERVER_IP 和 SERVER_PORT 替换为自己的主节点主机 IP 和 端口（上文案例已配置）
 curl -X POST "http://${SERVER_IP}:${SERVER_PORT}/v1/completions" \
      -H "Content-Type: application/json" \
      -d '{
@@ -240,7 +241,7 @@ def save_to_file(prompts, output_file):
     with open(output_file, 'w', encoding='utf-8') as f:
         for prompt in tqdm(prompts, desc="写入文件"):
             # 每条数据都是一个单独的JSON数组
-            data = [{"prompt": prompt}]
+            data = {"prompt": prompt}
             json_line = json.dumps(data, ensure_ascii=False)
             f.write(json_line + '\n')
 
@@ -254,7 +255,7 @@ def main():
         'prefix_length': 2048,      # 前缀长度（token数）
         'suffix_length': 6144,      # 后缀长度（token数）
         'output_dir': './data',     # 输出目录
-        'output_file': 'dataset_8k.json',  # 输出文件名
+        'output_file': 'dataset_8k.jsonl',  # 输出文件名
         'seed': 42                  # 随机数种子
     }
 
@@ -287,11 +288,12 @@ if __name__ == "__main__":
 
 ```bash
 # 替换 YOUR_DATASET_PATH 为您的数据集路径
+# 将 SERVER_IP 和 SERVER_PORT 替换为自己的主节点主机 IP 和 端口（上文案例已配置）
 vllm bench serve \
     --backend=openai \
-    --base-url=http://${MASTER_IP}:${SERVER_PORT} \
+    --base-url=http://${SERVER_IP}:${SERVER_PORT} \
     --dataset-name=custom \
-    --dataset_path=${YOUR_DATASET_PATH} \
+    --dataset-path=${YOUR_DATASET_PATH} \
     --max-concurrency=8 \
     --custom-output-len=2 \
     --num-prompts=3000 \

@@ -321,7 +321,7 @@ export PDP=1
 export DDP=0
 ```
 
-在 openYuanrong 主节点所在容器 `/workspace/tools/deploy` 目录下，运行如下脚本部署：
+在 openYuanrong 节点所在容器 `/workspace/tools/deploy` 目录下，运行如下脚本部署：
 
 ```bash
 # 部署失败或完成案例后可通过 bash run_vllm_on_yr.sh clean 清理环境
@@ -348,7 +348,7 @@ tail -f deploy.log
 在容器中执行如下命令扩容一个相同的推理实例：
 
 ```bash
-# 替换 MASTER_IP 为您当前主机 IP
+# 将 SERVER_IP 和 SERVER_PORT 替换为自己的节点主机 IP 和 端口（上文案例已配置）
 curl --location --request POST 'http://${SERVER_IP}:${SERVER_PORT}/scaleout'
 ```
 
