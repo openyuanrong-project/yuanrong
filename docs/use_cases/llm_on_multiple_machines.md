@@ -284,7 +284,7 @@ if __name__ == "__main__":
     main()
 ```
 
-参考如下命令启动测试，相关配置详见 [vLLM CLI Reference](https://docs.vllm.ai/en/latest/cli/bench/serve.html){target="_blank"}：
+安装完 [vllm bench 工具](https://docs.vllm.ai/en/latest/cli/index.html#bench){target="_blank"}后，参考如下命令启动测试，相关配置详见 [vLLM CLI Reference](https://docs.vllm.ai/en/latest/cli/bench/serve.html){target="_blank"}：
 
 ```bash
 # 替换 YOUR_DATASET_PATH 为您的数据集路径
