@@ -266,7 +266,7 @@ genrule(
     JAVA_SDK_DIR=$$BASE_DIR/build/output/runtime/sdk/java
     rm -rf $$WORKING_DIR $$JAVA_SDK_DIR
     mkdir -p $$NATIVE_DIR $$JAVA_SDK_DIR
-    chrpath -r '$$ORIGIN' $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so) &&
+    chmod +w $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so) && chrpath -r '$$ORIGIN' $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so) &&
     chmod +w $(locations //:grpc_strip) && chrpath -d $(locations //:grpc_strip)
     # decompress jars to WORKING_DIR
     cd $$WORKING_DIR
