@@ -153,7 +153,7 @@ public:
         }
         AccelerateMsgQueueHandle handler{.name = "name"};
         resp.set_message(handler.ToJson());
-        callback(resp);
+        callback(resp, ErrorInfo());
         try {
             killCallbackPromise.set_value(1);
         } catch (const std::exception &e) {
