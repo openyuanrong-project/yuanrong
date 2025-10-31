@@ -16,18 +16,18 @@ openYuanrong 文档主要包含以下几类内容:
 - [常见问题](../FAQ/multi_language_functional_programming.md)
 - [API 介绍](../multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/index.rst)
 
-您可以参考已有的文档内容补充章节到对应文档目录，文档一级目录和代码路径的对应关系如下：
+openYuanrong 文档源码存放在[yuanrong-runtime](https://gitee.com/openeuler/yuanrong-runtime/tree/master){target="_blank"}仓的 `docs` 目录，您可以参考已有的文档内容补充章节到对应文档目录，文档一级目录和代码路径的对应关系如下：
 
-- 概述：runtime/docs/overview.md
-- 入门：runtime/docs/getting_started.md
-- 安装部署：runtime/docs/deploy
-- 使用案例：runtime/docs/use_cases
-- 多语言函数编程接口：runtime/docs/multi_language_function_programming_interface
-- 监控与调试：runtime/docs/observability
-- 常见问题：runtime/docs/FAQ
-- 贡献者指南：runtime/docs/contributor_guide
-- 词汇表: runtime/docs/glossary.md
-- 安全：runtime/docs/security.md
+- 概述：overview.md
+- 入门：getting_started.md
+- 安装部署：deploy
+- 使用案例：use_cases
+- 多语言函数编程接口：multi_language_function_programming_interface
+- 监控与调试：observability
+- 常见问题：FAQ
+- 贡献者指南：contributor_guide
+- 词汇表: glossary.md
+- 安全：security.md
 
 ## 文档语法与构建工具
 
@@ -49,9 +49,9 @@ openYuanrong 文档基于 [Sphinx](https://www.sphinx-doc.org/en/master/){target
 
 - 修改 Python API 文档：
 
-   - 若您想修改某个 Python API 英文文档，可以通过点击改的 Python API 英文页面右上方 `[source]` 蓝色按钮，即可跳转到该 API 所在的代码仓中的位置，在英文文档存放路径 `runtime/api/python` 或者 `runtime/api/python/yr` 中找到相应 `.py` 文件在对应位置进行修改。秉承着中英文一致的基本原则，当您修改了 Python API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。
-   - 若您想修改某个 Python API 中文文档，可以在中文文档存放路径 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python` 中找到与该 API 同名的 `.rst` 文档进行修改。同样，秉承着中英文一致的基本原则，请同步修改该 API 的英文文档。
-   - 若您想新增 Python API，英文文档请在上述提到的英文文档存放路径中找到相应 `.py` 文件，并适当位置写上**源码**以及符合[Google 风格](https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html){target="_blank"} 的英文文档；中文文档上述提到的中文文档存放路径中新建与该 API 同名的 `.rst` 文档进行写作。**最后**，请分别在在 `index.rst` 文件：`docs/multi_language_function_programming_interface/api/distributed_programming/Python` （英文 index），`docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python` （中文 index），中找到该接口归属的 API 类型，并在其中新增您的接口。添加方式参考如下（以中文 `index.rst` 举例，需添加两处）：
+   - 若您想修改某个 Python API 英文文档，可以通过点击改的 Python API 英文页面右上方 `[source]` 蓝色按钮，即可跳转到该 API 所在的代码仓中的位置，在英文文档存放路径[python英文仓-1](https://gitee.com/openeuler/yuanrong-runtime/tree/master/api/python){target="_blank"} 或者 [python英文仓-2](https://gitee.com/openeuler/yuanrong-runtime/tree/master/api/python/yr){target="_blank"} 中找到相应 `.py` 文件在对应位置进行修改。秉承着中英文一致的基本原则，当您修改了 Python API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。
+   - 若您想修改某个 Python API 中文文档，可以在中文文档存放路径[python中文仓](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python){target="_blank"}中找到与该 API 同名的 `.rst` 文档进行修改。同样，秉承着中英文一致的基本原则，请同步修改该 API 的英文文档。
+   - 若您想新增 Python API，英文文档请在上述提到的英文文档存放路径中找到相应 `.py` 文件，并适当位置写上**源码**以及符合[Google 风格](https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html){target="_blank"} 的英文文档；中文文档上述提到的中文文档存放路径中新建与该 API 同名的 `.rst` 文档进行写作。**最后**，请分别在在 `index.rst` 文件：[英文 index](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/Python){target="_blank"}， [中文 index](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python){target="_blank"}，中找到该接口归属的 API 类型，并在其中新增您的接口。添加方式参考如下（以中文 `index.rst` 举例，需添加两处）：
 
    ```text
       .. toctree::
@@ -75,31 +75,35 @@ openYuanrong 文档基于 [Sphinx](https://www.sphinx-doc.org/en/master/){target
            - 新 API 第一句描述。
    ```
 
-   - 参考：Python API function 中文可参考 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.init.rst`，`runtime/api/python/yr/apis.py` 中的 `def init(conf: Config = None) -> ClientInfo:`。Python API class 中文可参考 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.AlarmInfo.rst`，Attributes（属性）中文可参考 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.AlarmInfo.starts_at.rst`，Methods（方法）中文可参考 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.AlarmInfo.__init__.rst`，英文可参考 `runtime/api/python/yr/runtime.py` 中的 `class AlarmInfo`。
+   - 参考：
+   
+     **Python API function** 中文可参考[yr.init.rst](https://gitee.com/openeuler/yuanrong-runtime/blob/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.init.rst){target="_blank"}；对应的英文可参考[apis.py](https://gitee.com/openeuler/yuanrong-runtime/blob/master/api/python/yr/apis.py){target="_blank"}中的 `def init(conf: Config = None) -> ClientInfo:`。
+
+     **Python API class** 中文可参考[yr.AlarmInfo.rst](https://gitee.com/openeuler/yuanrong-runtime/blob/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.AlarmInfo.rst){target="_blank"}；其中的 Attributes（属性）中文可参考[yr.AlarmInfo.starts_at.rst](https://gitee.com/openeuler/yuanrong-runtime/blob/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.AlarmInfo.starts_at.rst){target="_blank"}，Methods（方法）中文可参考[yr.AlarmInfo.__init__.rst](https://gitee.com/openeuler/yuanrong-runtime/blob/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Python/yr.AlarmInfo.__init__.rst){target="_blank"}，英文可参考 [runtime.py](https://gitee.com/openeuler/yuanrong-runtime/blob/master/api/python/yr/runtime.py){target="_blank"}中的 `class AlarmInfo`。
 
 - 修改 C++ API 文档：
 
-   - 若您想修改某个 C++ API 英文文档，可以在英文文档存放路径 `runtime/api/cpp/include/yr` 中找到相应的 `.h` 文件在对应位置进行修改。秉承着中英文一致的基本原则，当您修改了 C++ API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。需注意的是，若您想修改该 API 的样例代码，可以在源文件中找到 `@snippet{trimleft}` 宏定义（通常在注释最末尾）字段旁边的 `.cpp` 文件，在样例代码仓 `runtime/api/cpp/example` 中找到该 `.cpp`文件进行修改。秉承着中英文一致的基本原则，当您修改了 C++ API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。
-   - 若您想修改某个 C++ API 中文文档，可以在中文文档存放路径 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/C++` 中找到与该 API 同名的 `.rst` 文档进行修改。同样，秉承着中英文一致的基本原则，请同步修改该 API 的英文文档。
+   - 若您想修改某个 C++ API 英文文档，可以在英文文档存放路径[c++ 英文仓](https://gitee.com/openeuler/yuanrong-runtime/tree/master/api/cpp/include/yr){target="_blank"}及其子目录中找到相应的 `.h` 文件在对应位置进行修改。秉承着中英文一致的基本原则，当您修改了 C++ API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。需注意的是，若您想修改该 API 的样例代码，可以在源文件中找到 `@snippet{trimleft}` 宏定义（通常在注释最末尾）字段旁边的 `.cpp` 文件，在[样例代码仓](https://gitee.com/openeuler/yuanrong-runtime/tree/master/api/cpp/example){target="_blank"}中找到该 `.cpp`文件进行修改。秉承着中英文一致的基本原则，当您修改了 C++ API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。
+   - 若您想修改某个 C++ API 中文文档，可以在[c++ 中文文档存放路径](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/C++){target="_blank"}中找到与该 API 同名的 `.rst` 文档进行修改。同样，秉承着中英文一致的基本原则，请同步修改该 API 的英文文档。
    - 若您想新增 C++ API，英文文档请在上述提到的英文文档存放路径中找到合适的 `.h` 文件，在适当位置写上源码以及符合[Doxygen 风格](https://www.doxygen.nl/manual/commands.html){target="_blank"} 的英文文档，并且在上述提到的样例代码仓中新建或找到适当的 `.cpp` 文件新增您的样例代码。最后在上述提到的样例代码仓新建与 API 同名的 `.md` 文档，并用 `{doxygenfunction}`、`{doxygenclass}`、`{doxygenvariable}`、`{doxygenstruct}`、`{doxygenenum}`、`{doxygentypedef}` 等 doxygen/breathe 语法来添加函数、类、变量、结构体、成员、定义等引用。具体用法举例如下所示：
 
      &#96;&#96;&#96;{doxygenfunction} API_a
 
      &#96;&#96;&#96;
 
-     中文文档请在上述提到的中文文档存放路径新建与该 API 同名的 `.rst` 文档进行写作。最后，请分别在 `index.rst` 文件：`docs/multi_language_function_programming_interface/api/distributed_programming/C++/index.rst` （英文 index），`docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/C++/index.rst` （中文 index），中找到该接口归属的 API 类型，并在其中新增您的接口。添加方式参考上面所展示的新增 Python API 方法。
-   - 参考：C++ API 英文 `.md` 文档可参考 `docs/multi_language_function_programming_interface/api/distributed_programming/C++/Get.md`；源码可参考 `runtime/api/cpp/include/yr/yr.h` 中的 `template \<typename T\>
-   std::shared_ptr\<T\> Get(const ObjectRef\<T\> &obj, int timeout = DEFAULT_GET_TIMEOUT_SEC);`等；样例代码可参考 `runtime/api/cpp/example/get_put_example.cpp`。中文可参考 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/C++/Get.rst`。
+     中文文档请在上述提到的中文文档存放路径新建与该 API 同名的 `.rst` 文档进行写作。最后，请分别在 [英文 index](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/C++index.rst){target="_blank"}，[中文 index](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/C++/index.rst){target="_blank"}，中找到该接口归属的 API 类型，并在其中新增您的接口。添加方式参考上面所展示的新增 Python API 方法。
+   - 参考：C++ API 英文 `.md` 文档可参考 [Get.md](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/C++/Get.md){target="_blank"}；源码可参考[yr.h](https://gitee.com/openeuler/yuanrong-runtime/tree/master/api/cpp/include/yr/yr.h){target="_blank"}中的 `template \<typename T\>
+   std::shared_ptr\<T\> Get(const ObjectRef\<T\> &obj, int timeout = DEFAULT_GET_TIMEOUT_SEC);` 等；样例代码可参考[get_put_example.cpp](https://gitee.com/openeuler/yuanrong-runtime/tree/master/api/cpp/example/get_put_example.cpp){target="_blank"}。中文可参考 [Get.rst](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh-cn/C++/Get.md){target="_blank"}。
 
 - 修改 Java API 文档：
 
-   - 若您想修改某个 Java API 英文文档，可以在英文文档存放路径 `docs/multi_language_function_programming_interface/api/distributed_programming/Java` 中找到与该 API 同名的 `.md` 文件在对应位置进行修改。秉承着中英文一致的基本原则，当您修改了 Java API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。
-   - 若您想修改某个 Java API 中文文档，可以在中文文档存放路径 `docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Java` 中找到与该 API 同名的 `.md` 文档进行修改。同样，秉承着中英文一致的基本原则，请同步修改该 API 的英文文档。
-   - 若您想新增 Java API，英文文档请在上述提到的英文文档存放路径中新建与 API 同名的 `.md` 文档；中文在上述提到的中文文档存放路径中新建与 API 同名的 `.md` 文档。最后，请分别在在 `index.rst` 文件：`docs/multi_language_function_programming_interface/api/distributed_programming/Java/index.rst` （英文 index），`docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Java/index.rst` （中文 index）中找到该接口归属的 API 类型，并在其中新增您的接口。添加方式参考上面所展示的新增 Python API 方法。
+   - 若您想修改某个 Java API 英文文档，可以在[Java英文文档存放路径](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/Java){target="_blank"}中找到与该 API 同名的 `.md` 文件在对应位置进行修改。秉承着中英文一致的基本原则，当您修改了 Java API 英文，请到相应的中文文档存放路径下修改该 API 的中文文档。
+   - 若您想修改某个 Java API 中文文档，可以在[Java中文文档存放路径](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Java){target="_blank"}中找到与该 API 同名的 `.md` 文档进行修改。同样，秉承着中英文一致的基本原则，请同步修改该 API 的英文文档。
+   - 若您想新增 Java API，英文文档请在上述提到的英文文档存放路径中新建与 API 同名的 `.md` 文档；中文在上述提到的中文文档存放路径中新建与 API 同名的 `.md` 文档。最后，请分别在[英文 index](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/Java/index.rst){target="_blank"}，[中文 index](https://gitee.com/openeuler/yuanrong-runtime/tree/master/docs/multi_language_function_programming_interface/api/distributed_programming/zh_cn/Java/index.rst){target="_blank"}中找到该接口归属的 API 类型，并在其中新增您的接口。添加方式参考上面所展示的新增 Python API 方法。
 
 ### 编写其它文档
 
-除 API 外，其他文档（入门、教程、案例类文档）的编写通过修改或者新增 `.md` 文件来完成。`.md` 文件从作用上分两类：目录和内容，目录统一使用 `index.md` 的文件名。一般来说，目录文件中需要对目录中的内容做“入门”描述，可以参考 `docs/deploy/index.md` 文件新增目录。新增的 `.md` 文件需要添加文件名到“目录” `index.md` 文件中才会生效，例如：openYuanrong 文档“安装部署”目录下的“安装指南”，对应文件 `docs/deploy/installation.md`，文件名在如下 `docs/deploy/index.md` 目录内。
+除 API 外，其他文档（入门、教程、案例类文档）的编写通过修改或者新增 `.md` 文件来完成。`.md` 文件从作用上分两类：目录和内容，目录统一使用 `index.md` 的文件名。一般来说，目录文件中需要对目录中的内容做“入门”描述，可以参考[文件目录 index.md](https://gitee.com/openeuler/yuanrong-runtime/blob/master/docs/deploy/index.md){target="_blank"}。新增的 `.md` 文件需要添加文件名到 `index.md` 文件中才会生效，例如：openYuanrong 文档“安装部署”目录下的[安装指南](https://gitee.com/openeuler/yuanrong-runtime/blob/master/docs/deploy/installation.md){target="_blank"}，其文件名在上述文件目录内。
 
 ```text
 ......
@@ -127,7 +131,7 @@ openYuanrong 文档基于 [Sphinx](https://www.sphinx-doc.org/en/master/){target
 
 - 参考[源码编译 openYuanrong](./source_code_build.md) 安装编译 runtime 所需工具。
 - 下载并安装 [Doxygen](https://github.com/doxygen/doxygen){target="_blank"}（1.12.0 及以上版本）。
-- 在代码 `runtime/docs` 目录下执行如下命令：
+- 在代码 `docs` 目录下执行如下命令：
 
    ```bash
    pip install -r requirements_dev.txt
@@ -135,7 +139,7 @@ openYuanrong 文档基于 [Sphinx](https://www.sphinx-doc.org/en/master/){target
 
 ### 构建 API
 
-需要先编译 runtime，才能生成 API 相关文档。在代码 `runtime` 目录下执行如下命令：
+需要先编译 runtime，才能生成 API 相关文档。在代码 `yuanrong-runtime` 仓执行如下命令：
 
 ```bash
 bash build.sh
@@ -143,13 +147,13 @@ bash build.sh
 
 ### 构建文档
 
-在代码 `runtime/doc` 目录下执行如下命令：
+在代码 `yuanrong-runtime/docs` 目录下执行如下命令：
 
 ```bash
 bash build.sh
 ```
 
-生成的文件在代码 `runtime` 同级的 `/output/docs` 目录下，重新构建请先删除 `runtime/docs/_build` 目录避免历史构建文件的影响。
+生成的文件在代码 `yuanrong-runtime` 同级的 `/output/docs` 目录下，重新构建请先删除 `yuanrong-runtime/docs/_build` 目录避免历史构建文件的影响。
 
 ### 本地测试
 
