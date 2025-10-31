@@ -25,6 +25,7 @@ cc_library(
         "@com_google_absl//absl/random:random",
         "@com_google_absl//absl/synchronization:synchronization",
         "@securec",
+        "@com_googlesource_code_re2//:re2",
     ],
 )
 
@@ -45,5 +46,6 @@ cc_library(
         "@com_google_absl//absl/random:random",
         "@com_google_absl//absl/synchronization:synchronization",
         "@securec",
+        "@com_googlesource_code_re2//:re2",
     ],
 )
