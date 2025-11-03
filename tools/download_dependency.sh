@@ -37,7 +37,9 @@ YR_METRICS_BIN_DIR="${RUNTIME_SRC_DIR}/../metrics"
 THIRD_PARTY_DIR="${RUNTIME_SRC_DIR}/../thirdparty/"
 MODULES="runtime"
 bash -x ${BASE_DIR}/download_opensource.sh -M $MODULES -T $THIRD_PARTY_DIR
-
+RUNTIME_THIRD_PARTY_CACHE=${RUNTIME_THIRD_PARTY_CACHE:-"https://build-logs.openeuler.openatom.cn:38080/temp-archived/openeuler/openYuanrong/runtime_deps/"}
+DATA_SYSTEM_CACHE=${DATA_SYSTEM_CACHE:-"https://build-logs.openeuler.openatom.cn:38080/temp-archived/openeuler/openYuanrong/yr_cache/$(uname -m)/yr-datasystem-v0.5.0.tar.gz"}
+FUNCTION_SYSTEM_CACHE=${FUNCTION_SYSTEM_CACHE:-"https://build-logs.openeuler.openatom.cn:38080/temp-archived/openeuler/openYuanrong/yr_cache/$(uname -m)/yr-functionsystem-v0.5.0.tar.gz"}
 function check_datasystem() {
     # check whether datasystem exist
     if [ ! -d "${YR_DATASYSTEM_BIN_DIR}"/datasystem/output/sdk/cpp/include ]; then

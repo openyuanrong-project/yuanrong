@@ -22,7 +22,7 @@ MODULES="all"
 DOWNLOAD_TEST_THIRDPARTY="ON"
 
 LOCAL_OS=$(head -1 /etc/os-release | tail -1 | awk -F "\"" '{print $2}')_$(uname -m)
-
+THIRD_PARTY_CACHE=${THIRD_PARTY_CACHE:-"https://build-logs.openeuler.openatom.cn:38080/temp-archived/openeuler/openYuanrong/deps/"}
 echo -e "local os is $LOCAL_OS"
 
 
