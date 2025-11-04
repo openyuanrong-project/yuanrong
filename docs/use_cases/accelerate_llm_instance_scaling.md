@@ -250,7 +250,7 @@ docker run \
 
    ```bash
    cd /vllm-workspace/vllm-ascend
-   git am /workspace/tools/patch/0001-implement-chariot-ds-connector-and-support-multimoda.patch
+   git am /workspace/tools/patch/0001-implement-yr-datasystem-connector-and-support-multimoda.patch
    python setup.py develop
    ```
 
@@ -339,7 +339,7 @@ tail -f deploy.log
 # INFO:     Uvicorn running on http://127.0.0.1:9000 (Press CTRL+C to quit)
 ```
 
-在 `/tmp/yr_session/latest/log/` 目录下查看推理实例的运行日志文件 `runtime-{runtime_id}.out`，预期有如下输出，模型加载用时约 15.8 秒。
+在 `/tmp/yr_sessions/latest/log/` 目录下查看推理实例的运行日志文件 `runtime-{runtime_id}.out`，预期有如下输出，模型加载用时约 15.8 秒。
 
 ![](../images/accelerate_llm_instance_scaling_1.png)
 
@@ -352,6 +352,6 @@ tail -f deploy.log
 curl --location --request POST 'http://${SERVER_IP}:${SERVER_PORT}/scaleout'
 ```
 
-在 `/tmp/yr_session/latest/log/` 目录下查看新扩容推理实例的运行日志文件 `runtime-{runtime_id}.out`，预期有如下输出，模型加载用时约 1.5 秒，10 倍的加速性能提升。
+在 `/tmp/yr_sessions/latest/log/` 目录下查看新扩容推理实例的运行日志文件 `runtime-{runtime_id}.out`，预期有如下输出，模型加载用时约 1.5 秒，10 倍的加速性能提升。
 
 ![](../images/accelerate_llm_instance_scaling_2.png)

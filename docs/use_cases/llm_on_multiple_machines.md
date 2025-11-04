@@ -74,7 +74,7 @@ docker run \
 
    ```bash
    cd /vllm-workspace/vllm-ascend
-   git am /workspace/tools/patch/0001-implement-chariot-ds-connector-and-support-multimoda.patch
+   git am /workspace/tools/patch/0001-implement-yr-datasystem-connector-and-support-multimoda.patch
    python setup.py develop
    ```
 
