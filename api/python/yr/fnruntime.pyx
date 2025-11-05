@@ -664,8 +664,8 @@ cdef CErrorInfo function_execute_callback_internal(const CFunctionMeta & functio
             name="AsyncIO Thread: default")
         _thread_for_default_cg.start()
     cdef shared_ptr[CLibruntime] c_libruntime = CLibruntimeManager.Instance().GetLibRuntime()
-        if c_libruntime == nullptr:
-            raise RuntimeError("already finalized")
+    if c_libruntime == nullptr:
+        raise RuntimeError("already finalized")
     result_list = []
     error_info = ErrorInfo()
     cdef:
