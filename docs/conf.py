@@ -107,6 +107,13 @@ html_theme_options = {
     "show_navbar_depth": 1,
     "max_navbar_depth": 7,
     "collapse_navigation": True,
+    "navbar_end": [
+        "version-switcher",
+    ],
+    "switcher": {
+        "json_url": "https://gitee.com/openeuler/yuanrong-runtime/blob/master/docs/_static/versions.json",
+        "version_match": "latest",
+    },
     "extra_footer": """
         Built with
         <a href="https://www.sphinx-doc.org/en/master/">Sphinx</a>
