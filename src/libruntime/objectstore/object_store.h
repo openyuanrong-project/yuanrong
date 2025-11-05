@@ -20,7 +20,7 @@
 #include <string>
 
 #include <msgpack.hpp>
-#include "datasystem/object_cache.h"
+#include "datasystem/object_client.h"
 #include "src/dto/buffer.h"
 #include "src/dto/tensor.h"
 #include "src/dto/types.h"

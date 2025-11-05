@@ -18,7 +18,7 @@
 
 #include <memory>
 
-#include "datasystem/object_cache.h"
+#include "datasystem/object_client.h"
 
 #include "datasystem_client_wrapper.h"
 

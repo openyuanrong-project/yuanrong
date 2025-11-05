@@ -17,7 +17,7 @@
 #pragma once
 #include "future"
 
-#include "datasystem/hetero_cache/hetero_client.h"
+#include "datasystem/hetero_client.h"
 #include "device_util.h"
 
 namespace YR {

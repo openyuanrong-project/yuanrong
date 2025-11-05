@@ -17,7 +17,7 @@
 #pragma once
 #include <future>
 #include <memory>
-#include "datasystem/hetero_cache/hetero_client.h"
+#include "datasystem/hetero_client.h"
 #include "device_util.h"
 #include "src/dto/buffer.h"
 #include "src/libruntime/err_type.h"

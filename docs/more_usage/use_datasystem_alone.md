@@ -77,7 +77,7 @@ def hetero_mset_d2h_mget_h2d():
 
 ```cpp
 
-#include "datasystem/hetero_cache/hetero_client.h"
+#include "datasystem/hetero_client.h"
 #include <acl/acl.h>
 
 ConnectOptions connectOptions = { .host = "127.0.0.1", .port = 31501 };

@@ -18,7 +18,7 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include "datasystem/object_cache.h"
+#include "datasystem/object_client.h"
 #include "src/libruntime/err_type.h"
 #include "src/libruntime/utils/datasystem_utils.h"
 

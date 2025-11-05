@@ -19,7 +19,7 @@
 #include <iterator>
 #include <sstream>
 
-#include "datasystem/object_cache.h"
+#include "datasystem/object_client.h"
 #include "reference_count_map.h"
 #include "src/libruntime/objectstore/object_store.h"
 #include "src/libruntime/utils/constants.h"

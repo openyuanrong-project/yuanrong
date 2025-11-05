@@ -21,7 +21,7 @@
 
 #include <msgpack.hpp>
 
-#include "datasystem/kv_cache.h"
+#include "datasystem/kv_client.h"
 #include "src/dto/buffer.h"
 #include "src/libruntime/statestore/state_store.h"
 #include "src/libruntime/utils/constants.h"

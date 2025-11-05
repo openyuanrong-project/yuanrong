@@ -21,10 +21,9 @@
 #include <string>
 
 #define private public
-#include "datasystem/hetero_cache/hetero_client.h"
-#include "datasystem/object_cache.h"
-#include "datasystem/kv_cache/kv_client.h"
-#include "datasystem/kv_cache.h"
+#include "datasystem/hetero_client.h"
+#include "datasystem/object_client.h"
+#include "datasystem/kv_client.h"
 
 namespace datasystem {
 class ThreadPool {
