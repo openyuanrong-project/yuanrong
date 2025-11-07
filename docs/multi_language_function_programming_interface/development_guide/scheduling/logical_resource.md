@@ -41,7 +41,7 @@ yr.init()
 
 # 配置运行无状态函数需要 1 核 CPU，1G 内存，1 个 ssd 自定义资源，1 张任意型号的 NPU 卡，1 张任意型号的 GPU 卡
 opt = yr.InvokeOptions(cpu=1000, memory=1024)
-opt.custom_resource={"ssd":1,"NPU/.+/count":1,"GPU/.+/count":1}
+opt.custom_resources={"ssd":1,"NPU/.+/count":1,"GPU/.+/count":1}
 result = add.options(opt).invoke(1)
 print(yr.get(result))
 
