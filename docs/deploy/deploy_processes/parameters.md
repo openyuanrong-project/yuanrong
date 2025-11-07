@@ -14,7 +14,7 @@
 | `-o,--master_info_output`       | 控制面组件启动 IP、端口信息输出文件路径。            | ``""``     | 选填。默认输出在部署目录下，yr_agent 不需要配置。 |
 | `-w,--ds_worker_unique_enable`  | 是否打开 ds-worker 节点唯一。                      | 无参     | 选填。 |
 | `-p,--services_path`            | 函数包 services.yaml 路径。                        | ``""``     | 选填。建议配置绝对路径，并确保文件存在，否则可能无法正确加载函数元数据。 |
-| `-f,--function_proxy_unique_enable` | 是否打开 function-proxy 节点唯一。             | 无参参      | 选填。 |
+| `-f,--function_proxy_unique_enable` | 是否打开 function-proxy 节点唯一。             | 无参      | 选填。 |
 | `--master`                      | 启动 master 节点。                                | 无参      | 必填。yr_master 启动默认加此参数。 |
 | `--master_info`                 | 控制面组件启动 IP、端口信息。                       | ``""``     | 部署从节点时**必填**，部署主节点时**不填**。优先级高于直接配置 etcd_ip、master_ip 等。 |
 | `--master_ip`                   | 控制面组件 IP。                                    | ``""``     | 选填。若配置了 `--master`，该参数配置忽略。 |

@@ -127,7 +127,7 @@ print(yr.get(next_result_ref))
 data_ref = yr.put({"key": "value"})
 
 # Get data from object store
-print(yr.get(data_ref))  # output {"key", "value"}
+print(yr.get(data_ref))  # output {"key": "value"}
 ```
 
 ## 下一步

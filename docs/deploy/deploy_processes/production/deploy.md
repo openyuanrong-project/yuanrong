@@ -79,7 +79,7 @@ yr start --gpu_collection_enable true --master_info "local_ip:x.x.x.x,master_ip:
 
 ```bash
 # master_ip 替换为每台主机的 ip，并指定每台主机使用的 etcd 端口，请确保端口不冲突
-# 例如：yr start --master --etcd_addr_list 192.168.0.1:23279:23280,192.168.0.0.2:23279:23280,192.168.0.0.3:23279:23280
+# 例如：yr start --master --etcd_addr_list 192.168.0.1:23279:23280,192.168.0.2:23279:23280,192.168.0.0.3:23279:23280
 yr start --master --etcd_addr_list={master-1_ip:etcd-1_port:etcd-1_peer_port,master-2_ip:etcd-2_port:etcd-2_peer_port,master-3_ip:etcd-3_port:etcd-3_peer_port}
 ```
 
@@ -87,7 +87,7 @@ yr start --master --etcd_addr_list={master-1_ip:etcd-1_port:etcd-1_peer_port,mas
 
 ```bash
 # etcd_addr_list 的配置和主节点保持一致
-# 例如：yr start --etcd_addr_list 192.168.0.1:23279:23280,192.168.0.0.2:23279:23280,192.168.0.0.3:23279:23280
+# 例如：yr start --etcd_addr_list 192.168.0.1:23279:23280,192.168.0.2:23279:23280,192.168.0.0.3:23279:23280
 yr start --etcd_addr_list={master-1_ip:etcd-1_port:etcd-1_peer_port,master-2_ip:etcd-2_port:etcd-2_peer_port,master-3_ip:etcd-3_port:etcd-3_peer_port}
 ```
 
@@ -99,7 +99,7 @@ yr start --etcd_addr_list={master-1_ip:etcd-1_port:etcd-1_peer_port,master-2_ip:
 
 ### 部署时配置安全通信
 
-openYuanrong 支持内部组件间及内部组件同三方组件 ETCD 间的加密通信。当前只支持配置明文证书秘钥，因此存在证书秘钥泄露风险。如果您有高安全的秘钥管理需求，可基于 openYuanrong 开源代码自行实现秘钥解密算法，同时配置加密的证书秘钥，其他秘钥配置也可参考该方案。
+openYuanrong 支持内部组件间及内部组件同三方组件 ETCD 间的加密通信。当前只支持配置明文证书密钥，因此存在证书密钥泄露风险。如果您有高安全的密钥管理需求，可基于 openYuanrong 开源代码自行实现密钥解密算法，同时配置加密的证书密钥，其他密钥配置也可参考该方案。
 
 openYuanrong 默认未开启安全通信选项，如需开启请参考[安全通信](./security.md)章节生成相关证书密钥。
 
