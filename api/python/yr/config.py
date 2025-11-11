@@ -356,7 +356,7 @@ class InvokeOptions:
     >>> import yr
     >>> yr.init()
     >>> opt = yr.InvokeOptions()
-    >>> opt.custom_extensions["YR_Metrics"] = "{\"endpoint\":\"127.0.0.1\", \"project_id\":\"my_project_id\"}"
+    >>> opt.custom_extensions["YR_Metrics"] = "{\'endpoint\':\'127.0.0.1\', \'project_id\':\'my_project_id\'}"
 
     In Prometheus, select `metrics name` as `yr_app_instance_billing_invoke_latency`, and you can find the custom tag 
     information in the collected invoke information:

@@ -28,14 +28,9 @@ yr.put
     样例：
         >>> import yr
         >>> yr.init()
-        >>> # worker启动参数需要配置为shared_disk_directory和shared_disk_size_mb
-        >>> # 否则，此示例将导致错误
         >>> param = yr.CreateParam()
         >>> param.cache_type = yr.CacheType.DISK
         >>> bs = bytes(0)
-        >>> obj_ref1 = yr.put(bs, param)
-        >>> print(yr.get(obj_ref1))
-        >>> # ValueError: value is None or has zero length
         >>> mem = memoryview(bytes(100))
         >>> obj_ref2 = yr.put(mem)
         >>> print(yr.get(obj_ref2))
@@ -46,6 +41,5 @@ yr.put
         >>> # 最后输出一个 memoryview 指针
         >>> obj_ref4 = yr.put(100)
         >>> print(yr.get(obj_ref4))
-        >>> 100
 
 .. _ObjectRef: ../../Python/generated/yr.object_ref.ObjectRef.html#yr.object_ref.ObjectRef

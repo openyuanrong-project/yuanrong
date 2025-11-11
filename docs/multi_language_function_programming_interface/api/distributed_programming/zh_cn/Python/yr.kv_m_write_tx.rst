@@ -19,8 +19,6 @@ yr.kv_m_write_tx
     样例：
         >>> import yr
         >>> yr.init()
-        >>> # worker启动参数需要配置为 shared_disk_directory 和 shared_disk_size_mb
-        >>> # 否则，此示例将导致错误
         >>> mset_param = yr.MSetParam()
         >>> mset_param.existence = yr.ExistenceOpt.NX
         >>> mset_param.write_mode = yr.WriteMode.NONE_L2_CACHE_EVICT

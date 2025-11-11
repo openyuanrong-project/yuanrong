@@ -236,14 +236,9 @@ def put(obj: object, create_param: CreateParam = CreateParam()) -> ObjectRef:
     Examples:
         >>> import yr
         >>> yr.init()
-        >>> # The worker startup parameters need to be configured with shared_disk_directory and shared_disk_size_mb;
-        >>> # otherwise, this example will result in an error
         >>> param = yr.CreateParam()
         >>> param.cache_type = yr.CacheType.DISK
         >>> bs = bytes(0)
-        >>> obj_ref1 = yr.put(bs, param)
-        >>> print(yr.get(obj_ref1))
-        >>> # ValueError: value is None or has zero length
         >>> mem = memoryview(bytes(100))
         >>> obj_ref2 = yr.put(mem)
         >>> print(yr.get(obj_ref2))
@@ -254,7 +249,6 @@ def put(obj: object, create_param: CreateParam = CreateParam()) -> ObjectRef:
         >>> # The final print output is a memoryview pointer.
         >>> obj_ref4 = yr.put(100)
         >>> print(yr.get(obj_ref4))
-        >>> 100
     """
     if (isinstance(obj, (bytes, bytearray, memoryview)) and len(obj) == 0):
         raise ValueError("value is None or has zero length")
@@ -1297,7 +1291,7 @@ class cpp_instance_class:
             class_name (str): cpp class name.
             factory_name (str): Name of the static factory function of the cpp class.
             function_urn (str): Function URN, Defaults to
-                sn:cn:yrk:12345678901234561234567890123456:function:0-defaultservice-py:$latest.
+                sn:cn:yrk:12345678901234561234567890123456:function:0-defaultservice-cpp:$latest.
 
         Examples:
             .. code-block:: cpp
@@ -1331,8 +1325,11 @@ class cpp_instance_class:
 
                 >>> import yr
                 >>> yr.init()
-                >>> cpp_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest"
-                >>> counter_class = yr.cpp_instance_class("Counter", "Counter::FactoryCreate",cpp_function_urn)
+                >>> cpp_function_urn = (
+                ...     "sn:cn:yrk:12345678901234561234567890123456:"
+                ...     "function:0-yr-defaultservice-cpp:$latest"
+                ... )
+                >>> counter_class = yr.cpp_instance_class("Counter", "Counter::FactoryCreate", cpp_function_urn)
                 >>> opt = yr.InvokeOptions(cpu=1000, memory=1024)
                 >>> ins = counter_class.options(opt).invoke(11)
                 >>> result = ins.Add.invoke(9)
@@ -1420,11 +1417,13 @@ def cpp_function(function_name: str, function_urn: str) -> FunctionProxy:
 
             >>> import yr
             >>> yr.init()
-            >>> cpp_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest"
+            >>> cpp_function_urn = (
+            ...     "sn:cn:yrk:12345678901234561234567890123456:"
+            ...     "function:0-yr-defaultservice-cpp:$latest"
+            ... )
             >>> square_func = yr.cpp_function("Square", cpp_function_urn)
             >>> result = square_func.invoke(5)
             >>> print(yr.get(result))
-            >>>
             >>> yr.finalize()
 
     """
@@ -1470,7 +1469,10 @@ def java_function(class_name: str, function_name: str, function_urn: str) -> Fun
 
             >>> import yr
             >>> yr.init()
-            >>> java_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest"
+            >>> java_function_urn = (
+            ...     "sn:cn:yrk:12345678901234561234567890123456:"
+            ...     "function:0-yr-defaultservice-java:$latest"
+            ... )
             >>> java_add = yr.java_function("com.yuanrong.demo.PlusOne", "PlusOne", java_function_urn)
             >>> result = java_add.invoke(1)
             >>> print(yr.get(result))
@@ -1523,7 +1525,10 @@ def java_instance_class(class_name: str, function_urn: str) -> InstanceCreator:
 
             >>> import yr
             >>> yr.init()
-            >>> java_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest"
+            >>> java_function_urn = (
+            ...     "sn:cn:yrk:12345678901234561234567890123456:"
+            ...     "function:0-yr-defaultservice-java:$latest"
+            ... )
             >>>
             >>> java_instance = yr.java_instance_class("com.yuanrong.demo.Counter", java_function_urn).invoke(1)
             >>> res = java_instance.Add.invoke(5)

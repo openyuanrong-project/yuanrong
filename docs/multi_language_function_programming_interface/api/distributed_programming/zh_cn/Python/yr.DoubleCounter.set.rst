@@ -14,7 +14,7 @@ yr.DoubleCounter.set
 
     样例：
         >>> import yr
-            >>> config = yr.Config(enable_metrics=True)
+        >>> config = yr.Config(enable_metrics=True)
         >>> yr.init(config)
         >>>
         >>> @yr.instance
