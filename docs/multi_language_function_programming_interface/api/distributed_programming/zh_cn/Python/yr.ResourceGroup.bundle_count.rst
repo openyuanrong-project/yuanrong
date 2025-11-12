@@ -13,7 +13,10 @@ yr.ResourceGroup.bundle_count
        数据类型为 List[Dict]。
 
    样例:
+       >>> import yr
+       >>> yr.init()
        >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
-       >>> bundles = rg.bundle_specs
+       >>> count = rg.bundle_count
+       >>> print(count)
 
 
