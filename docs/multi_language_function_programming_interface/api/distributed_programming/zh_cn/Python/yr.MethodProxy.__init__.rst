@@ -13,4 +13,3 @@ yr.MethodProxy.__init__
                  instance_name="",
                  namespace="")
 
-    初始化 MethodProxy 实例。

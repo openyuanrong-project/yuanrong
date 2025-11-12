@@ -18,11 +18,16 @@ yr.create_resource_group
         - **name** (Optional[str]，可选) - 待创建 ResourceGroup 的名称，具有唯一性，且不能是 'primary' 或者空字符串。
           该参数可选，默认值为 ``None`` ，即随机生成 rgroup-{uuid} 类型的字符串作为 `resource group name` 。
         - **strategy** (Optional[str]，可选) - 创建 ResourceGroup 的策略，默认策略为 ``'PACK'`` 。
-          - ``'NONE'``：无策略
-          - ``'PACK'``：将 `bundles` 尽可能分散在同一个节点。
-          - ``'SPREAD'``：将 `bundles` 尽可能分散在不同节点。
-          - ``'STRICT_PACK'``：将 `bundles` 尽可能分散在同一个节点，不允许在多个节点上创建 `bundles` 。
-          - ``'STRICT_SPREAD'``：将 `bundles` 尽可能分散在不同节点，不允许在同个节点上创建多个 `bundles` 。
+          
+          - ``'NONE'``：无策略。
+
+          - ``'PACK'``：尽可能将多个 `bundle`` 集中在同一个节点。
+          
+          - ``'SPREAD'``：尽可能将多个 `bundle` 分散到不同节点。
+          
+          - ``'STRICT_PACK'``：所有 `bundle` 需放在同一节点，否则创建失败。
+          
+          - ``'STRICT_SPREAD'``：所有 `bundle` 需放在不同节点，否则创建失败。
     返回：
         一个 ResourceGroup_ 句柄。
 
@@ -34,8 +39,8 @@ yr.create_resource_group
         - **RuntimeError** – resource group 名称不合法。
 	
     样例：
-        >>> rg1 = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}])
+        >>> rg1 = yr.create_resource_group([{"NPU/Ascend910B4/count":1},{"CPU":2000,"Memory":2000}])
         >>>
-        >>> rg2 = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
+        >>> rg2 = yr.create_resource_group([{"NPU/Ascend910B4/count":1},{"CPU":2000,"Memory":2000}], "rgname")
 
 .. _ResourceGroup: ../../Python/generated/yr.ResourceGroup.html#yr.ResourceGroup

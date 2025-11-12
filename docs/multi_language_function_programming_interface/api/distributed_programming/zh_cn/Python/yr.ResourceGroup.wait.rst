@@ -13,8 +13,6 @@ yr.ResourceGroup.wait
 
     异常：
         - **ValueError** - 超时时间小于 ``-1``。
-        - **RuntimeError** - 创建资源组返回错误提示。
-        - **RuntimeError** - 超时等待。
 
     样例：
         >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")

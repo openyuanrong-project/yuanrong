@@ -14,7 +14,7 @@ yr.device.DataInfo
        :header-rows: 0
 
        * - :ref:`__init__ <init_DataInfo>`
-         - 初始化 `DataInfo` 对象。
+         - 
 
 .. toctree::
     :maxdepth: 1

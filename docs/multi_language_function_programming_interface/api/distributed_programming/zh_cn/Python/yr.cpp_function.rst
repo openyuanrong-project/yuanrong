@@ -12,7 +12,7 @@ yr.cpp_function
         - **function_urn** (str) - cpp 函数的 URN（统一资源名称）。
 
     返回:
-        被装饰函数的代理对象。
+        返回远程 c++ 函数的代理对象。
         数据类型：FunctionProxy。
 
     样例：

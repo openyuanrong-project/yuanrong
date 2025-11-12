@@ -28,7 +28,7 @@ yr.FunctionProxy
        :header-rows: 0
 
        * - :ref:`__init__ <init_fp>`
-         - 初始化 FunctionProxy 实例。
+         - 
        * - :ref:`get_original_func <get_original_func>`
          - 获取未包装的函数。
        * - :ref:`options <options_fp>`

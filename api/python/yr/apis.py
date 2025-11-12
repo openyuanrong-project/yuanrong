@@ -334,7 +334,7 @@ def wait(obj_refs: Union[ObjectRef, List[ObjectRef]], wait_num: int = 1,
 
     Args:
         object_refs (list): Data saved to the data system.
-        wait_num (int, optional): The minimum number of objects to wait for. If set to ``None``, it defaults to ``1``.
+        wait_num (int, optional): The minimum number of objects to wait for. It defaults to ``1``.
             The value should not exceed the length of `obj_refs`.
         timeout (int, optional): The timeout in seconds. Note that if the default value ``None`` is used,
             it will wait indefinitely, with the actual maximum wait time limited by the wait factors in `get`.
@@ -1219,11 +1219,16 @@ def create_resource_group(bundles: List[Dict[str, float]], name: Optional[str] =
             cannot be 'primary' or an empty string. This parameter is optional, with a default value of ``None``,
             meaning a rgroup-{uuid} type string will be randomly generated as the `resource group name`.
         strategy (OptionsOptional[str], optional): The strategy to create the resource group, defalut strategy is ``PACK``
-            - None: No strategy.
-            - PACK: Packs Bundles into as few nodes as possible.
-            - SPREAD: Places Bundles across distinct nodes as even as possible.
-            - STRICT_PACK: Packs Bundles into one node. The group is not allowed to span multiple nodes.
-            - STRICT_SPREAD: Packs Bundles across distinct nodes.
+            
+            - ``'None'``: No strategy.
+
+            - ``'PACK'``: Pack multiple bundles into the same node as much as possible.
+            
+            - ``'SPREAD`'': Distribute multiple bundles across different nodes as much as possible.
+            
+            - ''`STRICT_PACK`'': All bundles must be placed on the same node, otherwise creation fails.
+           
+            - ''`STRICT_SPREAD`'': All bundles must be placed on different nodes, otherwise creation fails.
 
     Returns:
         A ResourceGroup handle.
@@ -1236,9 +1241,9 @@ def create_resource_group(bundles: List[Dict[str, float]], name: Optional[str] =
         RuntimeError: If the resource group name is invalid.
 
     Examples:
-        >>> rg1 = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}])
+        >>> rg1 = yr.create_resource_group([{"NPU/Ascend910B4/count":1},{"CPU":2000,"Memory":2000}])
         >>>
-        >>> rg2 = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
+        >>> rg2 = yr.create_resource_group([{"NPU/Ascend910B4/count":1},{"CPU":2000,"Memory":2000}], "rgname")
     """
     if not isinstance(bundles, list):
         raise TypeError(f"invalid bundles type, actual: {type(bundles)}, expect: list.")
@@ -1399,7 +1404,7 @@ def cpp_function(function_name: str, function_urn: str) -> FunctionProxy:
         function_urn (str): The URN (Uniform Resource Name) of cpp function.
 
     Returns:
-        The corresponding function proxy.
+        Return a proxy object for the remote C++ function.
         Data type is FunctionProxy.
 
     Examples:

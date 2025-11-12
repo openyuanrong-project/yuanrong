@@ -27,7 +27,7 @@ yr.ResourceGroup
        :widths: 35 70
 
        * - :ref:`__init__ <init_ResourceGroup>`
-         - 初始化 ResourceGroup。
+         - 
        * - :ref:`wait <wait_ResourceGroup>`
          - 阻塞并等待创建 ResourceGroup 的结果。
 

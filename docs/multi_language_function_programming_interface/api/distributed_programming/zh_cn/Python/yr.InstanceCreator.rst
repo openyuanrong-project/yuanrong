@@ -14,7 +14,7 @@ yr.InstanceCreator
        :header-rows: 0
 
        * - :ref:`__init__ <init_ic>`
-         - 初始化 InstanceCreator 实例。
+         - 
        * - :ref:`create_cpp_user_class <create_cpp_user_class>`
          - 创建一个 cpp 用户类。
        * - :ref:`create_cross_user_class <create_cross_user_class>`

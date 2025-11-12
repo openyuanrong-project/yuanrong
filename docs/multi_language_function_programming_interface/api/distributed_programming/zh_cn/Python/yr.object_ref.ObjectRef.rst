@@ -25,7 +25,7 @@ yr.object_ref.ObjectRef
        :widths: 30 70
 
        * - :ref:`__init__ <init_ObjectRef>`
-         - 初始化 ObjectRef。
+         - 
        * - :ref:`as_future <as_future>`
          - 使用 asyncio.Future 包装 ObjectRef。
        * - :ref:`cancel <cancel_ObjectRef>`

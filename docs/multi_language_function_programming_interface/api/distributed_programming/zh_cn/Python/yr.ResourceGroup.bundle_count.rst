@@ -10,7 +10,7 @@ yr.ResourceGroup.bundle_count
 
    返回：
        当前资源组下的所有 bundle。
-       数据类型为 List[Dict]。
+       数据类型为 int。
 
    样例:
        >>> import yr

@@ -99,8 +99,6 @@ class ResourceGroup:
 
         Raises:
             ValueError: Timeout is less than ``-1``.
-            RuntimeError: Creating resource group returns error message.
-            RuntimeError: Timeout waiting.
     
         Examples:
             >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
