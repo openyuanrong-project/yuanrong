@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
     def dis_sum(args): # dis_sum 被调用时，传入的值为 [objref1， objref2， objref3]
         return sum(yr.get(args)) # 调用 get 时，objref1/objref2/objref3 的值才会传输到当前机器。
 
-    objref1 = get_num.invoke(1) # 此处返回 object ref，发出调用请求后即可返回，无需等待 get_sum 执行完成
+    objref1 = get_num.invoke(1) # 此处返回 object ref，发出调用请求后即可返回，无需等待 get_num 执行完成
     objref2 = get_num.invoke(2)
     objref3 = get_num.invoke(3)
     objref = yr.put([objref1, objref2, objref3]) # 嵌套传递 object ref
@@ -280,7 +280,7 @@ spillDirectory: ""
 spillSizeLimit: "0"
 # 指定向磁盘写数据时的最大并行度，当磁盘性能非常高时，可尝试将该值调高提升性能。
 spillThreadNum: 8
-# 指定溢出到磁盘上的单个文件大小。单位为 MB，取值范围时 200-10240。
+# 指定溢出到磁盘上的单个文件大小。单位为 MB，取值范围：200-10240。
 # 当对象较小时，多个对象合并写入到一个文件中。当对象很大且超出该值时，每个文件一个对象。
 spillFileMaxSizeMb: 200
 # 用于指定对象溢出最大打开的文件句柄数。当该值被调小时，可能会降低性能。

@@ -12,7 +12,7 @@ yr.cpp_function
         - **function_urn** (str) - cpp 函数的 URN（统一资源名称）。
 
     返回:
-        被装饰函数的代理对象。
+        返回远程 c++ 函数的代理对象。
         数据类型：FunctionProxy。
 
     样例：
@@ -32,7 +32,10 @@ yr.cpp_function
 
        >>> import yr
        >>> yr.init()
-       >>> cpp_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest"
+       >>> cpp_function_urn = (
+       ...     "sn:cn:yrk:12345678901234561234567890123456:"
+       ...     "function:0-yr-defaultservice-cpp:$latest"
+       ... )
        >>> square_func = yr.cpp_function("Square", cpp_function_urn)
        >>> result = square_func.invoke(5)
        >>> print(yr.get(result))

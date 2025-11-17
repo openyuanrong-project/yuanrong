@@ -41,6 +41,6 @@ openYuanrong 会基于以下调度策略选择最佳的节点运行 openYuanrong
 
 ### 亲和
 
-您可通过在节点或者 openYuanrong 函数上设置标签，实现新调度的 openYuanrong 函数部署在特点标签的节点上，或者和特定标签的 openYuanrong 函数部署在相同的节点上。通过亲和，您可以自定义策略实现更灵活的调度满足业务需要。
+您可通过在节点或者 openYuanrong 函数上设置标签，实现新调度的 openYuanrong 函数部署在特定标签的节点上，或者和特定标签的 openYuanrong 函数部署在相同的节点上。通过亲和，您可以自定义策略实现更灵活的调度满足业务需要。
 
 参考[亲和](./affinity.md)章节了解如何配置 openYuanrong 函数亲和属性。

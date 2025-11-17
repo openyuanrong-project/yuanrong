@@ -86,8 +86,9 @@ function generate_test_dir() {
 function install_python_pkg() {
     pip3.9 install pytest
     pip3.9 install requests
+    pip3.9 install numpy
     pip3.9 uninstall -y yr
-    pip3.9 install $YUANRONG_DIR/runtime/sdk/python/yr_sdk-*cp39-cp39-linux_x86_64.whl
+    pip3.9 install $YUANRONG_DIR/runtime/sdk/python/yr_sdk-*cp39-cp39-linux*.whl
 }
 
 function common_check_st_result() {

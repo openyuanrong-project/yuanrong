@@ -70,7 +70,7 @@ if __name__ == '__main__':
 执行命令 `python resource-affinity.py` 运行程序。查看从节点上的函数日志文件 `{node_id}-user_func_std.log`，可见如下输出，表明两个实例都部署在标签为 `{"agent":"uat"}` 节点。
 
 ```bash
-025-07-18 17:12:33|56412d11-0000-4000-8000-005cef06b506|runtime-56412d11-0000-4000-8000-005cef06b506-c6d59c3a409e|INFO|Detector 0,NODE_ID:dggphis35945-2731346,LABELS:{"agent":"uat"}
+2025-07-18 17:12:33|56412d11-0000-4000-8000-005cef06b506|runtime-56412d11-0000-4000-8000-005cef06b506-c6d59c3a409e|INFO|Detector 0,NODE_ID:dggphis35945-2731346,LABELS:{"agent":"uat"}
 2025-07-18 17:12:33|04d8cf02-727f-4714-8000-000000000071|runtime-04d8cf02-727f-4714-8000-000000000071-000000d8f917|INFO|Detector 1,NODE_ID:dggphis35945-2731346,LABELS:{"agent":"uat"}
 ```
 

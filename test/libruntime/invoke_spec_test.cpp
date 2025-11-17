@@ -292,9 +292,13 @@ TEST_F(InvokeSpecTest, BuildInstanceCreateRequestTest)
     spec->opts.createOptions["crateOption"] = "createOption";
     spec->functionMeta.name = "name";
     spec->functionMeta.functionId = "functionId";
+    ResourceGroupOptions resourceGroupOpts;
+    resourceGroupOpts.resourceGroupName = "testResourceGroup";
+    spec->opts.resourceGroupOpts = resourceGroupOpts;
     LibruntimeConfig config;
     spec->BuildInstanceCreateRequest(config);
     ASSERT_EQ(spec->requestCreate.mutable_schedulingops()->mutable_resources()->size() != 0, true);
+    ASSERT_EQ(spec->opts.envVars["RG_NAME"], "testResourceGroup");
 }
 }  // namespace test
 }  // namespace YR

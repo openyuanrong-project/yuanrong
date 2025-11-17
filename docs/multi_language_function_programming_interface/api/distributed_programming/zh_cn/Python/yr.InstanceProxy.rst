@@ -14,7 +14,7 @@ yr.InstanceProxy
        :header-rows: 0
 
        * - :ref:`__init__ <init_ip>`
-         - 初始化 InstanceProxy 实例。
+         - 
        * - :ref:`deserialization_ <deserialization_>`
          - 反序列化以重建实例代理。
        * - :ref:`get_function_group_handler <get_function_group_handler>`

@@ -229,7 +229,7 @@ Python
    * - :doc:`yr.java_function`
      - 用于构造 java 函数的代理，远程调用 java 函数。
    * - :doc:`yr.java_instance_class`
-     - 用于构造 cpp 类的代理，远程调用 cpp 类。
+     - 用于构造 Java 类，并远程调用 Java 类的代理。
 
 函数组 API
 --------------
@@ -286,9 +286,9 @@ KV 缓存 API
    * - :doc:`yr.kv_write`
      - 提供类 Redis 的 set 存储接口，支持保存二进制数据到数据系统。
    * - :doc:`yr.kv_write_with_param`
-     - 提供类 Redis 的 set 存储接口，支持保存二进制数据到数据系统。
+     - 提供支持自定义参数配置的存储接口。用于以更灵活的方式将二进制数据写入数据系统。
    * - :doc:`yr.kv_m_write_tx`
-     - 创建 ResourceGroup 后返回的句柄。
+     - 提供一个类似 Redis 的集合存储接口，支持将一组二进制数据保存到数据系统。 
    * - :doc:`yr.kv_read`
      - 提供类 Redis 的 get 获取数据接口，支持同时获取多个数据。
    * - :doc:`yr.kv_del`

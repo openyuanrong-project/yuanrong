@@ -239,14 +239,9 @@ def put(obj: object, create_param: CreateParam = CreateParam()) -> ObjectRef:
     Examples:
         >>> import yr
         >>> yr.init()
-        >>> # The worker startup parameters need to be configured with shared_disk_directory and shared_disk_size_mb;
-        >>> # otherwise, this example will result in an error
         >>> param = yr.CreateParam()
         >>> param.cache_type = yr.CacheType.DISK
         >>> bs = bytes(0)
-        >>> obj_ref1 = yr.put(bs, param)
-        >>> print(yr.get(obj_ref1))
-        >>> # ValueError: value is None or has zero length
         >>> mem = memoryview(bytes(100))
         >>> obj_ref2 = yr.put(mem)
         >>> print(yr.get(obj_ref2))
@@ -257,7 +252,6 @@ def put(obj: object, create_param: CreateParam = CreateParam()) -> ObjectRef:
         >>> # The final print output is a memoryview pointer.
         >>> obj_ref4 = yr.put(100)
         >>> print(yr.get(obj_ref4))
-        >>> 100
     """
     if obj is None or (isinstance(obj, (bytes, bytearray, memoryview)) and len(obj) == 0):
         raise ValueError("value is None or has zero length")
@@ -346,7 +340,7 @@ def wait(obj_refs: Union[ObjectRef, List[ObjectRef]], wait_num: int = 1,
 
     Args:
         object_refs (list): Data saved to the data system.
-        wait_num (int, optional): The minimum number of objects to wait for. If set to ``None``, it defaults to ``1``.
+        wait_num (int, optional): The minimum number of objects to wait for. It defaults to ``1``.
             The value should not exceed the length of `obj_refs`.
         timeout (int, optional): The timeout in seconds. Note that if the default value ``None`` is used,
             it will wait indefinitely, with the actual maximum wait time limited by the wait factors in `get`.
@@ -845,8 +839,8 @@ def kv_write(key: str, value: bytes, existence: ExistenceOpt = ExistenceOpt.NONE
 @check_initialized
 def kv_write_with_param(key: str, value: bytes, set_param: SetParam) -> None:
     """
-    Provides the Redis class's set storage interface,
-    which supports saving binary data to the data system.
+    Provide a storage interface that supports custom parameter configuration, 
+    enabling binary data to be written to the data system in a more flexible manner.
 
     Args:
         key (str): Sets a key for the data to be saved, which is used to identify the data.
@@ -882,7 +876,8 @@ def kv_write_with_param(key: str, value: bytes, set_param: SetParam) -> None:
 @check_initialized
 def kv_m_write_tx(keys: List[str], values: List[bytes], m_set_param: MSetParam = MSetParam()) -> None:
     """
-    It provides a Redis-like set storage interface, supporting the saving of a set of binary data to the data system.
+    Provide a Redis-like set storage interface that supports persisting 
+    a collection of binary data into the data system.
 
     Args:
         keys (List[str]): Set a set of keys for the saved data to identify the data. Use this key for querying data.
@@ -1345,11 +1340,16 @@ def create_resource_group(bundles: List[Dict[str, float]], name: Optional[str] =
             cannot be 'primary' or an empty string. This parameter is optional, with a default value of ``None``,
             meaning a rgroup-{uuid} type string will be randomly generated as the `resource group name`.
         strategy (OptionsOptional[str], optional): The strategy to create the resource group, defalut strategy is ``PACK``
-            - None: No strategy.
-            - PACK: Packs Bundles into as few nodes as possible.
-            - SPREAD: Places Bundles across distinct nodes as even as possible.
-            - STRICT_PACK: Packs Bundles into one node. The group is not allowed to span multiple nodes.
-            - STRICT_SPREAD: Packs Bundles across distinct nodes.
+            
+            - ``'None'``: No strategy.
+
+            - ``'PACK'``: Pack multiple bundles into the same node as much as possible.
+            
+            - ``'SPREAD`'': Distribute multiple bundles across different nodes as much as possible.
+            
+            - ''`STRICT_PACK`'': All bundles must be placed on the same node, otherwise creation fails.
+           
+            - ''`STRICT_SPREAD`'': All bundles must be placed on different nodes, otherwise creation fails.
 
     Returns:
         A ResourceGroup handle.
@@ -1362,9 +1362,9 @@ def create_resource_group(bundles: List[Dict[str, float]], name: Optional[str] =
         RuntimeError: If the resource group name is invalid.
 
     Examples:
-        >>> rg1 = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}])
+        >>> rg1 = yr.create_resource_group([{"NPU/Ascend910B4/count":1},{"CPU":2000,"Memory":2000}])
         >>>
-        >>> rg2 = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
+        >>> rg2 = yr.create_resource_group([{"NPU/Ascend910B4/count":1},{"CPU":2000,"Memory":2000}], "rgname")
     """
     if not isinstance(bundles, list):
         raise TypeError(f"invalid bundles type, actual: {type(bundles)}, expect: list.")
@@ -1418,7 +1418,7 @@ class cpp_instance_class:
             class_name (str): cpp class name.
             factory_name (str): Name of the static factory function of the cpp class.
             function_urn (str): Function URN, Defaults to
-                sn:cn:yrk:12345678901234561234567890123456:function:0-defaultservice-py:$latest.
+                sn:cn:yrk:12345678901234561234567890123456:function:0-defaultservice-cpp:$latest.
 
         Examples:
             .. code-block:: cpp
@@ -1452,8 +1452,11 @@ class cpp_instance_class:
 
                 >>> import yr
                 >>> yr.init()
-                >>> cpp_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest"
-                >>> counter_class = yr.cpp_instance_class("Counter", "Counter::FactoryCreate",cpp_function_urn)
+                >>> cpp_function_urn = (
+                ...     "sn:cn:yrk:12345678901234561234567890123456:"
+                ...     "function:0-yr-defaultservice-cpp:$latest"
+                ... )
+                >>> counter_class = yr.cpp_instance_class("Counter", "Counter::FactoryCreate", cpp_function_urn)
                 >>> opt = yr.InvokeOptions(cpu=1000, memory=1024)
                 >>> ins = counter_class.options(opt).invoke(11)
                 >>> result = ins.Add.invoke(9)
@@ -1522,7 +1525,7 @@ def cpp_function(function_name: str, function_urn: str) -> FunctionProxy:
         function_urn (str): The URN (Uniform Resource Name) of cpp function.
 
     Returns:
-        The corresponding function proxy.
+        Return a proxy object for the remote C++ function.
         Data type is FunctionProxy.
 
     Examples:
@@ -1541,11 +1544,13 @@ def cpp_function(function_name: str, function_urn: str) -> FunctionProxy:
 
             >>> import yr
             >>> yr.init()
-            >>> cpp_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest"
+            >>> cpp_function_urn = (
+            ...     "sn:cn:yrk:12345678901234561234567890123456:"
+            ...     "function:0-yr-defaultservice-cpp:$latest"
+            ... )
             >>> square_func = yr.cpp_function("Square", cpp_function_urn)
             >>> result = square_func.invoke(5)
             >>> print(yr.get(result))
-            >>>
             >>> yr.finalize()
 
     """
@@ -1591,7 +1596,10 @@ def java_function(class_name: str, function_name: str, function_urn: str) -> Fun
 
             >>> import yr
             >>> yr.init()
-            >>> java_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest"
+            >>> java_function_urn = (
+            ...     "sn:cn:yrk:12345678901234561234567890123456:"
+            ...     "function:0-yr-defaultservice-java:$latest"
+            ... )
             >>> java_add = yr.java_function("com.yuanrong.demo.PlusOne", "PlusOne", java_function_urn)
             >>> result = java_add.invoke(1)
             >>> print(yr.get(result))
@@ -1604,7 +1612,7 @@ def java_function(class_name: str, function_name: str, function_urn: str) -> Fun
 
 def java_instance_class(class_name: str, function_urn: str) -> InstanceCreator:
     """
-    A proxy used to construct java classes and remotely invoke java classes.
+    A proxy used to construct Java classes and invoke them remotely. 
 
     Args:
         class_name (str): The name of java.
@@ -1644,7 +1652,10 @@ def java_instance_class(class_name: str, function_urn: str) -> InstanceCreator:
 
             >>> import yr
             >>> yr.init()
-            >>> java_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest"
+            >>> java_function_urn = (
+            ...     "sn:cn:yrk:12345678901234561234567890123456:"
+            ...     "function:0-yr-defaultservice-java:$latest"
+            ... )
             >>>
             >>> java_instance = yr.java_instance_class("com.yuanrong.demo.Counter", java_function_urn).invoke(1)
             >>> res = java_instance.Add.invoke(5)

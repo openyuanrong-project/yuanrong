@@ -18,7 +18,7 @@ yr.Config
        * - :ref:`certificate_file_path <certificate_file_path>`
          - 客户端证书文件路径。
        * - :ref:`code_dir <code_dir_cf>`
-         - 需要在运行时初始化的设置。
+         - 需要在 runtime 初始化时设置的代码目录路径。
        * - :ref:`connection_nums <connection_nums>`
          - HTTP 客户端连接数。
        * - :ref:`cpp_function_id <cpp_function_id>`
@@ -66,7 +66,7 @@ yr.Config
        * - :ref:`rpc_timeout <rpc_timeout_cf>`
          - RPC 超时时间（秒）。
        * - :ref:`rt_server_address <rt_server_address>`
-         - 运行时服务器，在驱动程序中保持默认值。
+         - runtime 服务地址，在 driver 中保持默认值。
        * - :ref:`runtime_id <runtime_id_cf>`
          - 运行时 ID，在驱动程序中保持默认值。
        * - :ref:`runtime_private_key_path <runtime_private_key_path>`

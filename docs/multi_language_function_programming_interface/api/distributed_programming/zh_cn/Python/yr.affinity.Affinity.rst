@@ -28,7 +28,7 @@ yr.affinity.Affinity
        :widths: 30 70
 
        * - :ref:`__init__ <init_Affinity>`
-         - 初始化一个 Affinity 对象。
+         - 
 
 .. toctree::
     :maxdepth: 1

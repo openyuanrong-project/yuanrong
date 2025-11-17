@@ -63,8 +63,11 @@ class ResourceGroup:
             Number of bundles in the current resource group. Data type is int.
 
         Examples:
+            >>> import yr
+            >>> yr.init()
             >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
-            >>> size = rg.bundle_count
+            >>> count = rg.bundle_count
+            >>> print(count)
         """
         return len(self.bundles)
 
@@ -77,8 +80,11 @@ class ResourceGroup:
             Name of the current resource group. Data type is str.
 
         Examples:
+            >>> import yr
+            >>> yr.init()
             >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
-            >>> size = rg.resource_group_name
+            >>> name = rg.resource_group_name
+            >>> print(name)
         """
         return self.name
 
@@ -93,8 +99,6 @@ class ResourceGroup:
 
         Raises:
             ValueError: Timeout is less than ``-1``.
-            RuntimeError: Creating resource group returns error message.
-            RuntimeError: Timeout waiting.
     
         Examples:
             >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")

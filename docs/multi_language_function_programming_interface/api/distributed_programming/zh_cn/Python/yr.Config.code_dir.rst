@@ -7,4 +7,4 @@ yr.Config.code_dir
    :type: str
    :value: ''
 
-   需要在运行时初始化的设置。
+   需要在 runtime 初始化时设置的代码目录路径。

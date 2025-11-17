@@ -11,7 +11,7 @@ yr.put
         3. 如果传递给 put 的对象类型为 memoryview，bytearray 或 bytes，则其长度不能为 ``0``。
 
     参数:
-        - **obj** (object) - 需要被远程调用的函数。
+        - **obj** (object) - Python 对象，被序列化并保存到数据系统中。
         - **create_param** (CreateParam()，可选) - 这是为数据系统创建对象时的参数。
 
     返回:
@@ -28,14 +28,9 @@ yr.put
     样例：
         >>> import yr
         >>> yr.init()
-        >>> # worker启动参数需要配置为shared_disk_directory和shared_disk_size_mb
-        >>> # 否则，此示例将导致错误
         >>> param = yr.CreateParam()
         >>> param.cache_type = yr.CacheType.DISK
         >>> bs = bytes(0)
-        >>> obj_ref1 = yr.put(bs, param)
-        >>> print(yr.get(obj_ref1))
-        >>> # ValueError: value is None or has zero length
         >>> mem = memoryview(bytes(100))
         >>> obj_ref2 = yr.put(mem)
         >>> print(yr.get(obj_ref2))
@@ -46,6 +41,5 @@ yr.put
         >>> # 最后输出一个 memoryview 指针
         >>> obj_ref4 = yr.put(100)
         >>> print(yr.get(obj_ref4))
-        >>> 100
 
 .. _ObjectRef: ../../Python/generated/yr.object_ref.ObjectRef.html#yr.object_ref.ObjectRef

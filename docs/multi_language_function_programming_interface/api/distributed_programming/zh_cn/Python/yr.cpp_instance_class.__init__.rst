@@ -10,7 +10,7 @@ yr.cpp_instance_class.__init__
     参数：
         - **class_name** (str) – cpp 类名。
         - **factory_name** (str) – cpp 类静态构造函数名。
-        - **function_urn** (str, optional) – 函数 urn，默认为 ``sn:cn:yrk:12345678901234561234567890123456:function:0-defaultservice-py:$latest``。
+        - **function_urn** (str, optional) – 函数 urn，默认为 ``sn:cn:yrk:12345678901234561234567890123456:function:0-defaultservice-cpp:$latest``。
 
     样例：
 
@@ -46,7 +46,11 @@ yr.cpp_instance_class.__init__
 
        >>> import yr
        >>> yr.init()
-       >>> counter_class = yr.cpp_instance_class("Counter", "Counter::FactoryCreate")
+       >>> cpp_function_urn = (
+       ...     "sn:cn:yrk:12345678901234561234567890123456:"
+       ...     "function:0-yr-defaultservice-cpp:$latest"
+       ... )
+       >>> counter_class = yr.cpp_instance_class("Counter", "Counter::FactoryCreate", cpp_function_urn)
        >>> opt = yr.InvokeOptions(cpu=1000, memory=1024)
        >>> ins = counter_class.options(opt).invoke(11)
        >>> result = ins.Add.invoke(9)

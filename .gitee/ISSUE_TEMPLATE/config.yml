@@ -1,7 +1,0 @@
-contact_links:
-  - name: Questions
-    url: https://forum.openeuler.org/c/other-tec/10059-category/10059
-    about: Ask questions and discuss with other openYuanrong community members.
-  - name: Report a security vulnerability
-    url: https://www.openeuler.org/zh/security/vulnerability-reporting/
-    about: Reported to openYuanrong team through the openEuler community vulnerability management system.

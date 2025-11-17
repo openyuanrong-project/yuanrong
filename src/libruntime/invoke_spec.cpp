@@ -179,6 +179,7 @@ void InvokeSpec::BuildRequestPbScheduleOptions(InvokeOptions &opts, const Librun
     }
     if (ResourceGroupEnabled(opts.resourceGroupOpts)) {
         schedulingOps->set_rgroupname(opts.resourceGroupOpts.resourceGroupName);
+        this->opts.envVars["RG_NAME"] = opts.resourceGroupOpts.resourceGroupName;
     }
     static std::unordered_map<std::string, core_service::AffinityType> affinityMap = {
         {"PreferredAffinity", core_service::AffinityType::PreferredAffinity},

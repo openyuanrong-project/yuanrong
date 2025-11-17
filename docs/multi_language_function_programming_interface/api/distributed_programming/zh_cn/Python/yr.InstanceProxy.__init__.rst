@@ -14,4 +14,3 @@ yr.InstanceProxy.__init__
                  instance_name=None,
                  namespace=None)
 
-    初始化 InstanceProxy 实例。

@@ -41,9 +41,9 @@ yr.InvokeOptions
        * - :ref:`min_instances <min_instances>`
          - 指定无状态函数的最小实例数。
        * - :ref:`name <name_IO>`
-         - 用于指定实例的 ID。
+         - 用于指定实例的名称。
        * - :ref:`namespace <namespace_IO>`
-         - 用于指定实例的 ID。
+         - 用于指定实例的命名空间。
        * - :ref:`need_order <need_order>`
          - 是否启用顺序保持。
        * - :ref:`preferred_anti_other_labels <preferred_anti_other_labels>`
@@ -76,7 +76,7 @@ yr.InvokeOptions
          - 实例启动时设置环境变量。
        * - :ref:`alias_params <alias_params>`
          - 在 FaaS 跨函数调用中，当通过指定的别名调用函数且该别名为规则别名时，此参数用于设置规则别名所依赖的 kv 参数。
-       * - :ref:`runtime_envs <runtime_env_IO>`
+       * - :ref:`runtime_env <runtime_env_IO>`
          - 使用 conda、pip、working_dir 和 env_vars 配置 actor/task 的运行时环境。
 
     **方法**：

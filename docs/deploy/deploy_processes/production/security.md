@@ -87,7 +87,7 @@ mkdir -p ${WorkSpace}/etcd
 cd ${WorkSpace}/etcd
 openssl genrsa -out ca.key 2048
 
-# 证书CN 可根据实际配置修改，默认 etcd-ca。days 为证书有限期（天数），证书过期后需要重新生成。
+# 证书CN 可根据实际配置修改，默认 etcd-ca。days 为证书有效期（天数），证书过期后需要重新生成。
 openssl req -x509 -new -nodes -key ca.key -subj "/CN=etcd-ca" -days 10000 -out ca.crt
 ```
 
@@ -198,7 +198,7 @@ openssl genrsa -out ca.key 2048
 # subj 可根据实际配置修改。
 openssl req -new -key ca.key -out ca.csr -subj "/C=CN/ST=zhejiang/L=hangzhou/O=ha/OU=Personal/CN=rootCA"
 
-# days 为证书有限期（天数），证书过期后需要重新生成。
+# days 为证书有效期（天数），证书过期后需要重新生成。
 openssl x509 -req -days 10000 -extfile ./demoCA/v3.ext -extensions v3_ca -signkey ca.key -in ca.csr -out ca.crt
 ```
 

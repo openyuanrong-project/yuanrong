@@ -95,38 +95,30 @@ TEST_F(TaskTest, InvokeSuccessfullyWithDifferentResource)
 /*case
  * @title: 非法的资源请求进行task调用
  * @precondition:
- * @step:  1. 以非法资源请求cpu=1，进行task函数调用
- * @step:  2. 以非法资源请求memory=1，进行task函数调用
- * @expect:  1.预期异常抛出，且错误码为1001，错误信息匹配
- * @expect:  2.预期异常抛出，且错误码为1001，错误信息匹配
+ * @step:  1. 请求资源cpu=1，进行task函数调用
+ * @step:  2. 请求资源memory=1，进行task函数调用
+ * @expect:  1.预期成功
+ * @expect:  2.预期成功
  */
-TEST_F(TaskTest, InvalidResource)
+TEST_F(TaskTest, TestResource)
 {
-    // invalid cpu
+    // cpu
     YR::InvokeOptions option;
     option.cpu = 1.0;
     try {
         auto r1 = YR::Function(&AddOne).Options(std::move(option)).Invoke(2);
         auto res = *YR::Get(r1);
     } catch (YR::Exception &e) {
-        std::string errorCode = "ErrCode: 1006";
-        std::string errorMsg = "Required CPU resource size 1 millicores is invalid. Valid value range is [300,16000] millicores";
-        std::string excepMsg = e.what();
-        std::cout << "exception: " << excepMsg << std::endl;
-        ErrorMsgCheck(errorCode, errorMsg, excepMsg);
+        ASSERT_EQ(0, 1);
     }
-    // invalid memory
+    // memory
     YR::InvokeOptions optionMem;
     optionMem.memory = 1.0;
     try {
         auto r1 = YR::Function(&AddOne).Options(std::move(optionMem)).Invoke(2);
         auto res = *YR::Get(r1);
     } catch (YR::Exception &e) {
-        std::string errorCode = "ErrCode: 1006";
-        std::string errorMsg = "Required memory resource size 1 MB is invalid. Valid value range is [128,1073741824] MB";
-        std::string excepMsg = e.what();
-        std::cout << "exception: " << excepMsg << std::endl;
-        ErrorMsgCheck(errorCode, errorMsg, excepMsg);
+        ASSERT_EQ(0, 1);
     }
 }
 

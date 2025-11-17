@@ -27,7 +27,7 @@ yr.FunctionGroupMethodProxy
        :widths: 30 70
 
        * - :ref:`__init__ <init_FunctionGroupMethodProxy>`
-         - 初始化方法，用于创建类的实例。
+         - 
        * - :ref:`invoke <invoke_FunctionGroupMethodProxy>`
          - 执行对用户函数的远程调用。
        * - :ref:`set_rpc_broadcast_mq <set_rpc_broadcast_mq>`

@@ -7,4 +7,4 @@ yr.Config.rt_server_address
    :type: str
    :value: ''
 
-   运行时服务器，在驱动程序中保持默认值。
+   runtime 服务地址，在 driver 中保持默认值。

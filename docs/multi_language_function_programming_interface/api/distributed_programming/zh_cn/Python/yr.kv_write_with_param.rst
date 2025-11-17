@@ -3,7 +3,7 @@ yr.kv_write_with_param
 
 .. py:function:: kv_write_with_param(key: str, value: bytes, set_param: SetParam) -> None
 
-    提供类 Redis 的 set 存储接口，支持保存二进制数据到数据系统。
+    提供支持自定义参数配置的存储接口。用于以更灵活的方式将二进制数据写入数据系统。
 
     参数:
         - **key** (str) - 为保存的数据设置一个键，用于标识该数据。查询数据时使用该键进行查询，不能为空。

@@ -99,7 +99,7 @@ class Config:
     invoke_timeout: int = 900
     #: Run code in local, default is ``False``.
     local_mode: bool = False
-    #: Need set which init in runtime.
+    #: The code directory path that must be configured at runtime initialization.
     code_dir: str = ""
     #: Http client connection nums.
     #: default is ``100``, limit: [1,∞).
@@ -380,7 +380,7 @@ class InvokeOptions:
     >>> import yr
     >>> yr.init()
     >>> opt = yr.InvokeOptions()
-    >>> opt.custom_extensions["YR_Metrics"] = "{\"endpoint\":\"127.0.0.1\", \"project_id\":\"my_project_id\"}"
+    >>> opt.custom_extensions["YR_Metrics"] = "{\'endpoint\':\'127.0.0.1\', \'project_id\':\'my_project_id\'}"
 
     In Prometheus, select `metrics name` as `yr_app_instance_billing_invoke_latency`, and you can find the custom tag 
     information in the collected invoke information:

@@ -3,7 +3,7 @@ yr.java_instance_class
 
 .. py:method:: java_instance_class(class_name: str, function_urn: str) -> InstanceCreator
 
-    用于构造 Java 类并远程调用 Java 类的代理。
+    用于构造 Java 类，并远程调用 Java 类的代理。
 
     参数：
         - **class_name** (str) – java 类名。
@@ -42,7 +42,10 @@ yr.java_instance_class
 
        >>> import yr
        >>> yr.init()
-       >>> java_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest"
+       >>> java_function_urn = (
+       ...     "sn:cn:yrk:12345678901234561234567890123456:"
+       ...     "function:0-yr-defaultservice-java:$latest"
+       ... )
        >>>
        >>> java_instance = yr.java_instance_class("com.yuanrong.demo.Counter", java_function_urn).invoke(1)
        >>> res = java_instance.Add.invoke(5)

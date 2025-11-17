@@ -11,7 +11,10 @@ yr.ResourceGroup.resource_group_name
        当前资源组的名称。数据类型为str。
 
    样例：
+       >>> import yr
+       >>> yr.init()
        >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
-       >>> bundles = rg.bundle_specs
+       >>> name = rg.resource_group_name
+       >>> print(name)
 
 

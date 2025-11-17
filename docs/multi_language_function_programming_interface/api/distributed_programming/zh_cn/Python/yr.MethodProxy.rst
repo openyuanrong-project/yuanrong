@@ -14,7 +14,7 @@ yr.MethodProxy
        :header-rows: 0
 
        * - :ref:`__init__ <init_mp>`
-         - 初始化 MethodProxy 实例
+         - 
        * - :ref:`invoke <invoke_mp>`
          - 执行用户函数的远程调用。
        * - :ref:`options <options_mp>`

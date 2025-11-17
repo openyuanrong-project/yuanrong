@@ -7,4 +7,4 @@ yr.InvokeOptions.namespace
    :type: str
    :value: ""
 
-   用于指定实例的 ID。
+   用于指定实例的命名空间。

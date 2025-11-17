@@ -1,7 +1,7 @@
 yr.get
 =====================
 
-.. py:function:: yr.get(obj_refs: Union[ObjectRef, List], timeout: int = 300,\
+.. py:function:: yr.get(obj_refs: Union[ObjectRef, List], timeout: int = constants.DEFAULT_GET_TIMEOUT,\
                         allow_partial: bool = False) -> object
 
     根据数据对象的键从数据系统中检索值。接口调用后会阻塞直到获取到对象的值或者超时。

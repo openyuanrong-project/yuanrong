@@ -3,7 +3,7 @@ yr.kv_m_write_tx
 
 .. py:function:: yr.kv_m_write_tx(keys: ~typing.List[str], values: typing.List[bytes], m_set_param: yr.runtime.MSetParam = MSetParam(existence=<ExistenceOpt.NX: 1>, write_mode=<WriteMode.NONE_L2_CACHE: 0>, ttl_second=0, cache_type=<CacheType.MEMORY: 0>)) -> None
 
-    它提供了一个类似 redis 的集合存储接口，支持将一组二进制数据保存到数据系统。
+    提供一个类似 Redis 的集合存储接口，支持将一组二进制数据保存到数据系统。
 
     参数:
         - **key** (List[str]) - 为保存的数据设置一组键来标识数据。使用此键查询数据时，不能为空。
@@ -19,8 +19,6 @@ yr.kv_m_write_tx
     样例：
         >>> import yr
         >>> yr.init()
-        >>> # worker启动参数需要配置为 shared_disk_directory 和 shared_disk_size_mb
-        >>> # 否则，此示例将导致错误
         >>> mset_param = yr.MSetParam()
         >>> mset_param.existence = yr.ExistenceOpt.NX
         >>> mset_param.write_mode = yr.WriteMode.NONE_L2_CACHE_EVICT

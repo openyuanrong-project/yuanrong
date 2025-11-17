@@ -41,7 +41,7 @@ yr.init()
 
 # 配置运行无状态函数需要 1 核 CPU，1G 内存，1 个 ssd 自定义资源，1 张任意型号的 NPU 卡，1 张任意型号的 GPU 卡
 opt = yr.InvokeOptions(cpu=1000, memory=1024)
-opt.custom_resource={"ssd":1,"NPU/.+/count":1,"GPU/.+/count":1}
+opt.custom_resources={"ssd":1,"NPU/.+/count":1,"GPU/.+/count":1}
 result = add.options(opt).invoke(1)
 print(yr.get(result))
 
@@ -168,10 +168,10 @@ public class Main {
 `resource type` 可以配置为 `count`、 `HBM`、`latency`、`stream`，使用说明和约束如下。
 
 - `count` 用于指定的卡的数量。该参数与其他参数互斥，即指定 `count` 将无法设置其他参数。
-- `HBM`、`latency`、`streams` 用于支持细粒度资源分配，三者需要同时配置。例如：`npu_resource = {"NPU/Ascend910/HBM":30000, "NPU/Ascend910/stream":2, "NPU/Ascend910/latency":50}`。
+- `HBM`、`latency`、`stream` 用于支持细粒度资源分配，三者需要同时配置。例如：`npu_resource = {"NPU/Ascend910/HBM":30000, "NPU/Ascend910/stream":2, "NPU/Ascend910/latency":50}`。
 - `HBM` 指定该模型占用的显存量。
 - `latency`：模型执行单次推理的时延（单位：ms）。
-- `streams`：模型内部 stream 数量，默认为 1，如果大于 1 则不会与其他进程共卡调度。
+- `stream`：模型内部 stream 数量，默认为 1，如果大于 1 则不会与其他进程共卡调度。
 
 openYuanrong 通过自动设置 `ASCEND_RT_VISIBLE_DEVICES` 环境变量实现 NPU 隔离。使用 NPU 资源时，用户需要在函数中通过环境变量 `ASCEND_RT_VISIBLE_DEVICES` 获取为该实例分配的 NPU ID，参考[示例](../../examples/use_NPU_resource.md)。
 
