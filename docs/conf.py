@@ -114,7 +114,19 @@ html_theme_options = {
         <a href="https://github.com/executablebooks/sphinx-book-theme">theme</a>
         provided by
         <a href="https://github.com/executablebooks">Executable Books Project</a>.
-    """
+    """,
+    "navbar_start": [
+        "navbar-logo",
+        "version-switcher"
+    ],
+    "switcher": {
+        "json_url": "https://pages.openeuler.openatom.cn/openyuanrong/docs/versions.json",
+        "version_match": "latest",
+    },
+}
+
+html_sidebars = {
+    "**": ["search-button-field.html", "sbt-sidebar-nav.html"]
 }
 
 # -----------------------------------------------------------------------------
