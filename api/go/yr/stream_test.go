@@ -79,12 +79,6 @@ func TestStream(t *testing.T) {
 					convey.So(err, convey.ShouldBeNil)
 				},
 			)
-			convey.Convey(
-				"Flush success", func() {
-					err = producer.Flush()
-					convey.So(err, convey.ShouldBeNil)
-				},
-			)
 		},
 	)
 

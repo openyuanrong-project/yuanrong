@@ -62,7 +62,6 @@ type Element struct {
 type StreamProducer interface {
 	Send(element Element) error
 	SendWithTimeout(element Element, timeoutMs int64) error
-	Flush() error
 	Close() error
 }
 

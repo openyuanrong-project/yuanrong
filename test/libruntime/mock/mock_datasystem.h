@@ -124,7 +124,7 @@ public:
 
 class MockHeretoStore : public HeteroStore {
 public:
-    MOCK_METHOD1(Init, ErrorInfo(datasystem::ConnectOptions & options));
+    MOCK_METHOD1(Init, ErrorInfo(datasystem::ConnectOptions &options));
     MOCK_METHOD0(Shutdown, void());
     MOCK_METHOD2(DevDelete,
                  ErrorInfo(const std::vector<std::string> &objectIds, std::vector<std::string> &failedObjectIds));
@@ -146,7 +146,6 @@ class MockStreamProducer : public StreamProducer {
 public:
     MOCK_METHOD1(Send, ErrorInfo(const Element &element));
     MOCK_METHOD2(Send, ErrorInfo(const Element &element, int64_t timeoutMs));
-    MOCK_METHOD0(Flush, ErrorInfo());
     MOCK_METHOD0(Close, ErrorInfo());
 };
 

@@ -1030,17 +1030,6 @@ cdef class Producer:
                 f"failed to send, "
                 f"code: {ret.Code()}, module code {ret.MCode()}, msg: {ret.Msg().decode()}")
 
-    def flush(self) -> None:
-        """
-        Manually flushing the buffer makes the data visible to the consumer.
-        """
-        cdef CErrorInfo ret
-        ret = self.producer.get().Flush()
-        if not ret.OK():
-            raise RuntimeError(
-                f"failed to flush, "
-                f"code: {ret.Code()}, module code {ret.MCode()}, msg: {ret.Msg().decode()}")
-
     def close(self) -> None:
         """
         Closing the producer will trigger an automatic flush of the data buffer and

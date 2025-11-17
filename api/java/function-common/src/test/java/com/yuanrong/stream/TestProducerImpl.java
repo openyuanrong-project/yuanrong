@@ -103,30 +103,6 @@ public class TestProducerImpl {
     }
 
     @Test
-    public void testFlush() {
-        ProducerImpl producer = new ProducerImpl(10L);
-        ProducerImpl producer1 = new ProducerImpl(0L);
-        ErrorInfo errorInfo = new ErrorInfo(ErrorCode.ERR_OK, ModuleCode.CORE, "");
-        PowerMockito.mockStatic(JniProducer.class);
-        when(JniProducer.flush(anyLong())).thenReturn(errorInfo);
-        boolean isException = false;
-        try {
-            producer1.flush();
-        } catch (Exception e) {
-            isException = true;
-        }
-        Assert.assertTrue(isException);
-
-        isException = false;
-        try {
-            producer.flush();
-        } catch (Exception e) {
-            isException = true;
-        }
-        Assert.assertFalse(isException);
-    }
-
-    @Test
     public void testClose() {
         ProducerImpl producer = new ProducerImpl(10L);
         ProducerImpl producer1 = new ProducerImpl(0L);

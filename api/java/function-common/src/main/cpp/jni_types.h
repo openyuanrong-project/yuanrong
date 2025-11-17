@@ -121,18 +121,18 @@ using FunctionLog = ::libruntime::FunctionLog;
         }                                                                         \
     } while (false)
 
-#define CHECK_NULL_THROW_NEW_AND_RETURN(env, ptr, returnValue, msg)                                     \
-    if ((ptr) == nullptr) {                                                                             \
-        YR::jni::JNILibruntimeException::Throw(env, YR::Libruntime::ErrorCode::ERR_INNER_SYSTEM_ERROR,  \
-        YR::Libruntime::ModuleCode::RUNTIME, std::string(msg));                                         \
-        return returnValue;                                                                                 \
+#define CHECK_NULL_THROW_NEW_AND_RETURN(env, ptr, returnValue, msg)                                    \
+    if ((ptr) == nullptr) {                                                                            \
+        YR::jni::JNILibruntimeException::Throw(env, YR::Libruntime::ErrorCode::ERR_INNER_SYSTEM_ERROR, \
+                                               YR::Libruntime::ModuleCode::RUNTIME, std::string(msg)); \
+        return returnValue;                                                                            \
     }
 
-#define CHECK_NULL_THROW_NEW_AND_RETURN_VOID(env, ptr, msg)                                             \
-    if ((ptr) == nullptr) {                                                                             \
-        YR::jni::JNILibruntimeException::Throw(env, YR::Libruntime::ErrorCode::ERR_INNER_SYSTEM_ERROR,  \
-        YR::Libruntime::ModuleCode::RUNTIME, std::string(msg));                                         \
-        return;                                                                                         \
+#define CHECK_NULL_THROW_NEW_AND_RETURN_VOID(env, ptr, msg)                                            \
+    if ((ptr) == nullptr) {                                                                            \
+        YR::jni::JNILibruntimeException::Throw(env, YR::Libruntime::ErrorCode::ERR_INNER_SYSTEM_ERROR, \
+                                               YR::Libruntime::ModuleCode::RUNTIME, std::string(msg)); \
+        return;                                                                                        \
     }
 
 inline jclass LoadClass(JNIEnv *env, const std::string &className)
@@ -409,7 +409,8 @@ public:
     static void Recycle(JNIEnv *env);
     template <typename K, typename V>
     static jobject FromCc(JNIEnv *env, const std::unordered_map<K, V> &map,
-        std::function<jobject(JNIEnv *, const K &)> converterK, std::function<jobject(JNIEnv *, const V &)> converterV);
+                          std::function<jobject(JNIEnv *, const K &)> converterK,
+                          std::function<jobject(JNIEnv *, const V &)> converterV);
 
 private:
     inline static jclass clz_ = nullptr;
@@ -842,13 +843,11 @@ public:
     static void Init(JNIEnv *env);
     static void Recycle(JNIEnv *env);
     static YR::Libruntime::CreateParam FromJava(JNIEnv *env, jobject o);
-    static YR::Libruntime::WriteMode GetWriteMode(JNIEnv *env, jobject o);
     static YR::Libruntime::ConsistencyType GetConsistencyType(JNIEnv *env, jobject o);
     static YR::Libruntime::CacheType GetCacheType(JNIEnv *env, jobject o);
 
 private:
     inline static jclass clz_ = nullptr;
-    inline static jmethodID jGetWriteMode_ = nullptr;
     inline static jmethodID jGetConsistencyType_ = nullptr;
     inline static jmethodID jGetCacheType_ = nullptr;
 };

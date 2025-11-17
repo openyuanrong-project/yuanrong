@@ -38,7 +38,6 @@ int main()
     std::string str = "hello";
     YR::Element element((uint8_t *)(str.c_str()), str.size());
     producer->Send(element);
-    producer->Flush();
     //! [producer send]
     //! [consumer recv]
     // consumer receive data

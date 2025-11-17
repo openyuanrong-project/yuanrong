@@ -33,8 +33,8 @@ namespace YR {
 namespace test {
 class StreamStoreTest : public testing::Test {
 public:
-    StreamStoreTest(){};
-    ~StreamStoreTest(){};
+    StreamStoreTest() {};
+    ~StreamStoreTest() {};
     void SetUp() override
     {
         Mkdir("/tmp/log");
@@ -127,8 +127,6 @@ TEST_F(StreamStoreTest, TestProducer)
     ErrorInfo err = streamProducer->Send(element);
     ASSERT_EQ(err.Code(), ErrorCode::ERR_OK);
     err = streamProducer->Send(element, 1000);
-    ASSERT_EQ(err.Code(), ErrorCode::ERR_OK);
-    err = streamProducer->Flush();
     ASSERT_EQ(err.Code(), ErrorCode::ERR_OK);
     err = streamProducer->Close();
     ASSERT_EQ(err.Code(), ErrorCode::ERR_OK);

@@ -54,15 +54,6 @@ public:
     void Send(const Element &element, int64_t timeoutMs);
 
     /**
-     * @brief Manually flushes the buffer to make the data visible to consumers.
-     * @throws Exception
-     * - **4299**: producer failed to flush.
-     *
-     * @snippet{trimleft} stream_example.cpp producer send
-     */
-    void Flush();
-
-    /**
      * @brief Closes the producer, triggering an automatic flush of the buffer and indicating that the buffer will no
      * longer be used. Once closed, the producer cannot be used again.
      * @throws Exception

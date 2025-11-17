@@ -28,9 +28,8 @@ extern "C" {
 #endif
 
 JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendHeapBufferDefaultTimeout(JNIEnv *env, jclass,
-                                                                                                jlong handle,
-                                                                                                jbyteArray bytes,
-                                                                                                jlong len)
+                                                                                         jlong handle, jbyteArray bytes,
+                                                                                         jlong len)
 {
     auto producer = reinterpret_cast<std::shared_ptr<YR::Libruntime::StreamProducer> *>(handle);
     jbyte *bytekey = env->GetByteArrayElements(bytes, 0);
@@ -51,8 +50,7 @@ JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendHeapBufferDefaul
 }
 
 JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBufferDefaultTimeout(JNIEnv *env, jclass,
-                                                                                                  jlong handle,
-                                                                                                  jobject buf)
+                                                                                           jlong handle, jobject buf)
 {
     auto producer = reinterpret_cast<std::shared_ptr<YR::Libruntime::StreamProducer> *>(handle);
     auto body = env->GetDirectBufferAddress(buf);
@@ -73,8 +71,7 @@ JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBufferDefa
 }
 
 JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendHeapBuffer(JNIEnv *env, jclass, jlong handle,
-                                                                                  jbyteArray bytes, jlong len,
-                                                                                  jint timeoutMs)
+                                                                           jbyteArray bytes, jlong len, jint timeoutMs)
 {
     auto producer = reinterpret_cast<std::shared_ptr<YR::Libruntime::StreamProducer> *>(handle);
     jbyte *bytekey = env->GetByteArrayElements(bytes, 0);
@@ -95,7 +92,7 @@ JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendHeapBuffer(JNIEn
 }
 
 JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBuffer(JNIEnv *env, jclass, jlong handle,
-                                                                                    jobject buf, jint timeoutMs)
+                                                                             jobject buf, jint timeoutMs)
 {
     auto producer = reinterpret_cast<std::shared_ptr<YR::Libruntime::StreamProducer> *>(handle);
     auto body = env->GetDirectBufferAddress(buf);
@@ -110,18 +107,6 @@ JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBuffer(JNI
     jobject jerr = YR::jni::JNIErrorInfo::FromCc(env, err);
     if (jerr == nullptr) {
         YR::jni::JNILibruntimeException::ThrowNew(env, "failed to convert jerr when Producer_send, get null");
-        return nullptr;
-    }
-    return jerr;
-}
-
-JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_flush(JNIEnv *env, jclass, jlong handle)
-{
-    auto producer = reinterpret_cast<std::shared_ptr<YR::Libruntime::StreamProducer> *>(handle);
-    auto err = (*producer)->Flush();
-    jobject jerr = YR::jni::JNIErrorInfo::FromCc(env, err);
-    if (jerr == nullptr) {
-        YR::jni::JNILibruntimeException::ThrowNew(env, "failed to convert jerr when Producer_flush, get null");
         return nullptr;
     }
     return jerr;

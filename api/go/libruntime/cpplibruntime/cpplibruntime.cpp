@@ -1335,13 +1335,6 @@ CErrorInfo CProducerSendWithTimeout(Producer_p producerPtr, uint8_t *ptr, uint64
     return ErrorInfoToCError(err);
 }
 
-CErrorInfo CProducerFlush(Producer_p producerPtr)
-{
-    auto producer = *reinterpret_cast<std::shared_ptr<StreamProducer> *>(producerPtr);
-    auto err = producer->Flush();
-    return ErrorInfoToCError(err);
-}
-
 CErrorInfo CProducerClose(Producer_p producerPtr)
 {
     auto producer = reinterpret_cast<std::shared_ptr<StreamProducer> *>(producerPtr);

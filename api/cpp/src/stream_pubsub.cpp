@@ -43,16 +43,6 @@ void StreamProducer::Send(const Element &element, int64_t timeoutMs)
     }
 }
 
-void StreamProducer::Flush()
-{
-    YR::Libruntime::ErrorInfo err = producer_->Flush();
-    if (err.Code() != YR::Libruntime::ErrorCode::ERR_OK) {
-        YRLOG_ERROR("Flush err: Code:{}, MCode:{}, Msg:{}", fmt::underlying(err.Code()), fmt::underlying(err.MCode()),
-                    err.Msg());
-        throw YR::Exception(static_cast<int>(err.Code()), static_cast<int>(err.MCode()), err.Msg());
-    }
-}
-
 void StreamProducer::Close()
 {
     auto err = YR::Libruntime::LibruntimeManager::Instance().GetLibRuntime()->SetTraceId(traceId_);
@@ -113,9 +103,8 @@ void StreamConsumer::Close()
     }
     err = consumer_->Close();
     if (err.Code() != YR::Libruntime::ErrorCode::ERR_OK) {
-        YRLOG_ERROR("Close err: Code:{}, MCode:{}, Msg:{}",
-                    fmt::underlying(err.Code()),
-                    fmt::underlying(err.MCode()), err.Msg());
+        YRLOG_ERROR("Close err: Code:{}, MCode:{}, Msg:{}", fmt::underlying(err.Code()), fmt::underlying(err.MCode()),
+                    err.Msg());
         throw YR::Exception(static_cast<int>(err.Code()), static_cast<int>(err.MCode()), err.Msg());
     }
 }

@@ -30,8 +30,6 @@ public:
 
     virtual ErrorInfo Send(const Element &element, int64_t timeoutMs);
 
-    virtual ErrorInfo Flush();
-
     virtual ErrorInfo Close();
 
     std::shared_ptr<datasystem::Producer> &GetProducer();

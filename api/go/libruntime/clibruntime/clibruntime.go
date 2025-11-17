@@ -499,16 +499,6 @@ func (p *StreamProducerImpl) SendWithTimeout(element api.Element, timeoutMs int6
 	return nil
 }
 
-// Flush ensure flush buffered data so that it is visible to the consumer.
-func (p *StreamProducerImpl) Flush() error {
-	cErr := C.CProducerFlush(p.producer)
-	code := int(cErr.code)
-	if code != 0 {
-		return codeNotZeroErr(code, cErr, "stream producer flush: ")
-	}
-	return nil
-}
-
 // Close signals the producer to stop accepting new data and automatically flushes
 // any pending data in the buffer. Once closed, the producer is no longer available.
 func (p *StreamProducerImpl) Close() error {

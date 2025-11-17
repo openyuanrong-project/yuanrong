@@ -67,14 +67,6 @@ public class JniProducer {
     public static native ErrorInfo sendDirectBuffer(long producerPtr, ByteBuffer buffers, int timeoutMs);
 
     /**
-     * flush
-     *
-     * @param producerPtr producerPtr
-     * @return ErrorInfo
-     */
-    public static native ErrorInfo flush(long producerPtr);
-
-    /**
      * close
      *
      * @param producerPtr producerPtr

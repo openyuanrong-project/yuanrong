@@ -407,12 +407,6 @@ func TestProducerSendAndFlush(t *testing.T) {
 				},
 			)
 			convey.Convey(
-				"producer flush", func() {
-					err = producer.Flush()
-					convey.So(err, convey.ShouldBeNil)
-				},
-			)
-			convey.Convey(
 				"producer close", func() {
 					err = producer.Close()
 					convey.So(err, convey.ShouldBeNil)

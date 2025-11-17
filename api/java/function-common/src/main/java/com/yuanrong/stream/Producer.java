@@ -50,13 +50,6 @@ public interface Producer {
     void send(Element element, int timeoutMs) throws YRException;
 
     /**
-     * Manually flush the buffer data to make it visible to consumers.
-     *
-     * @throws YRException Unified exception types thrown.
-     */
-    void flush() throws YRException;
-
-    /**
      * Closing a producer triggers an automatic flush of the data buffer and indicates that the data buffer is no longer
      * in use. Once closed, the producer can no longer be used.
      *

@@ -49,7 +49,7 @@ function install_ds_master() {
       -node_timeout_s=${DS_NODE_TIMEOUT_S} \
       -rocksdb_store_dir="${data_system_install_dir}/rocksdb" \
       -etcd_address="${ETCD_CLUSTER_ADDRESS}" \
-      -az_name="${ETCD_TABLE_PREFIX}" \
+      -cluster_name="${ETCD_TABLE_PREFIX}" \
       -etcd_target_name_override="${ETCD_TARGET_NAME_OVERRIDE}" \
       -enable_etcd_auth=${ENABLE_ETCD_AUTH} \
       -arena_per_tenant=${DS_ARENA_PER_TENANT} \
@@ -137,7 +137,7 @@ function install_ds_worker() {
     -enable_huge_tlb=${DS_ENABLE_HUGE_TLB} \
     -enable_thp=${DS_ENABLE_THP} \
     -etcd_address="${ETCD_CLUSTER_ADDRESS}" \
-    -az_name="${ETCD_TABLE_PREFIX}" \
+    -cluster_name="${ETCD_TABLE_PREFIX}" \
     -etcd_target_name_override="${ETCD_TARGET_NAME_OVERRIDE}" \
     -enable_etcd_auth=${ENABLE_ETCD_AUTH} \
     -etcd_ca=${ETCD_SSL_BASE_PATH}/${ETCD_CA_FILE} \

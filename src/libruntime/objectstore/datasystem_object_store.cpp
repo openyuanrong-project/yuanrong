@@ -217,7 +217,6 @@ ErrorInfo DSCacheObjectStore::CreateBuffer(const std::string &objectId, size_t d
     OBJ_STORE_INIT_ONCE();
     std::shared_ptr<ds::Buffer> dataBuffer;
     ds::CreateParam param;
-    param.writeMode = static_cast<datasystem::WriteMode>(createParam.writeMode);
     param.consistencyType = static_cast<datasystem::ConsistencyType>(createParam.consistencyType);
     param.cacheType = static_cast<datasystem::CacheType>(createParam.cacheType);
     ds::Status status = dsClient->Create(objectId, dataSize, param, dataBuffer);
@@ -272,7 +271,6 @@ ErrorInfo DSCacheObjectStore::Put(std::shared_ptr<Buffer> data, const std::strin
     std::string msg;
     std::shared_ptr<ds::Buffer> dataBuffer;
     ds::CreateParam param;
-    param.writeMode = static_cast<datasystem::WriteMode>(createParam.writeMode);
     param.consistencyType = static_cast<datasystem::ConsistencyType>(createParam.consistencyType);
     param.cacheType = static_cast<datasystem::CacheType>(createParam.cacheType);
     ds::Status status = dsClient->Create(objId, static_cast<uint64_t>(data->GetSize()), param, dataBuffer);

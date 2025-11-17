@@ -28,7 +28,6 @@ class MockStreamProducer : public YR::Libruntime::StreamProducer {
 public:
     MOCK_METHOD1(Send, YR::Libruntime::ErrorInfo(const YR::Libruntime::Element &element));
     MOCK_METHOD2(Send, YR::Libruntime::ErrorInfo(const YR::Libruntime::Element &element, int64_t timeoutMs));
-    MOCK_METHOD0(Flush, YR::Libruntime::ErrorInfo());
     MOCK_METHOD0(Close, YR::Libruntime::ErrorInfo());
 };
 
@@ -49,8 +48,8 @@ using namespace testing;
 
 class StreamPubSubTest : public testing::Test {
 public:
-    StreamPubSubTest(){};
-    ~StreamPubSubTest(){};
+    StreamPubSubTest() {};
+    ~StreamPubSubTest() {};
     void SetUp() override
     {
         Mkdir("/tmp/log");
@@ -115,28 +114,6 @@ TEST_F(StreamPubSubTest, SendSuccessfullyTest)
 
     EXPECT_CALL(*this->producer, Send(_, _)).WillOnce(testing::Return(YR::Libruntime::ErrorInfo()));
     EXPECT_NO_THROW(streamProducer->Send(ele, 1000));
-}
-
-TEST_F(StreamPubSubTest, FlushFailedTest)
-{
-    YR::Libruntime::ErrorInfo err(YR::Libruntime::ErrorCode::ERR_DATASYSTEM_FAILED,
-                                  YR::Libruntime::ModuleCode::DATASYSTEM, "Flush failed.");
-    EXPECT_CALL(*(this->producer), Flush()).WillOnce(testing::Return(err));
-    bool isThrow = false;
-    try {
-        this->streamProducer->Flush();
-    } catch (YR::Exception &err) {
-        ASSERT_EQ(err.Code(), YR::Libruntime::ErrorCode::ERR_DATASYSTEM_FAILED);
-        EXPECT_THAT(err.Msg(), testing::HasSubstr("Flush failed."));
-        isThrow = true;
-    }
-    EXPECT_TRUE(isThrow);
-}
-
-TEST_F(StreamPubSubTest, FlushSuccessfullyTest)
-{
-    EXPECT_CALL(*(this->producer), Flush()).WillOnce(testing::Return(YR::Libruntime::ErrorInfo()));
-    EXPECT_NO_THROW(this->streamProducer->Flush());
 }
 
 TEST_F(StreamPubSubTest, ProducerCloseFailedTest)

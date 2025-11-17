@@ -38,14 +38,6 @@ ErrorInfo StreamProducer::Send(const Element &element, int64_t timeoutMs)
     return ErrorInfo();
 }
 
-ErrorInfo StreamProducer::Flush()
-{
-    datasystem::Status status = dsProducer->Flush();
-    auto msg = "producer failed to Flush, errMsg: " + status.ToString();
-    RETURN_ERR_NOT_OK(status.IsOk(), status.GetCode(), YR::Libruntime::ErrorCode::ERR_DATASYSTEM_FAILED, msg);
-    return ErrorInfo();
-}
-
 ErrorInfo StreamProducer::Close()
 {
     datasystem::Status status = dsProducer->Close();

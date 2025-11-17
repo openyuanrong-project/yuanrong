@@ -293,11 +293,6 @@ CErrorInfo CProducerSendWithTimeout(Producer_p producerPtr, uint8_t *ptr, uint64
     return ErrorInfoToCError(ErrorInfo());
 }
 
-CErrorInfo CProducerFlush(Producer_p producerPtr)
-{
-    return ErrorInfoToCError(ErrorInfo());
-}
-
 CErrorInfo CProducerClose(Producer_p producerPtr)
 {
     return ErrorInfoToCError(ErrorInfo());

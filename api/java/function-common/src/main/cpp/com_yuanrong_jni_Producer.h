@@ -22,18 +22,15 @@ extern "C" {
 #endif
 
 JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendHeapBufferDefaultTimeout(JNIEnv *, jclass, jlong,
-                                                                                                jbyteArray, jlong);
+                                                                                         jbyteArray, jlong);
 
-JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBufferDefaultTimeout(JNIEnv *, jclass,
-                                                                                                  jlong, jobject);
+JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBufferDefaultTimeout(JNIEnv *, jclass, jlong,
+                                                                                           jobject);
 
-JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendHeapBuffer(JNIEnv *, jclass, jlong, jbyteArray,
-                                                                                  jlong, jint);
+JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendHeapBuffer(JNIEnv *, jclass, jlong, jbyteArray, jlong,
+                                                                           jint);
 
-JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBuffer(JNIEnv *, jclass, jlong, jobject,
-                                                                                    jint);
-
-JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_flush(JNIEnv *, jclass, jlong);
+JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_sendDirectBuffer(JNIEnv *, jclass, jlong, jobject, jint);
 
 JNIEXPORT jobject JNICALL Java_com_yuanrong_jni_JniProducer_close(JNIEnv *, jclass, jlong);
 

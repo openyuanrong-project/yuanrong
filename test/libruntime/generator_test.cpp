@@ -271,8 +271,6 @@ TEST_F(GeneratorTest, GeneratorNotifierTest_NotifyResult)
             return ErrorInfo();
         });
 
-    EXPECT_CALL(*p, Flush()).Times(2).WillRepeatedly([]() { return ErrorInfo(); });
-
     {
         auto n = std::make_shared<StreamGeneratorNotifier>(streamStore, map);
         for (int i = 0; i < 2; i++) {
@@ -320,8 +318,6 @@ TEST_F(GeneratorTest, GeneratorNotifierTest_NotifyError)
         return ErrorInfo();
     });
 
-    EXPECT_CALL(*p, Flush()).WillOnce([]() { return ErrorInfo(); });
-
     {
         auto n = std::make_shared<StreamGeneratorNotifier>(streamStore, map);
         GeneratorIdRecorder r(genId, rtId, map);
@@ -361,8 +357,6 @@ TEST_F(GeneratorTest, GeneratorNotifierTest_NotifyFinished)
         EXPECT_EQ(res.numresults(), numResults);
         return ErrorInfo();
     });
-
-    EXPECT_CALL(*p, Flush()).WillOnce([]() { return ErrorInfo(); });
 
     {
         auto n = std::make_shared<StreamGeneratorNotifier>(streamStore, map);

@@ -128,12 +128,6 @@ class CreateParam:
         """
         pass
 
-    #: Configure the reliability of the data.
-    #: When the server is configured to support a secondary cache for ensuring reliability,
-    #: such as a Redis service, this configuration can ensure the reliability of the data.
-    #: Defaults to WriteMode.NONE_L2_CACHE.
-    write_mode: WriteMode = WriteMode.NONE_L2_CACHE
-
     #: Data consistency configuration.
     #: In a distributed scenario, different levels of consistency semantics can be configured.
     #: The optional parameters are ConsistencyType.PRAM (asynchronous) and ConsistencyType.CAUSAL (causal consistency).

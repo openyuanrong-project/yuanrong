@@ -22,21 +22,15 @@
 
 #define private public
 #include "datasystem/hetero_client.h"
-#include "datasystem/object_client.h"
 #include "datasystem/kv_client.h"
+#include "datasystem/object_client.h"
 #include "datasystem/stream_client.h"
 
 namespace datasystem {
-class ThreadPool {
-};
+class ThreadPool {};
 
-class StreamClientImpl {
-};
-StreamClient::StreamClient(std::string ip, int port, const std::string &clientPublicKey,
-                           const SensitiveValue &clientPrivateKey, const std::string &serverPublicKey,
-                           const std::string &accessKey, const SensitiveValue &secretKey)
-{
-}
+class StreamClientImpl {};
+StreamClient::StreamClient(ConnectionOpts options) {}
 
 Status StreamClient::Init(bool reportWorkerLost)
 {
@@ -86,11 +80,6 @@ Status Producer::Send(const Element &element, int64_t timeoutMs)
     return Status::OK();
 }
 
-Status Producer::Flush()
-{
-    return Status::OK();
-}
-
 Status Producer::Close()
 {
     return Status::OK();
@@ -126,8 +115,7 @@ Status Consumer::Ack(uint64_t elementId)
     return Status::OK();
 }
 
-class ObjectClientImpl {
-};
+class ObjectClientImpl {};
 
 ObjectClient::ObjectClient(const ConnectOptions &connectOptions) {}
 
@@ -265,10 +253,9 @@ Status Buffer::Publish(const std::unordered_set<std::string> &nestedIds)
     return Status::OK();
 }
 
-class KVClientImpl {
-};
+class KVClientImpl {};
 
-KVClient::KVClient(const ConnectOptions &connectOptions){};
+KVClient::KVClient(const ConnectOptions &connectOptions) {};
 
 Status KVClient::Init()
 {
@@ -309,7 +296,7 @@ Status KVClient::Get(const std::string &key, std::string &val, int32_t timeoutMs
 }
 
 Status KVClient::Get(const std::vector<std::string> &keys, std::vector<Optional<ReadOnlyBuffer>> &readOnlyBuffers,
-                        int32_t timeoutMs)
+                     int32_t timeoutMs)
 {
     // To test the if branch of partial get,
     // if a vector of len = 1, successfully get
@@ -435,8 +422,7 @@ Buffer::Buffer(Buffer &&other) noexcept {}
 
 Buffer::~Buffer() {}
 
-class HeteroClientImpl {
-};
+class HeteroClientImpl {};
 
 HeteroClient::HeteroClient(const ConnectOptions &connectOptions) {}
 
@@ -453,7 +439,7 @@ Status HeteroClient::ShutDown()
 }
 
 Status HeteroClient::MGetH2D(const std::vector<std::string> &objectIds, const std::vector<DeviceBlobList> &devBlobList,
-                          std::vector<std::string> &failList, int32_t timeoutMs)
+                             std::vector<std::string> &failList, int32_t timeoutMs)
 {
     return Status::OK();
 }
@@ -463,7 +449,8 @@ Status HeteroClient::DevDelete(const std::vector<std::string> &objectIds, std::v
     return Status::OK();
 }
 
-Status HeteroClient::DevLocalDelete(const std::vector<std::string> &objectIds, std::vector<std::string> &failedObjectIds)
+Status HeteroClient::DevLocalDelete(const std::vector<std::string> &objectIds,
+                                    std::vector<std::string> &failedObjectIds)
 {
     return Status::OK();
 }

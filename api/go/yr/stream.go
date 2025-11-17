@@ -69,13 +69,6 @@ func (producer *Producer) Send(data []byte) error {
 	return producer.producer.Send(element)
 }
 
-// Flush ensure flush buffered data so that it is visible to the consumer.
-func (producer *Producer) Flush() error {
-	producer.mutex.Lock()
-	defer producer.mutex.Unlock()
-	return producer.producer.Flush()
-}
-
 // Close signals the producer to stop accepting new data and automatically flushes
 // any pending data in the buffer. Once closed, the producer is no longer available.
 func (producer *Producer) Close() error {

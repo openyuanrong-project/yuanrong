@@ -20,8 +20,8 @@
 #include <gtest/gtest.h>
 #include "common/mock_libruntime.h"
 #define private public
-#include "datasystem/kv_client.h"
 #include "api/go/libruntime/cpplibruntime/clibruntime.h"
+#include "datasystem/kv_client.h"
 #include "src/libruntime/libruntime_manager.h"
 
 using namespace YR::utility;
@@ -118,8 +118,8 @@ void freeCErrorIds(CErrorObject **errorIds, int size_errorIds)
 
 class CLibruntimeTest : public testing::Test {
 public:
-    CLibruntimeTest(){};
-    ~CLibruntimeTest(){};
+    CLibruntimeTest() {};
+    ~CLibruntimeTest() {};
     void SetUp() override
     {
         Mkdir("/tmp/log");
@@ -919,7 +919,6 @@ TEST_F(CLibruntimeTest, CProducerTest)
     ASSERT_EQ(cErr.code, 0);
     SafeFreeCErr(cErr);
 
-    cErr = CProducerFlush(producer);
     ASSERT_EQ(cErr.code, 0);
     SafeFreeCErr(cErr);
 

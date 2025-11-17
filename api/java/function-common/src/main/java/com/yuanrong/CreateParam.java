@@ -25,7 +25,6 @@ import lombok.Data;
  */
 @Data
 public class CreateParam {
-    private WriteMode writeMode = WriteMode.NONE_L2_CACHE;
 
     private ConsistencyType consistencyType = ConsistencyType.PRAM;
 
@@ -51,17 +50,6 @@ public class CreateParam {
          */
         public Builder() {
             createParam = new CreateParam();
-        }
-
-        /**
-         * set the writeMode
-         *
-         * @param writeMode the writeMode
-         * @return CreateParam Builder class object.
-         */
-        public Builder writeMode(WriteMode writeMode) {
-            createParam.writeMode = writeMode;
-            return this;
         }
 
         /**

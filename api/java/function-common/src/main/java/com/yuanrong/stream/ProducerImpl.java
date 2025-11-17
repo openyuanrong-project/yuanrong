@@ -89,18 +89,6 @@ public class ProducerImpl implements Producer {
         }
     }
 
-    @Override
-    public void flush() throws YRException {
-        rLock.lock();
-        try {
-            ensureOpen();
-            ErrorInfo err = JniProducer.flush(this.producerPtr);
-            StackTraceUtils.checkErrorAndThrowForInvokeException(err, err.getErrorMessage());
-        } finally {
-            rLock.unlock();
-        }
-    }
-
     /**
      * Checks to make sure that producer has not been closed.
      *

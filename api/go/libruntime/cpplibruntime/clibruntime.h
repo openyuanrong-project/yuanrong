@@ -432,7 +432,6 @@ CErrorInfo CQueryGlobalConsumersNum(char *streamName, uint64_t *num);
 CErrorInfo CProducerSend(Producer_p producerPtr, uint8_t *ptr, uint64_t size, uint64_t id);
 CErrorInfo CProducerSendWithTimeout(Producer_p producerPtr, uint8_t *ptr, uint64_t size, uint64_t id,
                                     int64_t timeoutMs);
-CErrorInfo CProducerFlush(Producer_p producerPtr);
 CErrorInfo CProducerClose(Producer_p producerPtr);
 CErrorInfo CConsumerReceive(Consumer_p consumerPtr, uint32_t timeoutMs, CElement **elements, uint64_t *count);
 CErrorInfo CConsumerReceiveExpectNum(Consumer_p consumerPtr, uint32_t expectNum, uint32_t timeoutMs,

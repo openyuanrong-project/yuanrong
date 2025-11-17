@@ -190,8 +190,6 @@ public:
 
     virtual void Send(const Element &element, int64_t timeoutMs) = 0;
 
-    virtual void Flush() = 0;
-
     virtual void Close() = 0;
 };
 

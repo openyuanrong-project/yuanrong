@@ -52,8 +52,7 @@ func StreamExample() {
 	}
 
 	fmt.Println(producer.Send(data))
-	fmt.Println(producer.Flush())
-
+	
 	subDatas, err := consumer.Receive(1, 30000)
 	if err != nil {
 		fmt.Println("receive failed, err: ", err)

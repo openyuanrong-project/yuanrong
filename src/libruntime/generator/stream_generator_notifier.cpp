@@ -158,12 +158,6 @@ ErrorInfo StreamGeneratorNotifier::NotifyResultByStream(const std::string &gener
     if (!err.OK()) {
         YRLOG_ERROR("failed to send notify result to stream, err code: {}, err message: {}",
                     fmt::underlying(err.Code()), err.Msg());
-    } else {
-        err = producer->Flush();
-        if (!err.OK()) {
-            YRLOG_ERROR("failed to flush stream, err code: {}, err message: {}", fmt::underlying(err.Code()),
-                        err.Msg());
-        }
     }
 
     if (!resultErr.OK()) {
@@ -197,12 +191,6 @@ ErrorInfo StreamGeneratorNotifier::NotifyFinishedByStream(const std::string &gen
     if (!err.OK()) {
         YRLOG_ERROR("failed to send notify finished to stream, err code: {}, err message: {}",
                     fmt::underlying(err.Code()), err.Msg());
-    } else {
-        err = producer->Flush();
-        if (!err.OK()) {
-            YRLOG_ERROR("failed to flush stream, err code: {}, err message: {}", fmt::underlying(err.Code()),
-                        err.Msg());
-        }
     }
 
     if (!DecreaseProducerReference(topic)) {
@@ -234,12 +222,6 @@ ErrorInfo StreamGeneratorNotifier::NotifyHeartbeatByStream(const std::string &ge
     if (!err.OK()) {
         YRLOG_ERROR("failed to send notify heartbeat to stream, err code: {}, err message: {}",
                     fmt::underlying(err.Code()), err.Msg());
-    } else {
-        err = producer->Flush();
-        if (!err.OK()) {
-            YRLOG_ERROR("failed to flush stream, err code: {}, err message: {}", fmt::underlying(err.Code()),
-                        err.Msg());
-        }
     }
 
     if (!DecreaseProducerReference(topic)) {
