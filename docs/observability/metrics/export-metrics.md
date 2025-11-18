@@ -118,7 +118,7 @@ fileExporter 导出器初始化参数：
 
 文件导出器（fileExporter）的导出目录可通过配置传入，默认使用日志目录。文件名称格式如下:
 
-- 应用指标文件名形式：`yr_metris_xxx.data` 。
+- 应用指标文件名形式：`yr_metrics_xxx.data` 。
 - 系统指标文件名形式：`{nodeName}-{moduleName}-metrics.data`，例如：pekphis355665-3445437-function_master-metrics.data。
 
 导出文件内容格式有 `STANDARD`、`LABELS` 两种。
