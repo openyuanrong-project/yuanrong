@@ -236,7 +236,6 @@ function install_python_requirements() {
     pip3.9 install fastapi
     pip3.9 install aiohttp # only for test
     pip3.9 install requests
-    pip3.9 install wheel==0.36.2
 }
 
 function check_sanitizers() {
@@ -348,6 +347,7 @@ sed -i "s/<version>1.0.0<\/version>/<version>${BUILD_VERSION}<\/version>/" $API_
 sed -i "s/<version>1.0.0<\/version>/<version>${BUILD_VERSION}<\/version>/" $API_DIR/java/function-common/pom.xml
 sed -i "s/<version>1.0.0<\/version>/<version>${BUILD_VERSION}<\/version>/" $API_DIR/java/yr-runtime/pom.xml
 
+pip3.9 install wheel==0.36.2
 build_multi_python_version
 
 BAZEL_OPTIONS_ENV="${BAZEL_OPTIONS_ENV} --action_env=BOOST_VERSION=$BOOST_VERSION --action_env=GOPATH=$(go env GOPATH) --action_env=GOEXPERIMENT=$(go env GOEXPERIMENT) --action_env=GOCACHE=$(go env GOCACHE) --action_env=BUILD_VERSION=${BUILD_VERSION} --action_env=PYTHON3_BIN_PATH=$PYTHON3_BIN_PATH"
