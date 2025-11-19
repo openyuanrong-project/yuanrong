@@ -14,7 +14,7 @@ yr.runtime.ConsistencyType
        :widths: 40 60
 
        * - :ref:`PRAM <pram_ct>`
-         - 异步。
+         - 弱一致性。
        * - :ref:`CAUSAL <causal_ct>`
          - 因果一致性。
 

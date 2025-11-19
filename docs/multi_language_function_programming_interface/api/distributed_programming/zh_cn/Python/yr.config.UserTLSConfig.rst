@@ -5,7 +5,7 @@ yr.config.UserTLSConfig
 
     基类：``object``
 
-    用户 SSL/TLS 的外部集群。
+    用户在与外部集群通信时使用的 SSL/TLS 配置。
 
     **属性**：
 

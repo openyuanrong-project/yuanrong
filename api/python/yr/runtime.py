@@ -84,7 +84,7 @@ class SetParam:
 
     #: Configures data reliability. When a second-level cache (e.g., Redis) is enabled on the server,
     #: this setting ensures data integrity.
-    #: Default value is ``WriteMode.NONE_L2_CACHE``.
+    #: Default value is ``WriteMode.NONE_L2_CACHE``, that is ``0``.
     write_mode: WriteMode = WriteMode.NONE_L2_CACHE
 
     #: Data lifetime, keys exceeding this time will be deleted. Default is ``0``,
@@ -105,7 +105,7 @@ class MSetParam:
 
     #: Configures data reliability. When a second-level cache (e.g., Redis) is enabled on the server,
     #: this setting ensures data integrity.
-    #: Default value is ``WriteMode.NONE_L2_CACHE``.
+    #: Default value is ``WriteMode.NONE_L2_CACHE``, that is ``0``.
     write_mode: WriteMode = WriteMode.NONE_L2_CACHE
 
     #: Data lifetime; keys exceeding this time will be deleted. Default is ``0``,

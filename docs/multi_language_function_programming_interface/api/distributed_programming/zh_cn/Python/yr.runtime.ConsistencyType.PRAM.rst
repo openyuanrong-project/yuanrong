@@ -6,4 +6,4 @@ yr.runtime.ConsistencyType.PRAM
 .. py:attribute:: ConsistencyType.PRAM
    :value: 0
 
-   异步。
+   弱一致性。

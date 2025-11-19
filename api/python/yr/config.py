@@ -41,7 +41,7 @@ MEMORY_RESOURCE_NAME = "Memory"
 @dataclass
 class UserTLSConfig:
     """
-    Out cluster for user ssl/tls.
+    The SSL/TLS configuration used by users when communicating with external clusters.
     """
     #: Path to the root certificate file.
     root_cert_path: str
