@@ -60,7 +60,7 @@ check_tools() {
     check_tool cmake "cmake --version 2>&1 | head -n1 | awk '{print \$3}'" "CMake"
     check_tool gcc "gcc --version 2>&1 | head -n1 | awk '{print \$3}'" "GCC"
     check_tool ldd "" "glibc"
-    check_tool doxygen "doxygen --version" "Doxygen"
+    check_tool node "node -v" "Node.js"
 
     echo "=========================================="
 
@@ -78,7 +78,7 @@ check_tools() {
         "cmake"
         "gcc"
         "ldd"
-        "doxygen"
+        "node"
     )
 
     for cmd in "${tools[@]}"; do
