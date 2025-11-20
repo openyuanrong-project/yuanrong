@@ -46,6 +46,9 @@ function health_check() {
     dashboard|collector)
         dashboard_health_check "$2"
         ;;
+    faas_frontend)
+        faas_frontend_health_check "$2"
+        ;;
     metaservice)
         metaservice_health_check "$2"
         ;;

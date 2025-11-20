@@ -58,6 +58,11 @@ function init_data_plane_port() {
   data_port_table["function_agent_port"]=${FUNCTION_AGENT_PORT}
   data_port_table["runtime_init_port"]=${RUNTIME_INIT_PORT}
   data_port_table["ds_worker_port"]=${DS_WORKER_PORT}
+  data_port_table["dashboard_port"]=${DASHBOARD_PORT}
+  data_port_table["dashboard_grpc_port"]=${DASHBOARD_GRPC_PORT}
+  data_port_table["collector_port"]=${COLLECTOR_PORT}
+  data_port_table["faas_frontend_http_port"]=${FAAS_FRONTEND_HTTP_PORT}
+  data_port_table["faas_frontend_grpc_port"]=${FAAS_FRONTEND_GRPC_PORT}
 }
 
 function update_data_plane_port() {
