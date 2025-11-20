@@ -81,6 +81,12 @@ function print_info() {
   MASTER_INFO_STRING="${MASTER_INFO_STRING}bus-proxy:${data_port_table['function_proxy_port']},"
   MASTER_INFO_STRING="${MASTER_INFO_STRING}bus:${data_port_table['function_proxy_grpc_port']},"
   MASTER_INFO_STRING="${MASTER_INFO_STRING}ds-worker:${data_port_table['ds_worker_port']},"
+  if [ "X${ENABLE_DASHBOARD}" == "Xtrue" ] || [ "X${ENABLE_DASHBOARD}" == "XTRUE" ]; then
+    MASTER_INFO_STRING="${MASTER_INFO_STRING}dashboard_port:${data_port_table['dashboard_port']},"
+  fi
+  if [ "X${ENABLE_FAAS_FRONTEND}" == "Xtrue" ] || [ "X${ENABLE_FAAS_FRONTEND}" == "XTRUE" ]; then
+    MASTER_INFO_STRING="${MASTER_INFO_STRING}frontend_port:${data_port_table['faas_frontend_http_port']},"
+  fi
   if [ "X${ENABLE_MASTER}" = "Xtrue" ]; then
     log_info "${MASTER_INFO_STRING}"
   fi
@@ -112,7 +118,13 @@ function print_info() {
   fi
 
   printf "%30s %10s\n" "FUNCTION_PROXY_PORT:" "${data_port_table['function_proxy_port']}"
-
+  if [ -n "${pid_table["faas_frontend"]}" ]; then
+    printf "%30s %10s\n" "FAAS_FRONTEND_HTTP_PORT:" "${data_port_table['faas_frontend_http_port']}"
+    printf "%30s %10s\n" "FAAS_FRONTEND_GRPC_PORT:" "${data_port_table['faas_frontend_grpc_port']}"
+  fi
+  if [ -n "${pid_table["dashboard"]}" ]; then
+      printf "%30s %10s\n" "DASHBOARD_PORT:" "${data_port_table['dashboard_port']}"
+  fi
   printf "%30s %10s\n" "FUNCTION_AGENT_PORT:" "${data_port_table['function_agent_port']}"
   if [ "X${MERGE_PROCESS_ENABLE}" = "Xtrue" ] || [ "X${MERGE_PROCESS_ENABLE}" = "XTRUE" ]; then
     printf "%30s %10s\n" "RUNTIME_MGR_PORT:" "disabled"
@@ -490,6 +502,46 @@ function start_function_agent() {
   check_and_set_component_checklist "function_agent" $FUNCTION_AGENT_PID
 }
 
+function start_faas_frontend() {
+  if [ "X${ENABLE_FAAS_FRONTEND}" != "Xtrue" ] && [ "X${ENABLE_FAAS_FRONTEND}" != "XTRUE" ]; then
+    return 0
+  fi
+  update_data_plane_port "faas_frontend_http_port faas_frontend_grpc_port"
+  FAAS_FRONTEND_HTTP_PORT=${data_port_table["faas_frontend_http_port"]}
+  FAAS_FRONTEND_GRPC_PORT=${data_port_table["faas_frontend_grpc_port"]}
+  install_function_system "faas_frontend"
+  check_and_set_component_checklist "faas_frontend" $FAAS_FRONTEND_PID
+}
+
+function start_dashboard() {
+  if [ "X${ENABLE_DASHBOARD}" != "Xtrue" ] && [ "X${ENABLE_DASHBOARD}" != "XTRUE" ]; then
+    return 0
+  fi
+  update_data_plane_port "dashboard_port dashboard_grpc_port"
+  DASHBOARD_PORT=${data_port_table["dashboard_port"]}
+  DASHBOARD_GRPC_PORT=${data_port_table["dashboard_grpc_port"]}
+  install_function_system "dashboard"
+  ret_code=$?
+  if [ ${ret_code} -eq 0 ]; then
+    check_and_set_component_checklist "dashboard" $DASHBOARD_PID
+  fi
+  return ${ret_code}
+}
+
+function start_collector() {
+  if [ "X${ENABLE_COLLECTOR}" != "Xtrue" ] && [ "X${ENABLE_COLLECTOR}" != "XTRUE" ]; then
+    return 0
+  fi
+  update_data_plane_port "collector_port"
+  COLLECTOR_PORT=${data_port_table["collector_port"]}
+  install_function_system "collector"
+  ret_code=$?
+  if [ ${ret_code} -eq 0 ]; then
+    check_and_set_component_checklist "collector" $COLLECTOR_PID
+  fi
+  return ${ret_code}
+}
+
 function start_ds_worker() {
   update_data_plane_port "ds_worker_port"
   DS_WORKER_PORT=${data_port_table["ds_worker_port"]}
@@ -609,7 +661,7 @@ function restart_component() {
        restart_agent_runtime_accessor
      fi
     ;;
-  function_master|ds_master|collector)
+  function_master|ds_master|collector|faas_frontend|dashboard|)
     restart_module "$1"
     ;;
   etcd)
@@ -626,6 +678,8 @@ function restart_component() {
     terminate_process ${pid_table["ds_master"]}
     terminate_process ${pid_table["function_master"]}
     terminate_process ${pid_table["collector"]}
+    terminate_process ${pid_table["dashboard"]}
+    terminate_process ${pid_table["faas_frontend"]}
     start_control_plane
     ;;
   *)
@@ -840,7 +894,9 @@ function main() {
       health_check "function_proxy" ${pid_table["function_proxy"]}
   fi
   start_function_agent
-
+  start_faas_frontend
+  start_dashboard
+  start_collector
   # check all component is working, if not, restart with change port(for control plane only restart).
   wait_for_ready_on_checklist
   time=$(echo $start "$(date +%s)" | awk '{print $2-$1}')
