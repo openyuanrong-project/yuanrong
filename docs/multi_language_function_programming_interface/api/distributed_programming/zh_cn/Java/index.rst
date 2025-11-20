@@ -102,6 +102,12 @@ Java
 
    Affinity
 
+.. toctree::
+   :glob:
+   :hidden:
+   :maxdepth: 1
+
+   Stream
 
 基础 API
 ----------
@@ -282,3 +288,14 @@ KV 缓存 API
 
    * - :doc:`Affinity`
      - 亲和调度的配置参数。
+
+
+数据流 API
+-----------------------
+
+.. list-table::
+   :header-rows: 0
+   :widths: 30 70
+
+   * - :doc:`Stream`
+     - 在 openYuanrong 函数间传递共享的有序无界内存数据集。

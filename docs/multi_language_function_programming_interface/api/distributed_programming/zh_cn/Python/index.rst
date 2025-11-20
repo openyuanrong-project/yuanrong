@@ -47,6 +47,22 @@ Python
    yr.wait
    yr.object_ref.ObjectRef
 
+
+.. toctree::
+   :glob:
+   :hidden:
+   :maxdepth: 1
+
+   yr.ProducerConfig
+   yr.SubscriptionConfig
+   yr.Element
+   yr.create_stream_producer
+   yr.create_stream_consumer
+   yr.delete_stream
+   yr.fnruntime.Producer
+   yr.fnruntime.Consumer
+
+
 .. toctree::
    :glob:
    :hidden:
@@ -214,6 +230,30 @@ Python
      - 给定一组数据对象的键，等待指定数量的数据对象的值就绪。
    * - :doc:`yr.object_ref.ObjectRef`
      - 对象引用，即数据对象的键。
+
+数据流 API
+--------------
+
+.. list-table::
+   :header-rows: 0
+   :widths: 30 70
+   
+   * - :doc:`yr.ProducerConfig`
+     - 生产者创建的配置类。 
+   * - :doc:`yr.SubscriptionConfig`
+     - 消费者订阅的配置类。
+   * - :doc:`yr.Element`
+     - 包含元素 ID 与数据缓冲区的元素类。
+   * - :doc:`yr.create_stream_producer`
+     - 创建生产者。
+   * - :doc:`yr.create_stream_consumer`
+     - 创建消费者。
+   * - :doc:`yr.delete_stream`
+     - 删除数据流。
+   * - :doc:`yr.fnruntime.Producer`
+     - 生产者接口类。
+   * - :doc:`yr.fnruntime.Consumer`
+     - 消费者接口类。
 
 函数互调 API
 -------------------

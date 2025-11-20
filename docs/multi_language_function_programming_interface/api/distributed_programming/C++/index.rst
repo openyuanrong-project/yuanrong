@@ -100,6 +100,12 @@ C++
 
    Affinity
 
+.. toctree::
+   :glob:
+   :hidden:
+   :maxdepth: 1
+
+   Stream
 
 Basic API
 ----------
@@ -273,3 +279,13 @@ Affinity Scheduling
 
    * - :doc:`Affinity`
      - Affinity Scheduling Configuration Parameters.
+
+Stream API
+-----------------------
+
+.. list-table::
+   :header-rows: 0
+   :widths: 30 70
+
+   * - :doc:`Stream`
+     - Passing ordered unbounded data between openYuanrong functions.  

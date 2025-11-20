@@ -55,6 +55,23 @@ Data Object API
    yr.object_ref.ObjectRef
 
 
+Stream API
+-----------------
+
+.. autosummary::
+   :nosignatures:
+   :toctree: generated/
+
+   yr.ProducerConfig
+   yr.SubscriptionConfig
+   yr.Element
+   yr.create_stream_producer
+   yr.create_stream_consumer
+   yr.delete_stream
+   yr.fnruntime.Producer
+   yr.fnruntime.Consumer
+
+   
 Function Interoperation API
 -----------------------------
 
