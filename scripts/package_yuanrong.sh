@@ -115,7 +115,7 @@ find . -type f -exec chmod 640 {} \;
 if [ -d ${OUTPUT_DIR}/openyuanrong/deploy/process/ ]; then
   find ${OUTPUT_DIR}/openyuanrong/deploy/process/ -type f -exec chmod 550 {} \;
   find ${OUTPUT_DIR}/openyuanrong/deploy/process/ -type f -name "*.yaml" -exec chmod 640 {} \;
-fiz
+fi
 
 if [ -d ${OUTPUT_DIR}/openyuanrong/data_system/ ]; then
   find ${OUTPUT_DIR}/openyuanrong/data_system/ -type f -exec chmod 550 {} \;
