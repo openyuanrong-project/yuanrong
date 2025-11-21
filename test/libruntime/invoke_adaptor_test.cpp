@@ -1171,7 +1171,7 @@ TEST_F(InvokeAdaptorTest, GetInstanceIdsTest)
 {
     auto [vec1, err1] = invokeAdaptor->GetInstanceIds("objid", "groupname");
     ASSERT_EQ(err1.Code(), ErrorCode::ERR_INNER_SYSTEM_ERROR);
-    GroupOptions opts;
+    GroupOpts opts;
     auto fsClient = std::make_shared<MockFsIntf>();
     auto group = std::make_shared<NamedGroup>("groupname", opts);
     invokeAdaptor->groupManager->AddGroup(group);
