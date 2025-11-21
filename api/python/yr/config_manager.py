@@ -59,7 +59,7 @@ class ConfigManager:
         self.__ds_address = ""
         self.__connection_nums = None
         self.__log_level = logging.WARNING
-        self.__in_cluster = False
+        self.__in_cluster = True
         self.__deployment_config = DeploymentConfig()
         self.tls_config = None
         self.meta_config = None
