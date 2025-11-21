@@ -321,16 +321,6 @@ cdef CMSetParam m_set_param_from_py(m_set_param: MSetParam):
 cdef CCreateParam create_param_from_py(create_param: CreateParam):
     cdef:
         CCreateParam param
-    if create_param.write_mode == WriteMode.NONE_L2_CACHE:
-        param.writeMode = CWriteMode.NONE_L2_CACHE
-    elif create_param.write_mode == WriteMode.WRITE_THROUGH_L2_CACHE:
-        param.writeMode = CWriteMode.WRITE_THROUGH_L2_CACHE
-    elif create_param.write_mode == WriteMode.WRITE_BACK_L2_CACHE:
-        param.writeMode = CWriteMode.WRITE_BACK_L2_CACHE
-    elif create_param.write_mode == WriteMode.NONE_L2_CACHE_EVICT:
-        param.writeMode = CWriteMode.NONE_L2_CACHE_EVICT
-    else:
-        param.writeMode = CWriteMode.NONE_L2_CACHE
 
     if create_param.consistency_type == ConsistencyType.PRAM:
         param.consistencyType = CConsistencyType.PRAM
