@@ -31,17 +31,21 @@
 |-------------------|-----------|------------|----------------|---------------|
 | AdoptOpenJDK      | 开源第三方 | 编译构建    | 8              | 8             |
 | Apache Maven      | 开源第三方 | 编译构建    | 3.9.11         | 3.9.11        |
-| Golang            | 开源第三方 | 编译构建    | 1.21.4         | 1.21.4        |
-| golang/protobuf   | 开源第三方 | 编译构建    | 1.5.4          | 1.5.4         |
+| Golang            | 开源第三方 | 编译构建    | 1.24.1         | 1.24.1        |
 | CMake             | 开源第三方 | 编译构建    | 3.22.0         | 3.22.0        |
 | Python            | 开源第三方 | 编译构建    | 3.9/3.10/3.11  | 3.9/3.10/3.11 |
 | ninja-build/ninja | 开源第三方 | 编译构建    | 1.13.1         | 1.13.1        |
 | bazelbuild/bazel  | 开源第三方 | 编译构建    | 6.5.0          | 6.5.0         |
+| Node.js           | 开源第三方 | 编译构建    | 20.19.0        | 20.19.0         |
 
 :::{tip}
-
-我们在每个代码仓库根目录都提供了一键安装编译工具的脚本 `install_tools.sh`，可选择使用命令 `bash install_tools.sh` 执行安装。
-
+使用以下脚本一键安装编译工具
+```bash
+wget https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/build_tools/openeuler_22.03_LTS/check_tools.sh
+wget  https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/build_tools/openeuler_22.03_LTS/install_tools.sh
+bash install_tools.sh
+source /etc/profile.d/build_tools.sh
+```
 :::
 
 ## 编译
