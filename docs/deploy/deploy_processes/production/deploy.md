@@ -71,6 +71,55 @@ Cluster master info:
 yr start --gpu_collection_enable true --master_info "local_ip:x.x.x.x,master_ip:x.x.x.x,etcd_ip:x.x.x.x,etcd_port:18107,global_scheduler_port:13611,ds_master_port:11647,cluster_deployer_port:22775,etcd_peer_port:17406,bus-proxy:28169,bus:38575,ds-worker:22903,"
 ```
 
+### 配置启动 Dashboard
+
+Dashboard 支持在页面上查看日志、指标、任务运行状态等数据，详细使用参考 [Dashboard 介绍](../../../observability/dashboard.md)。
+
+部署主节点：
+
+```bash
+# 这里通过配置 `--port_policy=FIX` 固定了服务访问端口，如有端口冲突，可取消该配置或参考部署参数说明单独指定服务端口
+yr start --master --enable_faas_frontend=true --enable_dashboard=true --enable_collector=true --enable_separated_redirect_runtime_std=true --prometheus_address=prometheus_ip:prometheus_port --enable_metrics=true --metrics_config_file={file_name}.json --port_policy=FIX
+```
+
+部署成功会打印如下主节点信息。
+
+```bash
+Cluster master info:
+    local_ip:x.x.x.x,master_ip:x.x.x.x,etcd_ip:x.x.x.x,etcd_port:32379,global_scheduler_port:22770,ds_master_port:12123,etcd_peer_port:32380,bus-proxy:22772,bus:22773,ds-worker:31501,dashbaord_port:9080,
+```
+
+部署从节点：
+
+```bash
+# 使用前一步骤打印的主节点信息替换引号中的内容。
+yr start --enable_collector=true --enable_separated_redirect_runtime_std=true --master_info "local_ip:x.x.x.x,master_ip:x.x.x.x,etcd_ip:x.x.x.x,etcd_port:32379,global_scheduler_port:22770,ds_master_port:12123,etcd_peer_port:32380,bus-proxy:22772,bus:22773,ds-worker:31501,dashbaord_port:9080,"
+```
+### 配置函数日志在 Driver 端输出
+
+配置函数日志在 Driver 端输出后，本地程序直接调用无状态或有状态函数时，将流式输出函数的 stdout 和 stderr 日志到终端。
+
+部署主节点：
+
+```bash
+# 这里通过配置 `--port_policy=FIX` 固定了服务访问端口，如有端口冲突，可取消该配置或参考部署参数说明单独指定服务端口
+yr start --master --enable_collector=true --enable_separated_redirect_runtime_std=true --port_policy=FIX
+```
+
+部署成功会打印如下主节点信息。
+
+```bash
+Cluster master info:
+    local_ip:x.x.x.x,master_ip:x.x.x.x,etcd_ip:x.x.x.x,etcd_port:32379,global_scheduler_port:22770,ds_master_port:12123,etcd_peer_port:32380,bus-proxy:22772,bus:22773,ds-worker:31501,
+```
+
+部署从节点：
+
+```bash
+# 使用前一步骤打印的主节点信息替换引号中的内容。
+yr start --enable_collector=true --enable_separated_redirect_runtime_std=true --master_info "local_ip:x.x.x.x,master_ip:x.x.x.x,etcd_ip:x.x.x.x,etcd_port:32379,global_scheduler_port:22770,ds_master_port:12123,etcd_peer_port:32380,bus-proxy:22772,bus:22773,ds-worker:31501"
+```
+
 ### 部署多个主节点
 
 主节点默认只部署一个，在高可靠场景下，也可按一主多备方式部署多个。这里以常见的一主两备部署方式，使用内置 etcd 为例。

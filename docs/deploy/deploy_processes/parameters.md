@@ -31,6 +31,7 @@
 | `--block`                       | 阻塞模式。                                         | ``false``     | 选填。启用阻塞模式时，部署脚本进程不会退出。 |
 | `--etcd_mode`                   | etcd 部署模式。                                    | ``inner``     | 选填。取值 ``inner``，``outter``。当配置 ``outter`` 时，脚本不会启动 etcd，需要结合配置 `--etcd_addr_list` 配置 etcd 地址，并需要开启多 master，一起使用才能生效。 |
 | `--etcd_table_prefix`           | etcd key 前缀配置，用于多套集群对接同一个 etcd 集群。 | ``""``      | 选填。配置不能包含空格，建议不同的集群使用不同的前缀。 |
+| `--prometheus_address`              | prometheus 地址配置，用于连接 prometheus 并获取时序数据。 | ``""``      | 选填。传入格式如 prometheus_ip:prometheus_port。 |
 | `--labels`                      | 数据面自定义标签。                                  | ``""``      | 选填。 |
 
 * node_id 默认脚本内自动生成，生成格式 `${hostName}-${PID}`，PID 为部署脚本进程（`deploy.sh`） ID。
@@ -94,6 +95,10 @@
 | `--global_scheduler_port` | global scheduler 监听端口。 | ``22770`` | 选填。对于启动控制面组件，当 port_policy 配置为 ``FIX`` 生效；对于启动数据面组件，master_info 未配置时生效。 |
 | `--ds_master_port` | ds-master 监听端口。 | ``12123`` |选填。当 port_policy 配置为 ``FIX`` 生效。 |
 | `--ds_worker_port` | ds-worker 监听端口。 | ``31501`` |选填。当 port_policy 配置为 ``FIX`` 生效。 |
+| `--dashboard_port`           | dashboard 监听端口。                   | ``9080``   |选填。当 port_policy 配置为 ``FIX`` 生效。 |
+| `--dashboard_grpc_port`      | dashboard grpc 监听端口。              | ``9081``   |选填。当 port_policy 配置为 ``FIX`` 生效。 |
+| `--faas_frontend_http_port`  | frontend http 监听端口。               | ``8888``   |选填。当 port_policy 配置为 ``FIX`` 生效。 |
+| `--faas_frontend_grpc_port`  | frontend grpc 监听端口。              | ``31223``  |选填。当 port_policy 配置为 ``FIX`` 生效。 |
 | `--disable_nc_check` | 是否禁用 nc 工具进行端口探测，防止组件端口冲突。 | 无参 |选填。默认不配置此参数。 |
 
 :::{Note}
@@ -124,6 +129,9 @@
 | `--function_agent_alias` | function agent 别名。 | ``""``                                                   | 选填。|
 | `--enable_print_perf` | 是否打开 function proxy 的 perf 打印。 | ``false``                                                | 选填。|
 | `--enable_meta_store` | 是否打开 meta store。 | ``false``                                                | 选填。|
+| `--enable_dashboard`                 | 是否打开 dashboard。 | ``false``                                                | 选填。|
+| `--enable_collector`                 | 是否打开 collector。 | ``false``                                                | 选填。|
+| `--enable_faas_frontend`             | 是否打开 frontend。 | ``false``                                      | 选填。|
 | `--enable_jemalloc` | 是否打开 function master 和 function proxy 的 jemalloc。 | ``true``                                                 | 选填。|
 | `--massif_enable` | runtime 是否启动 massif。  | ``false``                                                | 选填。|
 | `--is_partial_watch_instances` | function-proxy 是否开启部分 watch。 | ``false``                                                | 选填。|

@@ -44,7 +44,9 @@
 组件日志在 log 目录下：
 
 - function master 组件：包含 `{node_id}-function_master.log` 和 `{node_id}-function_master_std.log` 文件，仅在主节点存在。
+- dashboard 组件：包含 `dashboard-run.{timestamp}.log` 和 `{node_id}-dashboard_std.log` 文件，仅在主节点存在。
 - function proxy 组件：包含 `{node_id}-function_proxy.log` 和 `{node_id}-function_proxy_std.log` 文件。
 - function agent 与 runtime manager 组件：默认共进程部署，包含 `{node_id}-function_agent.log` 文件。
 - data worker 组件：`worker.{INFO|WARNING}.log` 和 `ds_worker_std.log` 文件主从节点都包含。`ds_master_std.log` 和 `master/worker.{INFO|WARNING}.log` 文件仅在主节点存在。
+- collector 组件：包含 `{node_id}-collector_std.log` 文件。
 - etcd 组件：包含 `etcd-run.log` 文件，仅在主节点存在。

@@ -6,6 +6,7 @@
    :maxdepth: 1
    :hidden:
 
+   dashboard
    logs
    metrics/index
 ```
@@ -22,3 +23,4 @@
 
 - [日志](./logs.md)
 - [指标](./metrics/index.md)
+- [Dashboard](./dashboard.md)

@@ -13,14 +13,14 @@
 首先部署主节点，设置两个标签 `{"master":"dev"}` 和 `{"agent":"dev"}`。
 
 ```bash
-yr start --master --labels="{\"master\":\"dev\",\"agent\":\"dev\"}"
+yr start --master --enable_dashboard=true --enable_collector=true --enable_separated_redirect_runtime_std=true --labels="{\"master\":\"dev\",\"agent\":\"dev\"}"
 ```
 
 再部署从节点，设置一个标签 `{"agent":"uat"}`。
 
 ```bash
 # 替换 {Cluster master info} 为成功部署主节点时输出的主节点信息
-yr start --labels="{\"agent\":\"uat\"}" --master_info "{Cluster master info}"
+yr start --labels="{\"agent\":\"uat\"}" --enable_collector=true --enable_separated_redirect_runtime_std=true --master_info "{Cluster master info}"
 ```
 
 代码中有状态函数 Detector 的 show 方法将帮助打印函数实例所在节点信息。我们为两个 Detector 实例分别设置了资源亲和标签。主节点带有 key 为 master 的标签，因此第一个 Detector 实例不会部署在主节点上。第二个 Detector 实例不仅要求标签的 key 匹配，还要求标签的 value 也必须匹配。因此，第二个 Detector 实例只会部署在从节点上。
@@ -85,14 +85,14 @@ if __name__ == '__main__':
 首先部署主节点：
 
 ```bash
-yr start --master
+yr start --master --enable_dashboard=true --enable_collector=true --enable_separated_redirect_runtime_std=true
 ```
 
 再部署从节点：
 
 ```bash
 # 替换 {Cluster master info} 为成功部署主节点时输出的主节点信息
-yr start --master_info "{Cluster master info}"
+yr start --enable_collector=true --enable_separated_redirect_runtime_std=true --master_info "{Cluster master info}"
 ```
 
 代码中有状态函数的 show 方法将帮助打印函数实例所在节点信息。我们配置 Detector 实例的标签 key 为 detector，不与有相同标签的实例部署在同一节点。Partner 实例配置标签 key 为 partner，不与有相同标签的实例部署在同一节点，但要与标签 key 为 detector 的实例部署在同一节点。
