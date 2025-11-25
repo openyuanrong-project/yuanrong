@@ -45,6 +45,9 @@ while [[ $# -gt 0 ]]; do
           ;;
     esac
 done
+if [ -z "${VERSION}" ]; then
+    VERSION="v1.0.0"
+fi
 
 # go module prepare
 export GO111MODULE=on
@@ -98,9 +101,6 @@ CC='gcc -fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2' go build -tags="${BUIL
 
 cd "${OUTPUT_DIR}"
 DASHBOARD_TAR_NAME="yr-dashboard-${VERSION}.tar.gz"
-if [ -z "${VERSION}" ]; then
-    DASHBOARD_TAR_NAME="yr-dashboard.tar.gz"
-fi
 tar -czvf "${DASHBOARD_TAR_NAME}" ./*
 mkdir -p "${RUNTIME_OUTPUT_DIR}"
 rm -rf "${RUNTIME_OUTPUT_DIR}/${DASHBOARD_TAR_NAME}"
