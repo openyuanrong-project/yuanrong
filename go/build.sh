@@ -16,10 +16,10 @@
 set -e
 
 readonly USAGE="
-Usage: bash build.sh [-h] [-v <version>]
+Usage: bash build.sh [-h] [-v]
 
 Options:
-    -v, --version show version.
+    -v set version.
     -h show usage.
 "
 
@@ -28,20 +28,24 @@ OUTPUT_DIR="${PROJECT_DIR}/output"
 RUNTIME_OUTPUT_DIR="${PROJECT_DIR}/../output"
 POSIX_DIR="${PROJECT_DIR}/proto/posix"
 BUILD_TAGS=""
-VERSION=""
+VERSION="0.5.0"
 FLAGS='-extldflags "-fPIC -fstack-protector-strong -Wl,-z,now,-z,relro,-z,noexecstack,-s -Wall -Werror"'
 
-while true; do
-    case "$1" in
-    -v|--version) VERSION=$2 && shift 2 ;;
-    -h|--help) echo -e "${USAGE}" && exit 0 ;;
-    --) shift && break ;;
-    *) die "Invalid option: $1" && exit 1 ;;
+while getopts "v:h" opt; do
+    case $opt in
+        v)
+            VERSION="$OPTARG"
+            ;;
+        h)
+            echo -e "${USAGE}"
+            exit 0
+            ;;
+        *)
+            echo "Invalid command"
+            exit 1
+            ;;
     esac
 done
-if [ -z "${VERSION}" ]; then
-    VERSION="v0.5.0"
-fi
 
 # go module prepare
 export GO111MODULE=on
