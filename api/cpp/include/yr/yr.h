@@ -42,6 +42,7 @@
 #include "yr/api/wait_result.h"
 #include "yr/api/yr_core.h"
 #include "yr/api/yr_invoke.h"
+#include "yr/collective/collective.h"
 
 extern thread_local std::unordered_set<std::string> localNestedObjList;
 namespace YR {

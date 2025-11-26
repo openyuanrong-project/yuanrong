@@ -17,13 +17,37 @@
 #pragma once
 #include <gloo/allreduce.h>
 #include <gloo/rendezvous/context.h>
+#include <mutex>
+#include <unordered_set>
 
 #include "yr/collective/collective.h"
 
-namespace YR::collective {
+namespace YR::Collective {
+
+struct DsStore : public gloo::rendezvous::Store {
+public:
+    DsStore() = default;
+    ~DsStore() override;
+
+    void set(const std::string &key, const std::vector<char> &data) override;
+
+    std::vector<char> get(const std::string &key) override;
+
+    void wait(const std::vector<std::string> &keys) override;
+
+    void wait(const std::vector<std::string> &keys, const std::chrono::milliseconds &timeout) override;
+
+    void clear();
+
+private:
+    std::unordered_set<std::string> keys_;
+};
+
 class GlooCollectiveGroup : public CollectiveGroup {
 public:
-    GlooCollectiveGroup(std::string groupName, int worldSize, int rank);
+    GlooCollectiveGroup(std::string groupName, int worldSize, int rank, int timeout, std::string storePrefix);
+
+    ~GlooCollectiveGroup() override;
 
     void AllReduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const ReduceOp &op) override;
 
@@ -34,13 +58,13 @@ public:
 
     void Barrier() override;
 
-    void Scatter(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank) override;
+    void Scatter(const std::vector<void *> sendbuf, void *recvbuf, int count, DataType dtype, int srcRank) override;
 
     void Broadcast(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank) override;
 
-    void Recv(void *recvbuf, int count, int srcRank, int tag) override;
+    void Recv(void *recvbuf, int count, DataType dtype, int srcRank, int tag) override;
 
-    void Send(const void *sendbuf, int count, int dstRank, int tag) override;
+    void Send(const void *sendbuf, int count, DataType dtype, int dstRank, int tag) override;
 
 private:
     template <typename T>
@@ -53,7 +77,7 @@ private:
     void DoAllGather(const void *sendbuf, void *recvbuf, int count);
 
     template <typename T>
-    void DoScatter(const void *sendbuf, void *recvbuf, int count, int srcRank);
+    void DoScatter(const std::vector<void *> sendbuf, void *recvbuf, int count, int srcRank);
 
     template <typename T>
     void DoBroadcast(const void *sendbuf, void *recvbuf, int count, int srcRank);
@@ -64,5 +88,7 @@ private:
     std::unordered_map<ReduceOp, gloo::AllreduceOptions::Func> map;
 
     std::shared_ptr<gloo::rendezvous::Context> context_;
+    std::shared_ptr<DsStore> store_;
+    std::recursive_mutex mtx_{};
 };
 }  // namespace YR::collective

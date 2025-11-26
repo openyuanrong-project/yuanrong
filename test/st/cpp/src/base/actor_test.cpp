@@ -925,7 +925,7 @@ TEST_F(ActorTest, GroupInvokeAfterTerminate)
 TEST_F(ActorTest, CheckActorObjIdSuccessfully)
 {
     auto creator = YR::Instance(Counter::FactoryCreate).Invoke(1);
-    auto id = creator.GetInstanceId();
+    auto id = creator.GetObjectId();
     EXPECT_EQ(id.size(), 20);
     auto ret = creator.Function(&Counter::Add).Invoke(1);
     EXPECT_EQ(*YR::Get(ret), 2);

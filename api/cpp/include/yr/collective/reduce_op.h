@@ -23,9 +23,16 @@ namespace YR {
 enum DataType : uint8_t {
     INT = 0,
     DOUBLE,
+    LONG,
+    FLOAT,
 
     INVALID
 };
+
+const static std::unordered_map<DataType, int> DATA_TYPE_SIZE_MAP = {{DataType::INT, sizeof(int)},
+                                                                     {DataType::DOUBLE, sizeof(double)},
+                                                                     {DataType::LONG, sizeof(long)},
+                                                                     {DataType::FLOAT, sizeof(float)}};
 
 enum ReduceOp : uint8_t {
     SUM = 0,
@@ -33,4 +40,4 @@ enum ReduceOp : uint8_t {
     MIN = 2,
     MAX = 3,
 };
-}
+}  // namespace YR

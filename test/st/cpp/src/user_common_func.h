@@ -314,3 +314,39 @@ int FunctionRegistered();
 
 int CallLocal(int x);
 int CallCluster(int x);
+
+class CollectiveActor {
+public:
+    int count;
+
+    CollectiveActor() = default;
+
+    ~CollectiveActor() = default;
+
+    static CollectiveActor *FactoryCreate()
+    {
+        return new CollectiveActor();
+    }
+
+    int InitCollectiveGroup(std::string &groupName, int rank, int worldSize);
+
+    int Barrier(std::string &groupName);
+
+    int Compute(std::vector<int> in, std::string &groupName, uint8_t op);
+
+    double ComputeDouble(std::vector<double> in, std::string &groupName, uint8_t op);
+
+    int Recv(std::string &groupName, int from, int tag, int count);
+
+    int Send(std::string &groupName, std::vector<int> in, int dest, int tag);
+
+    std::pair<int, int> AllGather(std::string &groupName, std::vector<int> in);
+
+    int Broadcast(std::string &groupName, std::vector<int> in, int srcRank);
+
+    int Scatter(std::string &groupName, std::vector<std::vector<int>> in, int srcRank, int count);
+
+    int DestroyCollectiveGroup(std::string &groupName);
+
+    YR_STATE(count);
+};

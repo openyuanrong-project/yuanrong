@@ -18,20 +18,21 @@
 
 #include <json.hpp>
 #include <ostream>
+#include <regex>
 #include <vector>
 
 #include "api/cpp/src/utils/utils.h"
 #include "gloo_collective_group.h"
 #include "src/dto/config.h"
 #include "src/libruntime/err_type.h"
+#include "src/utility/id_generator.h"
 #include "src/utility/logger/logger.h"
 #include "yr/api/exception.h"
-#include "yr/yr.h"
+#include "yr/api/kv_manager.h"
 
+namespace YR::Collective {
 
-namespace YR::collective {
-
-const std::string COLLECTIVE_GROUP_INFO_PREFIX = "/collective_group/";
+const std::string COLLECTIVE_GROUP_INFO_PREFIX = "collective-group-";
 
 struct CollectiveGroupInfo {
     std::vector<std::string> instances;
@@ -39,11 +40,13 @@ struct CollectiveGroupInfo {
     std::vector<int> ranks;
     const std::string groupName;
     Backend backend;
+    int timeout;
+    std::string prefix;
 
     std::string ToString()
     {
-        nlohmann::json j =
-            nlohmann::json{{"instances", instances}, {"worldSize", worldSize}, {"ranks", ranks}, {"backend", backend}};
+        nlohmann::json j = nlohmann::json{{"instances", instances}, {"worldSize", worldSize}, {"ranks", ranks},
+                                          {"backend", backend},     {"timeout", timeout},     {"prefix", prefix}};
         return j.dump();
     }
 
@@ -61,6 +64,8 @@ struct CollectiveGroupInfo {
         j.at("worldSize").get_to(worldSize);
         j.at("ranks").get_to(ranks);
         j.at("backend").get_to(backend);
+        j.at("timeout").get_to(timeout);
+        j.at("prefix").get_to(prefix);
     }
 };
 
@@ -84,32 +89,56 @@ int CollectiveGroup::GetWorldSize() const
     return worldSize_;
 }
 
-void InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, Backend backend)
+void CheckGroupNameValid(const std::string &groupName)
 {
-    CollectiveGroupMgr::GetInstance().InitCollectiveGroup(worldSize, rank, groupName, backend);
+    static const std::regex GROUP_NAME_REGEX(R"(^[a-zA-Z0-9\-_!#%\^\*\(\)\+\=\:;]*$)");
+    THROW_IF_TRUE(!std::regex_match(groupName, GROUP_NAME_REGEX), YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
+                  R"(groupName is invalid. It should match the regex: ^[a-zA-Z0-9\-_!#%^\*\(\)\+\=\:;]*$)");
+}
+
+void InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, Backend backend, int timeout,
+                         const std::string &storePrefix)
+{
+    CheckInitialized();
+    CollectiveGroupMgr::GetInstance().InitCollectiveGroup(worldSize, rank, groupName, backend, timeout, storePrefix);
 }
 
 void CreateCollectiveGroup(const std::vector<std::string> &instanceIDs, int worldSize, const std::vector<int> &ranks,
-                           const std::string &groupName, Backend backend)
+                           const std::string &groupName, Backend backend, int timeout)
 {
-    THROW_IF_TRUE(
-            instanceIDs.size() != static_cast<size_t>(worldSize) || static_cast<size_t>(worldSize) != ranks.size(),
-            YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
-            "failed to create collective group, unequal actor, rank or world size, please check");
-    CollectiveGroupInfo info{
-        .instances = instanceIDs, .worldSize = worldSize, .ranks = ranks, .groupName = groupName, .backend = backend};
+    CheckInitialized();
+    CheckGroupNameValid(groupName);
 
-    YR::KVManager::Set(COLLECTIVE_GROUP_INFO_PREFIX + groupName, info.ToString());
+    THROW_IF_TRUE(
+        instanceIDs.size() != static_cast<size_t>(worldSize) || static_cast<size_t>(worldSize) != ranks.size(),
+        YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
+        "failed to create collective group, unequal actor, rank or world size, please check");
+
+    CollectiveGroupInfo info{.instances = instanceIDs,
+                             .worldSize = worldSize,
+                             .ranks = ranks,
+                             .groupName = groupName,
+                             .backend = backend,
+                             .timeout = timeout,
+                             .prefix = YR::utility::IDGenerator::GenObjectId()};
+
+    try {
+        YR::KVManager::Set(COLLECTIVE_GROUP_INFO_PREFIX + groupName, info.ToString(), YR::ExistenceOpt::NX);
+    } catch (YR::Exception &e) {
+        throw YR::Exception("collective group " + groupName + " already existed, please destroy it first");
+    }
 }
 
 void DestroyCollectiveGroup(const std::string &groupName)
 {
+    CheckInitialized();
     CollectiveGroupMgr::GetInstance().DestroyCollectiveGroup(groupName);
 }
 
 void AllReduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const ReduceOp &op,
                const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
@@ -119,6 +148,7 @@ void AllReduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, co
 void Reduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const ReduceOp &op, int dstRank,
             const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
@@ -127,6 +157,7 @@ void Reduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const
 
 void AllGather(const void *sendbuf, void *recvbuf, int count, DataType dtype, const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
@@ -135,14 +166,17 @@ void AllGather(const void *sendbuf, void *recvbuf, int count, DataType dtype, co
 
 void Barrier(const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
     group->Barrier();
 }
 
-void Scatter(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank, const std::string &groupName)
+void Scatter(const std::vector<void *> sendbuf, void *recvbuf, int count, DataType dtype, int srcRank,
+             const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
@@ -151,26 +185,47 @@ void Scatter(const void *sendbuf, void *recvbuf, int count, DataType dtype, int 
 
 void Broadcast(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank, const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
     group->Broadcast(sendbuf, recvbuf, count, dtype, srcRank);
 }
 
-void Recv(void *recvbuf, int count, int srcRank, int tag, const std::string &groupName)
+void Recv(void *recvbuf, int count, DataType dtype, int srcRank, int tag, const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
-    group->Recv(recvbuf, count, srcRank, tag);
+    group->Recv(recvbuf, count, dtype, srcRank, tag);
 }
 
-void Send(const void *sendbuf, int count, int dstRank, int tag, const std::string &groupName)
+void Send(const void *sendbuf, int count, DataType dtype, int dstRank, int tag, const std::string &groupName)
 {
+    CheckInitialized();
     auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
     THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
                   "please create group " + groupName + "first");
-    group->Send(sendbuf, count, dstRank, tag);
+    group->Send(sendbuf, count, dtype, dstRank, tag);
+}
+
+int GetWorldSize(const std::string &groupName)
+{
+    CheckInitialized();
+    auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
+    THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
+                  "please create group " + groupName + "first");
+    return group->GetWorldSize();
+}
+
+int GetRank(const std::string &groupName)
+{
+    CheckInitialized();
+    auto group = CollectiveGroupMgr::GetInstance().CheckAndCreateGroup(groupName);
+    THROW_IF_TRUE(group == nullptr, YR::Libruntime::ErrorCode::ERR_PARAM_INVALID,
+                  "please create group " + groupName + "first");
+    return group->GetRank();
 }
 
 std::shared_ptr<CollectiveGroup> CollectiveGroupMgr::CheckAndCreateGroup(const std::string &groupName)
@@ -194,12 +249,14 @@ std::shared_ptr<CollectiveGroup> CollectiveGroupMgr::CheckAndCreateGroup(const s
     }
 
     THROW_IF_TRUE(index == info.instances.size(), YR::Libruntime::ErrorCode::ERR_PARAM_INVALID, "invalid instance id");
-    InitCollectiveGroup(info.worldSize, info.ranks[index], groupName, info.backend);
+    InitCollectiveGroup(info.worldSize, info.ranks[index], groupName, info.backend, info.timeout, info.prefix);
     return groups_[groupName];
 }
 
-void CollectiveGroupMgr::InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, Backend backend)
+void CollectiveGroupMgr::InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, Backend backend,
+                                             int timeout, const std::string &storePrefix)
 {
+    CheckGroupNameValid(groupName);
     std::lock_guard<std::recursive_mutex> lock(mtx_);
     if (groups_.find(groupName) != groups_.end()) {
         YRLOG_DEBUG("collective group({}) already existed", groupName);
@@ -209,7 +266,7 @@ void CollectiveGroupMgr::InitCollectiveGroup(int worldSize, int rank, const std:
     std::shared_ptr<CollectiveGroup> group;
     switch (backend) {
         case Backend::GLOO:
-            group = std::make_shared<GlooCollectiveGroup>(groupName, worldSize, rank);
+            group = std::make_shared<GlooCollectiveGroup>(groupName, worldSize, rank, timeout, storePrefix);
             break;
 
         case Backend::INVALID:
@@ -227,6 +284,12 @@ void CollectiveGroupMgr::DestroyCollectiveGroup(const std::string &groupName)
     std::lock_guard<std::recursive_mutex> lock(mtx_);
     YR::KVManager::Del(COLLECTIVE_GROUP_INFO_PREFIX + groupName);
     groups_.erase(groupName);
+}
+
+CollectiveGroupMgr::~CollectiveGroupMgr()
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    groups_.clear();
 }
 
 }  // namespace YR::collective

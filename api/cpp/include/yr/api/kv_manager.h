@@ -21,7 +21,9 @@
 
 #include "constant.h"
 #include "runtime_manager.h"
+#include "yr/api/check_initialized.h"
 #include "yr/api/exception.h"
+#include "yr/api/local_mode_runtime.h"
 #include "yr/api/serdes.h"
 
 namespace YR {
@@ -32,6 +34,7 @@ public:
         static KVManager kvManager;
         return kvManager;
     }
+
     /**
      * @brief Sets the value of a key.
      *

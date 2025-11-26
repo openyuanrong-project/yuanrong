@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include "yr/api/check_initialized.h"
+
 #include "yr/api/kv_manager.h"
 
 namespace YR {

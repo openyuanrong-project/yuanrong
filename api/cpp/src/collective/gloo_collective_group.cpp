@@ -23,14 +23,14 @@
 #include <gloo/reduce.h>
 #include <gloo/rendezvous/prefix_store.h>
 #include <gloo/scatter.h>
+#include <gloo/transport/ibverbs/device.h>
 #include <gloo/transport/tcp/device.h>
-#include <gloo/transport/ibverbs//device.h>
 
 #include "api/cpp/src/utils/utils.h"
 #include "src/dto/config.h"
-#include "yr/yr.h"
+#include "yr/api/kv_manager.h"
 
-namespace YR::collective {
+namespace YR::Collective {
 
 #define EXECUTE_BY_TYPE(dType, OPERATION, ...)                                \
     switch (dType) {                                                          \
@@ -40,47 +40,84 @@ namespace YR::collective {
         case DataType::DOUBLE:                                                \
             OPERATION<double>(__VA_ARGS__);                                   \
             break;                                                            \
+        case DataType::LONG:                                                  \
+            OPERATION<long>(__VA_ARGS__);                                     \
+            break;                                                            \
+        case DataType::FLOAT:                                                 \
+            OPERATION<float>(__VA_ARGS__);                                    \
+            break;                                                            \
         case DataType::INVALID:                                               \
         default:                                                              \
             throw YR::Exception(YR::Libruntime::ErrorCode::ERR_PARAM_INVALID, \
                                 "invalid dType: " + std::to_string(dType));   \
     }
 
-struct DsStore : public gloo::rendezvous::Store {
-public:
-    DsStore() = default;
-    ~DsStore() override = default;
+std::string ReplaceDsStoreKey(const std::string &str)
+{
+    std::string editedKey = str;
+    // datasystem doesn't support key that contains '/', replace it with '@'
+    std::replace(editedKey.begin(), editedKey.end(), '/', '@');
+    return editedKey;
+}
 
-    void set(const std::string &key, const std::vector<char> &data) override
-    {
-        YR::KVManager::Set(key, std::string(data.begin(), data.end()));
+DsStore::~DsStore()
+{
+    clear();
+}
+
+void DsStore::set(const std::string &key, const std::vector<char> &data)
+{
+    auto str = std::string(data.begin(), data.end());
+    YR::KVManager::Set(ReplaceDsStoreKey(key), std::string(data.begin(), data.end()));
+    keys_.emplace(ReplaceDsStoreKey(key));
+}
+
+std::vector<char> DsStore::get(const std::string &key)
+{
+    std::string result = YR::KVManager::Get(ReplaceDsStoreKey(key));
+    std::vector<char> out;
+    out.assign(result.begin(), result.end());
+    return out;
+}
+
+void DsStore::wait(const std::vector<std::string> &keys)
+{
+    std::vector<std::string> editedKeys;
+    for (const auto &key : keys) {
+        editedKeys.push_back(ReplaceDsStoreKey(key));
     }
+    YR::KVManager::Get(editedKeys);
+}
 
-    std::vector<char> get(const std::string &key) override
-    {
-        std::vector<char> out;
-        std::string result = YR::KVManager::Get(key);
-        out.assign(result.begin(), result.end());
-        return out;
+void DsStore::wait(const std::vector<std::string> &keys, const std::chrono::milliseconds &timeout)
+{
+    std::vector<std::string> editedKeys;
+    for (const auto &key : keys) {
+        editedKeys.push_back(ReplaceDsStoreKey(key));
     }
+    YR::KVManager::Get(editedKeys, static_cast<int>(timeout.count() / 1000));
+}
 
-    void wait(const std::vector<std::string> &keys) override
-    {
-        YR::KVManager::Get(keys);
+void DsStore::clear()
+{
+    // clear ds kv
+    std::vector<std::string> dels(keys_.begin(), keys_.end());
+    for (auto del : dels) {
+        std::cout << "#######~DsStore, del: " << del << std::endl;
     }
+    YR::KVManager::Del(dels);
+}
 
-    void wait(const std::vector<std::string> &keys, const std::chrono::milliseconds &timeout) override
-    {
-        YR::KVManager::Get(keys, static_cast<int>(timeout.count() / 1000));
-    }
-};
-
-GlooCollectiveGroup::GlooCollectiveGroup(std::string groupName, int worldSize, int rank)
-    : CollectiveGroup(std::move(groupName), worldSize, rank, Backend::GLOO)
+GlooCollectiveGroup::GlooCollectiveGroup(std::string groupName, int worldSize, int rank, int timeout,
+                                         std::string storePrefix)
+    : CollectiveGroup(std::move(groupName), worldSize, rank, Backend::GLOO, timeout, std::move(storePrefix))
 {
     auto dsStore = std::make_shared<DsStore>();
-    auto prefixStore = std::make_shared<gloo::rendezvous::PrefixStore>(groupName_, dsStore);
-
+    std::string prefixKey = groupName_;
+    if (!storePrefix_.empty()) {
+        prefixKey = groupName_ + "-" + storePrefix_;
+    }
+    auto prefixStore = std::make_shared<gloo::rendezvous::PrefixStore>(prefixKey, dsStore);
     std::shared_ptr<gloo::transport::Device> dev;
     auto backend = GetEnv("GLOO_BACKEND_TYPE");
     if (backend.empty() || backend == "TCP") {
@@ -97,7 +134,15 @@ GlooCollectiveGroup::GlooCollectiveGroup(std::string groupName, int worldSize, i
     }
 
     context_ = std::make_shared<gloo::rendezvous::Context>(rank_, worldSize_);
+    context_->setTimeout(std::chrono::milliseconds(timeout_));
     context_->connectFullMesh(prefixStore, dev);
+}
+
+GlooCollectiveGroup::~GlooCollectiveGroup()
+{
+    if (store_) {
+        store_->clear();
+    }
 }
 
 void GlooCollectiveGroup::AllReduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const ReduceOp &op)
@@ -118,11 +163,13 @@ void GlooCollectiveGroup::AllGather(const void *sendbuf, void *recvbuf, int coun
 
 void GlooCollectiveGroup::Barrier()
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     gloo::BarrierOptions opts(context_);
     gloo::barrier(opts);
 }
 
-void GlooCollectiveGroup::Scatter(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank)
+void GlooCollectiveGroup::Scatter(const std::vector<void *> sendbuf, void *recvbuf, int count, DataType dtype,
+                                  int srcRank)
 {
     EXECUTE_BY_TYPE(dtype, DoScatter, sendbuf, recvbuf, count, srcRank);
 }
@@ -132,18 +179,24 @@ void GlooCollectiveGroup::Broadcast(const void *sendbuf, void *recvbuf, int coun
     EXECUTE_BY_TYPE(dtype, DoBroadcast, sendbuf, recvbuf, count, srcRank);
 }
 
-void GlooCollectiveGroup::Recv(void *recvbuf, int count, int srcRank, int tag)
+void GlooCollectiveGroup::Recv(void *recvbuf, int count, DataType dtype, int srcRank, int tag)
 {
-    auto ubuf = context_->createUnboundBuffer(recvbuf, count);
+    THROW_IF_TRUE(DATA_TYPE_SIZE_MAP.find(dtype) == DATA_TYPE_SIZE_MAP.end(),
+                  YR::Libruntime::ErrorCode::ERR_PARAM_INVALID, "invalid dtype: " + std::to_string(dtype));
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    auto ubuf = context_->createUnboundBuffer(recvbuf, count * DATA_TYPE_SIZE_MAP.at(dtype));
     ubuf->recv(srcRank, tag);
-    ubuf->waitRecv();
+    ubuf->waitRecv(std::chrono::milliseconds(timeout_));
 }
 
-void GlooCollectiveGroup::Send(const void *sendbuf, int count, int dstRank, int tag)
+void GlooCollectiveGroup::Send(const void *sendbuf, int count, DataType dtype, int dstRank, int tag)
 {
-    auto ubuf = context_->createUnboundBuffer(const_cast<void *>(sendbuf), count);
+    THROW_IF_TRUE(DATA_TYPE_SIZE_MAP.find(dtype) == DATA_TYPE_SIZE_MAP.end(),
+                  YR::Libruntime::ErrorCode::ERR_PARAM_INVALID, "invalid dtype: " + std::to_string(dtype));
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    auto ubuf = context_->createUnboundBuffer(const_cast<void *>(sendbuf), count * DATA_TYPE_SIZE_MAP.at(dtype));
     ubuf->send(dstRank, tag);
-    ubuf->waitSend();
+    ubuf->waitSend(std::chrono::milliseconds(timeout_));
 }
 
 template <typename T>
@@ -170,6 +223,7 @@ gloo::AllreduceOptions::Func GlooCollectiveGroup::GetReduceOp(const ReduceOp &op
 template <typename T>
 void GlooCollectiveGroup::DoAllReduce(const void *sendbuf, void *recvbuf, int count, const ReduceOp &op)
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     gloo::AllreduceOptions opts(context_);
     opts.setInput(const_cast<T *>((T *)sendbuf), count);
     opts.setOutput(static_cast<T *>(recvbuf), count);
@@ -180,9 +234,11 @@ void GlooCollectiveGroup::DoAllReduce(const void *sendbuf, void *recvbuf, int co
 template <typename T>
 void GlooCollectiveGroup::DoReduce(const void *sendbuf, void *recvbuf, int count, const ReduceOp &op, int dstRank)
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     gloo::ReduceOptions opts(context_);
     opts.setInput(const_cast<T *>((T *)sendbuf), count);
     opts.setOutput(static_cast<T *>(recvbuf), count);
+    opts.setRoot(dstRank);
     opts.setReduceFunction(GetReduceOp<T>(op));
     gloo::reduce(opts);
 }
@@ -190,19 +246,30 @@ void GlooCollectiveGroup::DoReduce(const void *sendbuf, void *recvbuf, int count
 template <typename T>
 void GlooCollectiveGroup::DoBroadcast(const void *sendbuf, void *recvbuf, int count, int srcRank)
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     gloo::BroadcastOptions opts(context_);
-    opts.setInput(const_cast<T *>((T *)sendbuf), count);
+    if (srcRank == GetRank()) {
+        opts.setInput(const_cast<T *>((T *)sendbuf), count);
+    }
+
     opts.setOutput(static_cast<T *>(recvbuf), count);
     opts.setRoot(srcRank);
     gloo::broadcast(opts);
 }
 
 template <typename T>
-void GlooCollectiveGroup::DoScatter(const void *sendbuf, void *recvbuf, int count, int srcRank)
+void GlooCollectiveGroup::DoScatter(const std::vector<void *> sendbuf, void *recvbuf, int count, int srcRank)
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     gloo::ScatterOptions opts(context_);
-    std::vector<T *> inputs = {const_cast<T *>((T *)sendbuf)};
-    opts.setInputs(inputs, count);
+    if (srcRank == GetRank()) {
+        std::vector<T *> inputs;
+        for (auto item : sendbuf) {
+            inputs.push_back(const_cast<T *>((T *)item));
+        }
+        opts.setInputs<T>(inputs, count);
+    }
+
     opts.setOutput(static_cast<T *>(recvbuf), count);
     opts.setRoot(srcRank);
     gloo::scatter(opts);
@@ -211,9 +278,10 @@ void GlooCollectiveGroup::DoScatter(const void *sendbuf, void *recvbuf, int coun
 template <typename T>
 void GlooCollectiveGroup::DoAllGather(const void *sendbuf, void *recvbuf, int count)
 {
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
     gloo::AllgatherOptions opts(context_);
     opts.setInput(const_cast<T *>((T *)sendbuf), count);
-    opts.setOutput(static_cast<T *>(recvbuf), count);
+    opts.setOutput(static_cast<T *>(recvbuf), count * GetWorldSize());
     gloo::allgather(opts);
 }
 }  // namespace YR::collective

@@ -630,3 +630,119 @@ int CallCluster(int x)
 }
 
 YR_INVOKE(CallLocal, CallCluster)
+
+int CollectiveActor::InitCollectiveGroup(std::string &groupName, int rank, int worldSize)
+{
+    YR::Collective::InitCollectiveGroup(worldSize, rank, groupName, YR::Collective::Backend::GLOO);
+    YR::Collective::Barrier(groupName);
+    return 0;
+}
+
+int CollectiveActor::Barrier(std::string &groupName)
+{
+    YR::Collective::Barrier(groupName);
+    return 0;
+}
+
+int CollectiveActor::Compute(std::vector<int> in, std::string &groupName, uint8_t op)
+{
+    int *output = new int[in.size()];
+    YR::Collective::AllReduce(in.data(), output, in.size(), YR::DataType::INT, YR::ReduceOp(op), groupName);
+    YR::Collective::Barrier(groupName);
+
+    int result = 0;
+    for (int i = 0; i < in.size(); ++i) {
+        result += *output++;
+    }
+    return result;
+}
+
+double CollectiveActor::ComputeDouble(std::vector<double> in, std::string &groupName, uint8_t op)
+{
+    double *output = new double[in.size()];
+    YR::Collective::AllReduce(in.data(), output, in.size(), YR::DataType::DOUBLE, YR::ReduceOp(op), groupName);
+    YR::Collective::Barrier(groupName);
+
+    double result = 0;
+    for (int i = 0; i < in.size(); ++i) {
+        result += *output++;
+    }
+    return result;
+}
+
+int CollectiveActor::Recv(std::string &groupName, int from, int tag, int count)
+{
+    int *output = new int[count];
+    YR::Collective::Recv(output, count, YR::DataType::INT, from, tag, groupName);
+    int result = 0;
+    for (int i = 0; i < count; ++i) {
+        result += *output++;
+    }
+    return result;
+}
+
+int CollectiveActor::Send(std::string &groupName, std::vector<int> in, int dest, int tag)
+{
+    YR::Collective::Send(in.data(), in.size(), YR::DataType::INT, dest, tag, groupName);
+    return 0;
+}
+
+std::pair<int, int> CollectiveActor::AllGather(std::string &groupName, std::vector<int> in)
+{
+    int inputSize = in.size();
+    // Gather input size from all ranks first
+    std::vector<int> recvData(inputSize * YR::Collective::GetWorldSize(groupName));
+    YR::Collective::AllGather(in.data(), recvData.data(), inputSize, YR::DataType::INT, groupName);
+    YR::Collective::Barrier(groupName);
+
+    int sum = 0;
+    int size = 0;
+    for (int v : recvData) {
+        sum += v;
+        size++;
+    }
+    return {sum, size};
+}
+
+int CollectiveActor::Broadcast(std::string &groupName, std::vector<int> in, int srcRank)
+{
+    std::vector<int> out(in.size(), 0);
+    YR::Collective::Broadcast(in.data(), out.data(), in.size(), YR::DataType::INT, srcRank, groupName);
+    YR::Collective::Barrier(groupName);
+
+    int sum = 0;
+    for (auto v : out) {
+        sum += v;
+    }
+    return sum;
+}
+
+int CollectiveActor::Scatter(std::string &groupName, std::vector<std::vector<int>> in, int srcRank, int count)
+{
+    std::vector<int> out(count, 0);
+
+    std::vector<void *> input;
+    if (YR::Collective::GetRank(groupName) == srcRank) {
+        for (const auto &item : in) {
+            input.push_back(const_cast<void *>(static_cast<const void *>(item.data())));
+        }
+    }
+    YR::Collective::Scatter(input, out.data(), count, YR::DataType::INT, srcRank, groupName);
+    YR::Collective::Barrier(groupName);
+
+    int sum = 0;
+    for (auto v : out) {
+        sum += v;
+    }
+    return sum;
+}
+
+int CollectiveActor::DestroyCollectiveGroup(std::string &groupName) {
+    YR::Collective::DestroyCollectiveGroup(groupName);
+    return 0;
+}
+
+YR_INVOKE(CollectiveActor::FactoryCreate, &CollectiveActor::InitCollectiveGroup, &CollectiveActor::Barrier,
+          &CollectiveActor::Compute, &CollectiveActor::ComputeDouble, &CollectiveActor::AllGather,
+          &CollectiveActor::Broadcast, &CollectiveActor::Scatter, &CollectiveActor::DestroyCollectiveGroup,
+          &CollectiveActor::Recv, &CollectiveActor::Send);

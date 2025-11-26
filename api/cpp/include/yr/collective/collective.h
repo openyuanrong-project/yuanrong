@@ -25,19 +25,30 @@
 
 #include "reduce_op.h"
 
-namespace YR::collective {
+namespace YR::Collective {
 enum Backend : uint8_t {
     GLOO = 0,
 
     INVALID,
 };
 
+const int DEFAULT_COLLECTIVE_TIMEOUT = 60 * 1000;  // ms
+const std::string DEFAULT_GROUP_NAME = "default";  // ms
+
 class CollectiveGroup {
 public:
-    CollectiveGroup(std::string groupName, int worldSize, int rank, Backend backend)
-            : groupName_(std::move(groupName)), rank_(rank), backend_(backend), worldSize_(worldSize)
+    CollectiveGroup(std::string groupName, int worldSize, int rank, Backend backend, int timeout,
+                    std::string storePrefix = "")
+        : groupName_(std::move(groupName)),
+          rank_(rank),
+          backend_(backend),
+          worldSize_(worldSize),
+          timeout_(timeout),
+          storePrefix_(std::move(storePrefix))
     {
     }
+
+    virtual ~CollectiveGroup() = default;
 
     virtual void AllReduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const ReduceOp &op) = 0;
 
@@ -48,13 +59,13 @@ public:
 
     virtual void Barrier() = 0;
 
-    virtual void Scatter(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank) = 0;
+    virtual void Scatter(const std::vector<void *> sendbuf, void *recvbuf, int count, DataType dtype, int srcRank) = 0;
 
     virtual void Broadcast(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank) = 0;
 
-    virtual void Recv(void *recvbuf, int count, int srcRank, int tag) = 0;
+    virtual void Recv(void *recvbuf, int count, DataType dtype, int srcRank, int tag) = 0;
 
-    virtual void Send(const void *sendbuf, int count, int dstRank, int tag) = 0;
+    virtual void Send(const void *sendbuf, int count, DataType dtype, int dstRank, int tag) = 0;
 
     int GetRank() const;
     std::string GetGroupName();
@@ -69,6 +80,10 @@ protected:
     Backend backend_;
 
     int worldSize_;
+
+    int timeout_;
+
+    std::string storePrefix_;
 };
 
 /**
@@ -78,7 +93,9 @@ protected:
  * @param rank
  * @param groupName
  */
-void InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, Backend backend);
+void InitCollectiveGroup(int worldSize, int rank, const std::string &groupName = DEFAULT_GROUP_NAME,
+                         Backend backend = Backend::GLOO, int timeout = DEFAULT_COLLECTIVE_TIMEOUT,
+                         const std::string &storePrefix = "");
 
 /**
  * create collective group with actor ids in driver
@@ -89,7 +106,8 @@ void InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, 
  * @param groupName
  */
 void CreateCollectiveGroup(const std::vector<std::string> &instanceIDs, int worldSize, const std::vector<int> &ranks,
-                           const std::string &groupName, Backend backend);
+                           const std::string &groupName = DEFAULT_GROUP_NAME, Backend backend = Backend::GLOO,
+                           int timeout = DEFAULT_COLLECTIVE_TIMEOUT);
 /**
  *
  *
@@ -98,23 +116,31 @@ void CreateCollectiveGroup(const std::vector<std::string> &instanceIDs, int worl
 void DestroyCollectiveGroup(const std::string &groupName);
 
 void AllReduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const ReduceOp &op,
-               const std::string &groupName);
+               const std::string &groupName = DEFAULT_GROUP_NAME);
 
 void Reduce(const void *sendbuf, void *recvbuf, int count, DataType dtype, const ReduceOp &op, int dstRank,
-            const std::string &groupName);
+            const std::string &groupName = DEFAULT_GROUP_NAME);
 
-void AllGather(const void *sendbuf, void *recvbuf, int count, DataType dtype, const std::string &groupName);
+void AllGather(const void *sendbuf, void *recvbuf, int count, DataType dtype,
+               const std::string &groupName = DEFAULT_GROUP_NAME);
 
-void Barrier(const std::string &groupName);
+void Barrier(const std::string &groupName = DEFAULT_GROUP_NAME);
 
-void Scatter(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank, const std::string &groupName);
+void Scatter(const std::vector<void *> sendbuf, void *recvbuf, int count, DataType dtype, int srcRank,
+             const std::string &groupName = DEFAULT_GROUP_NAME);
 
 void Broadcast(const void *sendbuf, void *recvbuf, int count, DataType dtype, int srcRank,
-               const std::string &groupName);
+               const std::string &groupName = DEFAULT_GROUP_NAME);
 
-void Recv(void *recvbuf, int count, int srcRank, int tag, const std::string &groupName);
+void Recv(void *recvbuf, int count, DataType dtype, int srcRank, int tag = 0,
+          const std::string &groupName = DEFAULT_GROUP_NAME);
 
-void Send(const void *sendbuf, int count, int dstRank, int tag, const std::string &groupName);
+void Send(const void *sendbuf, int count, DataType dtype, int dstRank, int tag = 0,
+          const std::string &groupName = DEFAULT_GROUP_NAME);
+
+int GetWorldSize(const std::string &groupName = DEFAULT_GROUP_NAME);
+
+int GetRank(const std::string &groupName = DEFAULT_GROUP_NAME);
 
 class CollectiveGroupMgr {
 public:
@@ -126,14 +152,15 @@ public:
 
     std::shared_ptr<CollectiveGroup> CheckAndCreateGroup(const std::string &groupName);
 
-    void InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, Backend backend);
+    void InitCollectiveGroup(int worldSize, int rank, const std::string &groupName, Backend backend, int timeout,
+                             const std::string &storePrefix);
 
     void DestroyCollectiveGroup(const std::string &groupName);
 
 private:
     CollectiveGroupMgr() = default;
 
-    ~CollectiveGroupMgr() = default;
+    ~CollectiveGroupMgr();
 
     std::recursive_mutex mtx_{};
 

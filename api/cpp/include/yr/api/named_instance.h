@@ -135,6 +135,8 @@ public:
 
     const std::string GetInstanceId();
 
+    const std::string GetObjectId();
+
     void SetAlwaysLocalMode(bool isLocalMode);
 
     void SetName(const std::string &instanceName);
@@ -434,6 +436,12 @@ std::vector<NamedInstance<InstanceType>> NamedInstance<InstanceType>::BuildInsta
 
 template <typename InstanceType>
 const std::string NamedInstance<InstanceType>::GetInstanceId()
+{
+    return YR::internal::GetRuntime()->GetRealInstanceId(instanceId);
+}
+
+template <typename InstanceType>
+const std::string NamedInstance<InstanceType>::GetObjectId()
 {
     return instanceId;
 }
