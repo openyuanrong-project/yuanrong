@@ -31,9 +31,6 @@ protected:
     RangeGroup(const std::string &name, const std::string &inputTenantId, FunctionGroupOptions &inputOpts,
                std::shared_ptr<FSClient> client, std::shared_ptr<WaitingObjectManager> waitManager,
                std::shared_ptr<MemoryStore> memStore, std::shared_ptr<InvokeOrderManager> invokeOrderMgr);
-    RangeGroup(const std::string &name, const std::string &inputTenantId, GroupOpts &inputOpts,
-               std::shared_ptr<FSClient> client, std::shared_ptr<WaitingObjectManager> waitManager,
-               std::shared_ptr<MemoryStore> memStore, std::shared_ptr<InvokeOrderManager> invokeOrderMgr);
 
 protected:
     CreateRequests BuildCreateReqs() override;

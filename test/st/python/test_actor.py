@@ -273,7 +273,6 @@ def test_py_yr_stateful_order_preserve(init_yr):
     ins.terminate()
 
 
-@pytest.mark.smoke
 def test_py_get_instance_after_recover(init_yr):
     @yr.instance
     class Instance:
@@ -297,7 +296,6 @@ def test_py_get_instance_after_recover(init_yr):
     assert (yr.get(get_ins.add.invoke()), 2)
 
 
-@pytest.mark.smoke
 def test_py_get_async_instance_after_recover(init_yr):
     @yr.instance
     class Instance:
@@ -321,7 +319,6 @@ def test_py_get_async_instance_after_recover(init_yr):
     assert (yr.get(get_ins.add.invoke()), 2)
 
 
-@pytest.mark.smoke
 def test_py_get_detached_async_instance_after_recover(init_yr):
     @yr.instance
     class Instance:

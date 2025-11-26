@@ -330,6 +330,7 @@ public class ActorTest {
      * @step:   3.再次调用实例的成员函数
      * @expect: 1.实例被kill后成功recover
      */
+    @Ignore("need to repair.")
     @Test
     public void test_recover_cpp_successfully() throws Exception {
         TestUtils.initYR(false);

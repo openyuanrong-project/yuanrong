@@ -32,13 +32,6 @@ RangeGroup::RangeGroup(const std::string &name, const std::string &inputTenantId
 {
 }
 
-RangeGroup::RangeGroup(const std::string &name, const std::string &inputTenantId, GroupOpts &inputOpts,
-                       std::shared_ptr<FSClient> client, std::shared_ptr<WaitingObjectManager> waitManager,
-                       std::shared_ptr<MemoryStore> memStore, std::shared_ptr<InvokeOrderManager> invokeOrderMgr)
-    : Group(name, inputTenantId, inputOpts, client, waitManager, memStore), invokeOrderMgr_(invokeOrderMgr)
-{
-}
-
 void RangeGroup::CreateRespHandler(const CreateResponses &resps)
 {
     HandleCreateResp(resps);

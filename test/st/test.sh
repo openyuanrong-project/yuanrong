@@ -333,7 +333,7 @@ while getopts 'rbf:y:l:m:a:h:S:n:sp' opt; do
             SANITIZER="${OPTARG}"
             ;;
         p)
-            PARALLELISM="on"
+            PARALLELISM="off"
             ;;
         n)
             AGENT_NUM="${OPTARG}"

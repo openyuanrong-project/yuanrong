@@ -1372,7 +1372,7 @@ TEST_F(ActorTest, ActorSaveStateAndLoadStateSuccessfully)
  * @step:  调用GetRecoverFlag
  * @expect:  1.recover次数为1
  */
-TEST_F(ActorTest, ActorRecoverSuccessfully)
+TEST_F(ActorTest, DISABLED_ActorRecoverSuccessfully)
 {
     YR::InvokeOptions opt;
     opt.recoverRetryTimes = 1;

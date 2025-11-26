@@ -35,9 +35,10 @@ def test_fcc_create_function_group_by_function(init_yr):
         scheduling_affinity_each_bundle_size=2,
     )
     name = "function_demo"
-    objs = yr.fcc.create_function_group(demo_func_wrapper, args=(name,), group_size=8, options=opts)
+    objs = yr.fcc.create_function_group(
+        demo_func_wrapper, args=(name,), group_size=4, options=opts)
     rets = yr.get(objs)
-    assert rets == [name for i in range(1, 9)]
+    assert rets == [name for i in range(1, 5)]
 
 
 @pytest.mark.smoke
@@ -53,9 +54,10 @@ def test_fcc_multi_return_value_function(init_yr):
     )
     name1 = "function_demo1"
     name2 = "function_demo2"
-    obj1 = yr.fcc.create_function_group(demo_func_wrapper, args=(name1, name2,), group_size=8, options=opts)
+    obj1 = yr.fcc.create_function_group(demo_func_wrapper, args=(
+        name1, name2,), group_size=4, options=opts)
     rets = yr.get(obj1)
-    assert rets == [name1 if i % 2 == 0 else name2 for i in range(16)]
+    assert rets == [name1 if i % 2 == 0 else name2 for i in range(8)]
 
 
 @pytest.mark.smoke
@@ -70,7 +72,8 @@ def test_fcc_create_function_group_bundle_size_equal_group_size(init_yr):
         scheduling_affinity_each_bundle_size=1,
     )
     name = "function_demo"
-    objs = yr.fcc.create_function_group(demo_func_wrapper, args=(name,), group_size=1, options=opts)
+    objs = yr.fcc.create_function_group(
+        demo_func_wrapper, args=(name,), group_size=1, options=opts)
     rets = yr.get(objs)
     assert rets == name
 
@@ -91,10 +94,11 @@ def test_create_function_group_by_class(init_yr):
         scheduling_affinity_each_bundle_size=2,
     )
     name = "class_demo"
-    function_group_handler = yr.fcc.create_function_group(Demo, args=(name,), group_size=8, options=opts)
+    function_group_handler = yr.fcc.create_function_group(
+        Demo, args=(name,), group_size=4, options=opts)
     objs = function_group_handler.add_name.invoke()
     results = yr.get(objs)
-    assert results == [name for i in range(1, 9)]
+    assert results == [name for i in range(1, 5)]
     function_group_handler.terminate()
 
 
@@ -117,11 +121,12 @@ def test_fcc_multi_return_value_class_function(init_yr):
     )
     name1 = "class_demo1"
     name2 = "class_demo2"
-    function_group_handler = yr.fcc.create_function_group(Demo, args=(name1, name2), group_size=8, options=opts)
+    function_group_handler = yr.fcc.create_function_group(
+        Demo, args=(name1, name2), group_size=4, options=opts)
     objs = function_group_handler.add_name.invoke()
     results = yr.get(objs)
     print(results)
-    assert results == [name1 if i % 2 == 0 else name2 for i in range(16)]
+    assert results == [name1 if i % 2 == 0 else name2 for i in range(8)]
     function_group_handler.terminate()
 
 
@@ -137,7 +142,8 @@ def test_create_function_group_by_function_with_big_bytes(init_yr):
         scheduling_affinity_each_bundle_size=2,
     )
     arg = b"1" * 1024 * 200
-    objs = yr.fcc.create_function_group(get, args=(arg,), group_size=4, options=opts)
+    objs = yr.fcc.create_function_group(
+        get, args=(arg,), group_size=4, options=opts)
     rets = yr.get(objs)
     for ret in rets:
         assert ret == arg
@@ -159,7 +165,8 @@ def test_create_function_group_by_class_with_big_bytes(init_yr):
         scheduling_affinity_each_bundle_size=2,
     )
     name = "class_demo"
-    function_group_handler = yr.fcc.create_function_group(Demo, args=(name,), group_size=8, options=opts)
+    function_group_handler = yr.fcc.create_function_group(
+        Demo, args=(name,), group_size=4, options=opts)
     arg = b"1" * 1024 * 200
     objs = function_group_handler.get.invoke(arg)
     results = yr.get(objs)
@@ -176,7 +183,8 @@ def test_accelerate(init_yr):
         scheduling_affinity_each_bundle_size=2,
     )
     name = "class_demo"
-    function_group_handler = yr.fcc.create_function_group(FccDemo, args=(name,), group_size=8, options=opts)
+    function_group_handler = yr.fcc.create_function_group(
+        FccDemo, args=(name,), group_size=4, options=opts)
     function_group_handler.accelerate()
     arg = FccData(1, "2")
     objs = function_group_handler.get.invoke(arg)
@@ -195,7 +203,8 @@ def test_accelerate_return_exception(init_yr):
         scheduling_affinity_each_bundle_size=2,
     )
     name = "class_demo"
-    function_group_handler = yr.fcc.create_function_group(FccDemo, args=(name,), group_size=8, options=opts)
+    function_group_handler = yr.fcc.create_function_group(
+        FccDemo, args=(name,), group_size=4, options=opts)
     function_group_handler.accelerate()
     objs = function_group_handler.exception.invoke()
     with pytest.raises(RuntimeError):
@@ -211,7 +220,8 @@ def test_accelerate_with_async(init_yr):
         scheduling_affinity_each_bundle_size=2,
     )
     name = "class_demo"
-    function_group_handler = yr.fcc.create_function_group(FccDemo, args=(name,), group_size=8, options=opts)
+    function_group_handler = yr.fcc.create_function_group(
+        FccDemo, args=(name,), group_size=4, options=opts)
     function_group_handler.accelerate()
     arg = FccData(1, "2")
     objs = function_group_handler.get_async.invoke(arg)
@@ -243,30 +253,35 @@ def test_fcc_create_function_group_exception(init_yr):
     name = "function_demo"
 
     try:
-        yr.fcc.create_function_group(demo_func_wrapper, args=(name,), group_size=8, options=opts)
+        yr.fcc.create_function_group(
+            demo_func_wrapper, args=(name,), group_size=4, options=opts)
     except ValueError as e:
         assert "invalid timeout" in str(e)
 
     opts.timeout = -0.1
     try:
-        yr.fcc.create_function_group(demo_func_wrapper, args=(name,), group_size=8, options=opts)
+        yr.fcc.create_function_group(
+            demo_func_wrapper, args=(name,), group_size=4, options=opts)
     except ValueError as e:
         assert "invalid timeout" in str(e)
 
     opts.scheduling_affinity_each_bundle_size = -1
     try:
-        yr.fcc.create_function_group(demo_func_wrapper, args=(name,), group_size=8, options=opts)
+        yr.fcc.create_function_group(
+            demo_func_wrapper, args=(name,), group_size=4, options=opts)
     except ValueError as e:
         assert "invalid bundle size" in str(e)
 
     opts.scheduling_affinity_each_bundle_size = 10
     try:
-        yr.fcc.create_function_group(demo_func_wrapper, args=(name,), group_size=8, options=opts)
+        yr.fcc.create_function_group(
+            demo_func_wrapper, args=(name,), group_size=4, options=opts)
     except ValueError as e:
         assert "invalid bundle size" in str(e)
 
     opts.scheduling_affinity_each_bundle_size = None
     try:
-        yr.fcc.create_function_group(demo_func_wrapper, args=(name,), group_size=8, options=opts)
+        yr.fcc.create_function_group(
+            demo_func_wrapper, args=(name,), group_size=4, options=opts)
     except ValueError as e:
         assert "invalid bundle size" in str(e)

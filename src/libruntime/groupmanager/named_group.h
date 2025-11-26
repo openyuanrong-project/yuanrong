@@ -19,10 +19,9 @@
 
 namespace YR {
 namespace Libruntime {
-class NamedGroup : public RangeGroup {
+class NamedGroup : public Group {
 public:
-    NamedGroup(const std::string &name, GroupOpts &inputOpts)
-        : RangeGroup(name, "", inputOpts, nullptr, nullptr, nullptr, nullptr) {};
+    NamedGroup(const std::string &name) : Group(name) {};
     NamedGroup(const std::string &name, const std::string &inputTenantId, GroupOpts &inputOpts,
                std::shared_ptr<FSClient> client, std::shared_ptr<WaitingObjectManager> waitManager,
                std::shared_ptr<MemoryStore> memStore, std::shared_ptr<InvokeOrderManager> invokeOrderMgr);
@@ -30,6 +29,10 @@ public:
 private:
     CreateRequests BuildCreateReqs() override;
     void SetTerminateError() override;
+    void CreateRespHandler(const CreateResponses &resps) override;
+    void CreateNotifyHandler(const NotifyRequest &req) override;
+    void NotifyInstances();
+    std::shared_ptr<InvokeOrderManager> invokeOrderMgr_;
 };
 }  // namespace Libruntime
 }  // namespace YR

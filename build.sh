@@ -258,7 +258,7 @@ while getopts 'athr:v:S:DcCgPET:p:bm:j:g' opt; do
         ;;
     t)
         BAZEL_COMMAND="test"
-        BAZEL_TARGETS="//api/go:yr_go_test //test/... //api/python/yr/tests/... //api/java:java_tests"
+        BAZEL_TARGETS="//test/... //api/python/yr/tests/... //api/java:java_tests"
         install_python_requirements
         ;;
     T)

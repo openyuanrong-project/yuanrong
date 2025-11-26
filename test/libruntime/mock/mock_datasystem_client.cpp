@@ -364,48 +364,62 @@ Status KVClient::HealthCheck()
     return Status::OK();
 }
 
-Status::Status() noexcept : code_(StatusCode::K_OK) {}
+Status::Status() noexcept : state_(nullptr) {}
 
-Status::Status(StatusCode code, std::string msg)
+Status::Status(StatusCode code, std::string msg) noexcept
 {
-    code_ = code;
-    errMsg_ = msg;
+    state_ = std::make_unique<State>();
+    state_->code = code;
+    state_->errMsg = msg;
 }
 
 std::string Status::ToString() const
 {
-    return "code: [" + std::to_string(code_) + "], msg: [" + errMsg_ + "]";
+    return "code: [" + std::to_string(GetCode()) + "], msg: [" + GetMsg() + "]";
 }
 
 StatusCode Status::GetCode() const
 {
-    return code_;
+    return state_ == nullptr ? K_OK : state_->code;
 }
 
-Status &Status::operator=(const Status &other)
+Status::Status(const Status &other) noexcept
 {
-    if (this == &other) {
-        return *this;
-    }
-    code_ = other.code_;
-    errMsg_ = other.errMsg_;
+    Assign(other);
+}
+
+Status &Status::operator=(const Status &other) noexcept
+{
+    Assign(other);
     return *this;
 }
 
 Status::Status(Status &&other) noexcept
 {
-    code_ = other.code_;
-    errMsg_ = std::move(other.errMsg_);
+    std::swap(state_, other.state_);
 }
 
 Status &Status::operator=(Status &&other) noexcept
 {
-    if (this == &other) {
-        return *this;
-    }
-    code_ = other.code_;
-    errMsg_ = std::move(other.errMsg_);
+    std::swap(state_, other.state_);
     return *this;
+}
+
+std::string Status::GetMsg() const
+{
+    return state_ == nullptr ? "" : state_->errMsg;
+}
+
+void Status::Assign(const Status &other) noexcept
+{
+    if (other.IsOk()) {
+        state_ = nullptr;
+        return;
+    }
+    if (state_ == nullptr) {
+        state_ = std::make_unique<State>();
+    }
+    *state_ = *other.state_;
 }
 
 SensitiveValue::SensitiveValue(char const *) {}
