@@ -16,17 +16,16 @@
 
 #include "gloo_collective_group.h"
 
-#include <gloo/algorithm.h>
-#include <gloo/allgather.h>
-#include <gloo/barrier.h>
-#include <gloo/broadcast.h>
-#include <gloo/reduce.h>
-#include <gloo/rendezvous/prefix_store.h>
-#include <gloo/scatter.h>
-#include <gloo/transport/ibverbs/device.h>
-#include <gloo/transport/tcp/device.h>
-
 #include "api/cpp/src/utils/utils.h"
+#include "gloo/algorithm.h"
+#include "gloo/allgather.h"
+#include "gloo/barrier.h"
+#include "gloo/broadcast.h"
+#include "gloo/reduce.h"
+#include "gloo/rendezvous/prefix_store.h"
+#include "gloo/scatter.h"
+#include "gloo/transport/ibverbs/device.h"
+#include "gloo/transport/tcp/device.h"
 #include "src/dto/config.h"
 #include "yr/api/kv_manager.h"
 
@@ -113,6 +112,7 @@ GlooCollectiveGroup::GlooCollectiveGroup(const CollectiveGroupSpec &groupSpec, i
     if (!storePrefix_.empty()) {
         prefixKey = groupName_ + "-" + storePrefix_;
     }
+    store_ = dsStore;
     auto prefixStore = std::make_shared<gloo::rendezvous::PrefixStore>(prefixKey, dsStore);
     std::shared_ptr<gloo::transport::Device> dev;
     auto backend = GetEnv("GLOO_BACKEND_TYPE");

@@ -240,7 +240,7 @@ TEST_F(LocalTest, When_Invoke_Actor_Should_Return_Final_Correct_Result)
 TEST_F(LocalTest, When_Invoke_Actor_Should_Not_Contain_WorkerId)
 {
     auto counter = YR::Instance(Counter::FactoryCreate).Invoke(1);
-    auto id = counter.GetInstanceId();
+    auto id = counter.GetObjectId();
     EXPECT_EQ(id.size(), 20);
     auto res = counter.Function(&Counter::Add).Invoke(3);
     auto v = *YR::Get(res);

@@ -149,16 +149,6 @@ function compile_all(){
     fi
     popd
   fi
-if [ ! -d "${THIRD_PARTY_DIR}/gloo/build" ]; then
-  pushd "${THIRD_PARTY_DIR}/gloo/"
-  chmod -R 700 "${THIRD_PARTY_DIR}/gloo/"
-  mkdir build
-  cd build
-  cmake .. -DBUILD_SHARED_LIBS=ON -DUSE_IBVERBS=ON -DCMAKE_BUILD_TYPE=Release -DGLOO_INSTALL=ON -DCMAKE_INSTALL_PREFIX=${THIRD_PARTY_DIR}/gloo/install
-  make -j4
-  make install
-  popd
-fi
 }
 
 function download_third_party_cache() {
