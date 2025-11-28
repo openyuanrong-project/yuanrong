@@ -307,7 +307,7 @@ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 # 替换 YR_INSTALL_PATH 为 openYuanrong 安装路径，可使用 yr version 命令查看
 # 例如：/usr/local/Python-3.11.9/lib/python3.11/site-packages/yr/inner
-export LD_LIBRARY_PATH=${YR_INSTALL_PATH}/function_system/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${YR_INSTALL_PATH}/functiosystem/lib:$LD_LIBRARY_PATH
 export HCL_OP_EXPANSION_MODE="AIV"
 # 是否启用 openYuanrong 多级缓存前缀匹配能力，值为 1 表示启动
 export USING_PREFIX_CONNECTOR=1

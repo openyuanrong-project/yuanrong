@@ -124,7 +124,7 @@ STATUS_COLLECT_INTERVAL=300
 ENABLE_TRACE=false
 ENABLE_METRICS=true
 METRICS_CONFIG=""
-METRICS_CONFIG_FILE=$(readlink -m '${BASE_DIR}/../../../function_system/config/metrics_config.json')
+METRICS_CONFIG_FILE=$(readlink -m '${BASE_DIR}/../../../functionsystem/config/metrics_config.json')
 RUNTIME_METRICS_CONFIG=""
 STATE_STORAGE_TYPE="datasystem"
 PULL_RESOURCE_INTERVAL=1000
@@ -229,7 +229,7 @@ ENABLE_INHERIT_ENV="false"
 IS_PARTIAL_WATCH_INSTANCES="false"
 META_STORE_MAX_FLUSH_CONCURRENCY=100
 META_STORE_MAX_FLUSH_BATCH_SIZE=50
-readonly JEMALLOC_LIB_PATH=$(readlink -m "${BASE_DIR}/../../function_system/lib/libjemalloc.so")
+readonly JEMALLOC_LIB_PATH=$(readlink -m "${BASE_DIR}/../../functionsystem/lib/libjemalloc.so")
 # Faas-pattern Configuration
 ENABLE_FAAS_FRONTEND="false"
 FAAS_FRONTEND_HTTP_PORT=8888

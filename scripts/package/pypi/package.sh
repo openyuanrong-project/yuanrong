@@ -57,9 +57,9 @@ function setup_workspace () {
         rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/alias
         rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/initcontainer
         # keep cpp/include directory
-        rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/data_system/sdk/*.jar
-        rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/data_system/sdk/*.whl
-        rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/data_system/sdk/cpp/lib
+        rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/datasystem/sdk/*.jar
+        rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/datasystem/sdk/*.whl
+        rm -rf ${PYPI_BUILD_DIR}/src/yr/inner/datasystem/sdk/cpp/lib
     fi
 
     log_info "copy whl skeleton code to pypi workspace"

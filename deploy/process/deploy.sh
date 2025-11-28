@@ -19,8 +19,8 @@ BASE_DIR=$(
   cd "$(dirname "$0")"
   pwd
 )
-FUNCTION_SYSTEM_PATH=${BASE_DIR}/../../function_system
-DATA_SYSTEM_PATH=${BASE_DIR}/../../data_system
+FUNCTION_SYSTEM_PATH=${BASE_DIR}/../../functionsystem
+DATA_SYSTEM_PATH=${BASE_DIR}/../../datasystem
 THIRD_PARTY_PATH=${BASE_DIR}/../../third_party
 ETCDCTL_PATH=${THIRD_PARTY_PATH}/etcd/etcdctl
 ETCD_LD_PATH=${THIRD_PARTY_PATH}/etcd/lib:${LD_LIBRARY_PATH}

@@ -90,23 +90,21 @@ get_all
 tar -zxvf yr-runtime-*.tar.gz -C ${OUTPUT_DIR}/openyuanrong
 tar -zxvf *functionsystem*.tar.gz -C ${OUTPUT_DIR}/openyuanrong
 
-mkdir -p ${OUTPUT_DIR}/openyuanrong/data_system
-tar -zxvf *datasystem*.tar.gz -C ${OUTPUT_DIR}/openyuanrong/data_system
-mkdir -p ${OUTPUT_DIR}/openyuanrong/data_system/deploy
-cp -fr ${BASE_DIR}/../deploy/data_system/* ${OUTPUT_DIR}/openyuanrong/data_system/deploy/
+tar -zxvf *datasystem*.tar.gz -C ${OUTPUT_DIR}/openyuanrong/
+mkdir -p ${OUTPUT_DIR}/openyuanrong/datasystem/deploy
+cp -fr ${BASE_DIR}/../deploy/data_system/* ${OUTPUT_DIR}/openyuanrong/datasystem/deploy/
 
-cp -fr ${BASE_DIR}/../deploy ${OUTPUT_DIR}/openyuanrong
-rm -rf ${OUTPUT_DIR}/openyuanrong/deploy/data_system
+cp -fr ${BASE_DIR}/../deploy/process ${OUTPUT_DIR}/openyuanrong
 
 frontend_filename=$(ls *frontend*.tar.gz)
 if [ -n "${frontend_filename}" ]; then
     tar -zxvf ${frontend_filename} -C ${OUTPUT_DIR}/openyuanrong
-    cp -fr ${OUTPUT_DIR}/openyuanrong/pattern/pattern_faas/init_frontend_args.json ${OUTPUT_DIR}/openyuanrong/function_system/config/
+    cp -fr ${OUTPUT_DIR}/openyuanrong/pattern/pattern_faas/init_frontend_args.json ${OUTPUT_DIR}/openyuanrong/functionsystem/config/
 fi
 
 dashboard_filename=$(ls *dashboard*.tar.gz)
 if [ -n "${dashboard_filename}" ]; then
-    tar -zxvf ${dashboard_filename} -C ${OUTPUT_DIR}/openyuanrong/function_system/
+    tar -zxvf ${dashboard_filename} -C ${OUTPUT_DIR}/openyuanrong/functionsystem/
 fi
 
 find . -type d -exec chmod 750 {} \;
@@ -120,20 +118,20 @@ if [ -d ${OUTPUT_DIR}/openyuanrong/deploy/process/ ]; then
   find ${OUTPUT_DIR}/openyuanrong/deploy/process/ -type f -name "*.yaml" -exec chmod 640 {} \;
 fi
 
-if [ -d ${OUTPUT_DIR}/openyuanrong/data_system/ ]; then
-  find ${OUTPUT_DIR}/openyuanrong/data_system/ -type f -exec chmod 550 {} \;
+if [ -d ${OUTPUT_DIR}/openyuanrong/datasystem/ ]; then
+  find ${OUTPUT_DIR}/openyuanrong/datasystem/ -type f -exec chmod 550 {} \;
 fi
 
-mv ${OUTPUT_DIR}/openyuanrong/function_system/third_party ${OUTPUT_DIR}/openyuanrong/
+mv ${OUTPUT_DIR}/openyuanrong/functionsystem/third_party ${OUTPUT_DIR}/openyuanrong/
 if [ -d ${OUTPUT_DIR}/openyuanrong/third_party/ ]; then
   find ${OUTPUT_DIR}/openyuanrong/third_party/ -type f -exec chmod 550 {} \;
 fi
 
-if [ -d ${OUTPUT_DIR}/openyuanrong/function_system/ ]; then
-  find ${OUTPUT_DIR}/openyuanrong/function_system/ -type f -exec chmod 550 {} \;
+if [ -d ${OUTPUT_DIR}/openyuanrong/functionsystem/ ]; then
+  find ${OUTPUT_DIR}/openyuanrong/functionsystem/ -type f -exec chmod 550 {} \;
 fi
-if [ -d ${OUTPUT_DIR}/openyuanrong/function_system/config/ ]; then
-  find ${OUTPUT_DIR}/openyuanrong/function_system/config/ -type f -exec chmod 640 {} \;
+if [ -d ${OUTPUT_DIR}/openyuanrong/functionsystem/config/ ]; then
+  find ${OUTPUT_DIR}/openyuanrong/functionsystem/config/ -type f -exec chmod 640 {} \;
 fi
 
 if [ -d ${OUTPUT_DIR}/openyuanrong/runtime/deploy/process/ ]; then

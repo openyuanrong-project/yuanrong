@@ -85,8 +85,8 @@ function download_metrics() {
     pushd "${METRICS_OUT_DIR}"
     wget -O functionsystem.tar.gz ${FUNCTION_SYSTEM_CACHE}
     tar --no-same-owner -zxf functionsystem.tar.gz
-    mv function_system/metrics/* .
-    rm -rf function_system
+    mv functionsystem/metrics/* .
+    rm -rf functionsystem
     popd
 }
 
@@ -115,7 +115,7 @@ function compile_functionsystem() {
     bash build.sh
     cd output
     tar -xf ${YR_FUNCTIONSYSTEM_BIN_DIR}/output/yr-functionsystem*.tar.gz
-    cp -r ${YR_FUNCTIONSYSTEM_BIN_DIR}/output/function_system/metrics ${RUNTIME_SRC_DIR}/
+    cp -r ${YR_FUNCTIONSYSTEM_BIN_DIR}/output/functionsystem/metrics ${RUNTIME_SRC_DIR}/
     cp -f ${YR_FUNCTIONSYSTEM_BIN_DIR}/output/yr-functionsystem*.tar.gz $RUNTIME_OUTPUT_DIR/
 }
 

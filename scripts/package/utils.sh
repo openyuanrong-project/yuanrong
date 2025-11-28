@@ -56,7 +56,7 @@ function make_combined_yuanrong_package() {
 
     mkdir -p ${TEMP_BUILD_CACHE_DIR}/prebuild_tools
     log_info "extract prebuild tools to ${TEMP_BUILD_CACHE_DIR}"
-    cp -rf ${PREBUILD_BIN_PATH_YUANRONG}/function_system/cli ${TEMP_BUILD_CACHE_DIR}/prebuild_tools/
+    cp -rf ${PREBUILD_BIN_PATH_YUANRONG}/functionsystem/cli ${TEMP_BUILD_CACHE_DIR}/prebuild_tools/
 
     mkdir -p ${TEMP_BUILD_CACHE_DIR}/cli
     tar --strip-components=1 -xf ${TEMP_BUILD_CACHE_DIR}/prebuild_tools/cli/pkg/cli.tar -C ${TEMP_BUILD_CACHE_DIR}/cli

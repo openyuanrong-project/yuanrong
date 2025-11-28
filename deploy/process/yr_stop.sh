@@ -19,8 +19,8 @@ BASE_DIR=$(
     cd "$(dirname "$0")"
     pwd
 )
-FUNCTION_SYSTEM_PATH=$(readlink -m "${BASE_DIR}/../../function_system")
-DATA_SYSTEM_PATH=$(readlink -m "${BASE_DIR}/../../data_system")
+FUNCTION_SYSTEM_PATH=$(readlink -m "${BASE_DIR}/../../functionsystem")
+DATA_SYSTEM_PATH=$(readlink -m "${BASE_DIR}/../../datasystem")
 THIRD_PARTY_PATH=$(readlink -m "${BASE_DIR}/../../third_party")
 
 . "${BASE_DIR}"/utils.sh

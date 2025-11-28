@@ -34,6 +34,6 @@ export VLLM_USE_V1=1                      # 启用 vLLM 的 v1 API 模式
 export VLLM_WORKER_MULTIPROC_METHOD=spawn # Python 多进程启动方式为 spawn
 export vLLM_MODEL_MEMORY_USE_GB=20        # 模型在单卡上执行需要的显存容量，Qwen2.5-7B设置20刚好合适
 export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-export LD_LIBRARY_PATH=/usr/local/python3.11.13/lib/python3.11/site-packages/yr/inner/function_system/lib:$LD_LIBRARY_PATH # 需要找到yr的安装路径，可通过yr version 查看
+export LD_LIBRARY_PATH=/usr/local/python3.11.13/lib/python3.11/site-packages/yr/inner/functionsystem/lib:$LD_LIBRARY_PATH # 需要找到yr的安装路径，可通过yr version 查看
 export HCL_OP_EXPANSION_MODE="AIV"
 export USING_PREFIX_CONNECTOR=1 # 是否开启前缀匹配，当前数据系统patch  默认开启， commitid：648c6a54b1c5896e85f3e136577deceda8551091

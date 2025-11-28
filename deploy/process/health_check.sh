@@ -17,8 +17,8 @@ BASE_DIR=$(
   cd "$(dirname "$0")"
   pwd
 )
-FUNCTION_SYSTEM_PATH=${BASE_DIR}/../../function_system
-DATA_SYSTEM_PATH=${BASE_DIR}/../../data_system
+FUNCTION_SYSTEM_PATH=${BASE_DIR}/../../functionsystem
+DATA_SYSTEM_PATH=${BASE_DIR}/../../datasystem
 THIRD_PARTY_PATH=${BASE_DIR}/../../third_party
 
 [[ ! -f "${FUNCTION_SYSTEM_PATH}/deploy/health_check.sh" ]] && echo "${FUNCTION_SYSTEM_PATH}/deploy/health_check.sh is not exist" && exit 1

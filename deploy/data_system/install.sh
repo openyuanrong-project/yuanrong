@@ -17,7 +17,7 @@ set -o pipefail
 
 DATA_SYSTEM_DEPLOY_DIR=$(dirname "$(readlink -f "$0")")
 if [ -n "${BASE_DIR}" ]; then
-  DATA_SYSTEM_DEPLOY_DIR=${BASE_DIR}/../../data_system/deploy
+  DATA_SYSTEM_DEPLOY_DIR=${BASE_DIR}/../../datasystem/deploy
 fi
 DATA_SYSTEM_DIR=$(readlink -m "${DATA_SYSTEM_DEPLOY_DIR}/..")
 MAX_PROCESS_EXIT_TIMES=20
