@@ -9,9 +9,7 @@
    interface
 ```
 
-在分布式计算中，函数间存在基于无界数据流（unbounded data）的数据交互需求，这种数据交互除了常见的 one-to-one，还有 one-to-many、many-to-one 等较复杂的交互关系。同时，在 Serverless 场景下，分布式计算需要获取诸如资源按需分配、异步调度等收益，以实现极致性价比。
-
-为满足上述需求，openYuanrong提供了基于 Publish-SubScribe(pub-sub) 模型的数据流。通过数据流，应用可实现函数间无界数据流的数据交换，支持复杂的数据交互关系。同时，通过解耦数据生产方和消费方的同步连接关系，支持数据生产方和消费方按需异步调度。
+openYuanrong提供了基于 Publish-SubScribe(pub-sub) 模型的数据流。通过数据流，应用可实现函数间无界数据流的数据交换，支持复杂的数据交互关系。同时，通过解耦数据生产方和消费方的同步连接关系，支持数据生产方和消费方按需异步调度。
 
 数据流中有四个关键概念：生产者（producer）、消费者（consumer）、流（stream）、数据项（element）。
 
@@ -22,13 +20,13 @@
 
 数据流支持多生产者和多消费者间的数据交互。在实际场景中，使用最多的是 one-to-one（一个生产者一个消费者）、many-to-one（多个生产者一个消费者）及 one-to-many（一个生产者多个消费者）。
 
-数据流接口支持 C++/Java/Python 多语言，本节以 C++ 语言为例介绍流、Producer、Consumer、Element 四类接口的使用。
+数据流接口支持 C++/Java/Python 多语言，本节以 C++ 语言为例介绍流、生产者、消费者、数据项四类接口的使用。
 
 ## 使用限制
 
 - 数据流定位在支持计算过程的中间数据流转，当前无持久化能力，当发送节点故障时，数据会丢失。需要应用层进行故障处理，比如重启业务等。
 - 当前接口都是同步阻塞，没有类似 epoll 的多路复用能力。
-- 由于通过 Stream 解耦了 producer 和 consumer，producer 和 consumer 间不感知对方。也就是当 producer 关闭时，consumer 是无法感知的，需要业务层进行处理。
+- 由于通过流解耦了生产者和消费者，生产者和消费者间不感知对方。也就是当生产者关闭时，消费者是无法感知的，需要业务层进行处理。
 
 ## 流接口
 
@@ -92,7 +90,7 @@
 
 ## 生产者接口
 
-生产者（Producer）可向流中发送数据，主动调用 `Flush` 接口使数据对消费者快速可见，以及主动关闭。
+生产者（Producer）可向流中发送数据。
 
 - Send 方法：生产者发送数据，数据会先放入缓冲区，系统根据生产者配置的 Flush 策略 (发送间隔一段时间或者缓冲写满) 刷新缓冲使其对消费者可见。
 
@@ -195,14 +193,86 @@
     }
     ```
 
-## Element 接口
+## 数据项
 
-数据流以 Element 为单位发送数据，Element 结构体如下:
+数据流以数据项为单位发送数据，数据项结构体如下:
 
 | **字段** | **类型**  | **说明**       |
 | -------- | --------- | -------------- |
 | **ptr**  | uint8_t * | 指向数据的指针。 |
 | **size** | unit64_t  | 数据长度。       |
-| **id**   | uint64_t  | Element 的 id。 |
+| **id**   | uint64_t  | 数据项的 id。 |
 
 `ptr` 字段指向数据的存放地址。在生产者端, `ptr` 字段指向应用的内存空间，因为发送的数据是应用填充的。在消费者端, `ptr` 字段指向的地址空间位于应用函数和数据系统间的共享内存中，这也是为什么会需要 ACK 操作的原因。
+
+## 函数中使用流
+
+本节通过简单的 Python 示例介绍如何在函数中使用流。
+
+### 准备工作
+
+参考[在主机上部署](../../deploy/deploy_processes/index.md)完成openYuanrong部署。
+
+### 在无状态函数中使用
+
+我们在主程序中创建消费者 `local_consumer`，该操作会隐式完成流 `exp-stream` 的创建。生产者为无状态函数，实例在远端运行。生产者和消费者协商使用字符串 `::END::` 作为流结束标志，处理完流后需要主动调用接口 `yr.delete_stream` 删除流，释放资源。
+
+```python
+import subprocess
+import yr
+import time
+
+@yr.invoke
+def send_stream(stream_name, end_marker):
+    try:
+        # 创建生产者，配置自动 ACK
+        # 流发送会进行缓存，对于实时性要求较高的任务，可调低 delay_flush_time 的值，默认 5ms
+        producer_config = yr.ProducerConfig(delay_flush_time=5, page_size=1024 * 1024, max_stream_size=1024 * 1024 * 1024, auto_clean_up=True)
+        stream_producer = yr.create_stream_producer(stream_name, producer_config)
+
+        corpus = subprocess.check_output(["python", "-c", "import this"])
+        lines = corpus.decode().split("\n")
+
+        i = 0
+        for line in lines:
+            if len(line) > 0:
+                # 发送流
+                stream_producer.send(yr.Element(line.encode(), i))
+                print("send:" + line)
+                i += 1
+
+        # 发送业务约定的结束符号，关闭生产者
+        stream_producer.send(yr.Element(end_marker.encode(), i))
+        stream_producer.close()
+        print("stream producer is closed")
+    except RuntimeError as exp:
+        print("unexpected exp: ", exp)
+
+
+if __name__ == '__main__':
+    yr.init()
+
+    stream_name = "exp-stream"
+    end_marker = "::END::"
+    # 创建消费者，隐式创建流
+    config = yr.SubscriptionConfig("local_consumer")
+    consumer = yr.create_stream_consumer(stream_name, config)
+    send_stream.invoke(stream_name, end_marker)
+
+    end = False
+    while not end:
+        # 经过 1000ms 或收到 10 个 elements 就返回
+        elements = consumer.receive(1000, 10)
+        for e in elements:
+            data_str = e.data.decode()
+            print("receive:" + data_str)
+            # 收到约定的结束符后，关闭消费者
+            if data_str == end_marker:
+                consumer.close()
+                print("stream consumer is closed")
+                end = True
+
+    # 需要显示删除流，否则流一直存在
+    yr.delete_stream(stream_name)
+    yr.finalize()
+```
