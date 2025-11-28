@@ -22,7 +22,7 @@
     <template v-slot:card-content>
       <div class="margin-top16">
         <tiny-grid :fetch-data="fetchData" ref="treeRef" @filter-change="initChartWithProm" remote-filter
-                   :tree-config="{ children: 'children' }" :pager="pagerConfig">
+                   :tree-config="{ children: 'children' }" :pager="pagerConfig" height="750">
           <tiny-grid-column field="hostname" title="Hostname" tree-node width="27%" align="center"
                             :filter={} sortable>
             <template #filter="data">
@@ -93,6 +93,7 @@ let nodeDiskUsages = {};
 let nodeNpuData = {};
 let expandRowMap = new Set();
 let expandRows = [];
+let originExpandRows = [];
 
 onMounted(() => {
   GetPromQueryAPI('up').catch((err: any)=>{
@@ -172,39 +173,31 @@ function initAgentIDInstancesMap() {
 }
 
 function saveRowExpansion() {
-  const originExpandRows = treeRef.value.getTreeExpandeds();
-  treeRef.value.clearTreeExpand();
+  originExpandRows = treeRef.value.getTreeExpandeds();
   expandRowMap = new Set();
   for (let row of originExpandRows) {
     expandRowMap.add(row.hostname);
   }
 }
 
-function loadRowExpansion(scrollYPosition: number) {
-  setTimeout(()=>{
-    expandRows = [];
-    for (let nodeRow of tableData.value) {
-      if (!expandRowMap.has(nodeRow.hostname)) {
-        continue
-      }
-      expandRows.push(nodeRow)
-      for (let agentRow of nodeRow.children) {
-        if (expandRowMap.has(agentRow.hostname)) {
-          expandRows.push(agentRow)
-        }
+function loadRowExpansion() {
+  expandRows = [];
+  for (let nodeRow of tableData.value) {
+    if (!expandRowMap.has(nodeRow.hostname)) {
+      continue
+    }
+    expandRows.push(nodeRow)
+    for (let agentRow of nodeRow.children) {
+      if (expandRowMap.has(agentRow.hostname)) {
+        expandRows.push(agentRow)
       }
     }
-    treeRef.value.setTreeExpansion(expandRows, true);
-    // 滚动至原来高度
-    setTimeout(()=>{
-      window.scrollTo(0, scrollYPosition);
-    });
-  });
+  }
+  treeRef.value.setTreeExpansion(originExpandRows, false);
+  treeRef.value.setTreeExpansion(expandRows, true);
 }
 
 async function initChart() {
-  // 保存滚动高度
-  const scrollYPosition = window.scrollY;
   // 保存折叠状态
   saveRowExpansion();
   await GetCompAPI().then((res: GetCompAPIRes) => {
@@ -231,9 +224,9 @@ async function initChart() {
       node.disk_cap = getNodePromValue(node, nodeDiskCaps);
       node.disk_usage = getNodePromValue(node, nodeDiskUsages);
     }
-    treeRef.value.handleFetch();
     // 恢复折叠状态
-    loadRowExpansion(scrollYPosition);
+    loadRowExpansion();
+    treeRef.value.handleFetch();
   }).catch((err: any)=>{
     WarningNotify('GetCompAPI', err);
   });

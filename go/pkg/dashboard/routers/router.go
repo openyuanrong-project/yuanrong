@@ -56,7 +56,7 @@ func SetRouter() *gin.Engine {
 	r.Use(Cors())
 
 	r.StaticFile("/", flags.DashboardConfig.StaticPath+"/index.html")
-	r.StaticFile("/logo.png", flags.DashboardConfig.StaticPath+"/logo.png")
+	r.StaticFile("/favicon.ico", flags.DashboardConfig.StaticPath+"/favicon.ico")
 	r.Static("/assets", flags.DashboardConfig.StaticPath+"/assets")
 
 	v1Group := r.Group(basePath)
