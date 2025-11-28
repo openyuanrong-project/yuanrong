@@ -2505,7 +2505,7 @@ cdef class Fnruntime:
     def get_instance_by_name(self, name, ns, timeout):
         cdef:
             pair[CFunctionMeta, CErrorInfo] ret
-            string cinstanceID = (ns + "-" + name if ns else name).encode()
+            string cinstanceID
             int sigNo = CSignal.KILLINSTANCESYNC
             string cname = name.encode()
             string cns = ns.encode()
@@ -2513,6 +2513,8 @@ cdef class Fnruntime:
         cdef shared_ptr[CLibruntime] c_libruntime = CLibruntimeManager.Instance().GetLibRuntime()
         if c_libruntime == nullptr:
             raise RuntimeError("already finalized")
+        yr_ns = get_namespace()
+        cinstanceID = (ns + "-" + name if ns else yr_ns + "-" + name).encode()
         with nogil:
             c_libruntime.get().SetTenantIdWithPriority()
             ret = c_libruntime.get().GetInstance(cname, cns, ctimeout)
