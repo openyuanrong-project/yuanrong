@@ -2,9 +2,13 @@ package logmanager
 
 import (
 	"context"
-	"google.golang.org/grpc"
 	"reflect"
 	"testing"
+
+	"github.com/agiledragon/gomonkey/v2"
+	. "github.com/smartystreets/goconvey/convey"
+	"google.golang.org/grpc"
+
 	"yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/logservice"
 	"yuanrong.org/kernel/pkg/common/faas_common/types"
 	"yuanrong.org/kernel/pkg/dashboard/etcdcache"
@@ -16,6 +20,21 @@ type mockLogCollectorClient struct {
 func newMockLogCollectorClient() *mockLogCollectorClient {
 	m := &mockLogCollectorClient{}
 	return m
+}
+
+func (m *mockLogCollectorClient) StartLogStream(ctx context.Context,
+	request *logservice.StartLogStreamRequest, opts ...grpc.CallOption) (*logservice.StartLogStreamResponse, error) {
+	return nil, nil
+}
+
+func (m *mockLogCollectorClient) QueryLogStream(ctx context.Context,
+	request *logservice.QueryLogStreamRequest, opts ...grpc.CallOption) (*logservice.QueryLogStreamResponse, error) {
+	return nil, nil
+}
+
+func (m *mockLogCollectorClient) StopLogStream(ctx context.Context,
+	request *logservice.StopLogStreamRequest, opts ...grpc.CallOption) (*logservice.StopLogStreamResponse, error) {
+	return nil, nil
 }
 
 func (m *mockLogCollectorClient) Reset() {
