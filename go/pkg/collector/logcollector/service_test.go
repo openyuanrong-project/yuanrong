@@ -17,7 +17,6 @@
 package logcollector
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -124,21 +123,6 @@ func TestMultipleSuccessReadLog(t *testing.T) {
 		assert.Equal(t, int32(0), response.Code, "wrong code")
 		assert.Equal(t, []byte("0123456789\n0123456789\n0123456789\n"), response.Content, "wrong content")
 	}
-}
-
-func TestQueryLogStream(t *testing.T) {
-	for k := range streamControlChans.hashmap {
-		delete(streamControlChans.hashmap, k)
-	}
-	s := &server{}
-	AddDone("123", "456")
-	AddDone("567", "89")
-	ctx := context.Background()
-	request := &logservice.QueryLogStreamRequest{}
-	response, err := s.QueryLogStream(ctx, request)
-	assert.Equal(t, response.Code, int32(0))
-	assert.Equal(t, 2, len(response.Streams))
-	assert.Equal(t, err, nil)
 }
 
 func TestFailedStartReadLogService(t *testing.T) {

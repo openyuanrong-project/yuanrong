@@ -53,3 +53,6 @@ CLIENT_CONFIG_DIR="${CLIENT_DIR}/src/config"
 rm -f "${CLIENT_CONFIG_DIR}/config.json"
 cp "${CLIENT_CONFIG_DIR}/config.json.bak" "${CLIENT_CONFIG_DIR}/config.json"
 npm run coverage
+
+# collector test
+sh "${CUR_DIR}/collector/test.sh"

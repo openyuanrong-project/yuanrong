@@ -29,10 +29,10 @@ run_gocover_report()
     mkdir -p "${OUTPUT_PATH}"
 
     cd ${CMD_PATH}
-    go test -v -gcflags=all=-l -covermode="${GOCOVER_MODE}" -coverpkg="./..." "./..."
+    go test -gcflags=all=-l -covermode="${GOCOVER_MODE}" -coverpkg="./..." "./..."
 
     cd ${SRC_PATH}
-    go test -v -gcflags=all=-l -covermode="${GOCOVER_MODE}" -coverprofile="$OUTPUT_PATH/collector.cover" -coverpkg="./..." "./..."
+    go test -gcflags=all=-l -covermode="${GOCOVER_MODE}" -coverprofile="$OUTPUT_PATH/collector.cover" -coverpkg="./..." "./..."
 
     if [ $? -ne 0 ]; then
         log_error "failed to go test collector"
