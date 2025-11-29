@@ -193,7 +193,7 @@ void FSIntf::HandleCheckpointRequest(const CheckpointRequest &req, CheckpointCal
             if (ExistProcessingRequestId()) {
                 CheckpointResponse resp;
                 resp.set_code(common::ERR_INNER_SYSTEM_ERROR);
-                resp.set_message("exit processing request");
+                resp.set_message("exist processing request, checkpoint error");
                 callback(resp);
                 return;
             }
