@@ -497,7 +497,7 @@ TEST_F(FaasInstanceManagerTest, GetFaasBatchInstanceRsp)
     object->set_id("123");
 
     std::string json_str =
-        R"({"instanceAllocSucceed":{"f1a00e58-f2a1-4000-8000-000000f8e9e3-thread26":{"funcKey":"12345678901234561234567890123456/0@functest@functest/latest","funcSig":"4243308021","instanceID":"f1a00e58-f2a1-4000-8000-000000f8e9e3","threadID":"f1a00e58-f2a1-4000-8000-000000f8e9e3-thread26","instanceIP":"10.42.1.119","instancePort":"22771","nodeIP":"","nodePort":"","leaseInterval":0,"cpu":600,"memory":512}},"instanceAllocFailed":{},"leaseInterval":1000,"schedulerTime":0.000118108})";
+        R"({"instanceAllocSucceed":{"f1a00e58-f2a1-4000-8000-000000f8e9e3-thread26":{"funcKey":"12345678901234561234567890123456/0@functest@functest/latest","funcSig":"4243308021","instanceID":"f1a00e58-f2a1-4000-8000-000000f8e9e3","threadID":"f1a00e58-f2a1-4000-8000-000000f8e9e3-thread26","instanceIP":"x.x.x.x","instancePort":"22771","nodeIP":"","nodePort":"","leaseInterval":0,"cpu":600,"memory":512}},"instanceAllocFailed":{},"leaseInterval":1000,"schedulerTime":0.000118108})";
     std::string value = "0000000000000000" + json_str;
     object->set_value(value);
     auto [resp, errorInfo] = GetFaasBatchInstanceRsp(notifyReq);

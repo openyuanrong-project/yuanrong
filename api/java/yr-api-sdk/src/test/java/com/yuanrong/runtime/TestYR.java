@@ -207,9 +207,9 @@ public class TestYR {
     public void testTenantContext() {
         Config ctxConf = Config.builder()
                             .functionURN("sn:cn:yrk:12345678901234561234567890123456:function:0-j-a:$latest")
-                            .serverAddress("10.243.25.129")
+                            .serverAddress("x.x.x.x")
                             .serverAddressPort(31222)
-                            .dataSystemAddress("10.243.25.129")
+                            .dataSystemAddress("x.x.x.x")
                             .dataSystemAddressPort(31501)
                             .isInCluster(false)
                             .tenantId("tenantId1")
@@ -260,9 +260,9 @@ public class TestYR {
     public void testTenantContextFailed() {
         Config ctxConf = Config.builder()
                             .functionURN("sn:cn:yrk:12345678901234561234567890123456:function:0-j-a:$latest")
-                            .serverAddress("10.243.25.129")
+                            .serverAddress("x.x.x.x")
                             .serverAddressPort(31222)
-                            .dataSystemAddress("10.243.25.129")
+                            .dataSystemAddress("x.x.x.x")
                             .dataSystemAddressPort(31501)
                             .isInCluster(false)
                             .tenantId("tenantId1")

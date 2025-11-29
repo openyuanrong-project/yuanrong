@@ -97,7 +97,7 @@ func TestFaasSchedulerRegistryWatcherHandler(t *testing.T) {
 		convey.Convey("etcd put valid funcKey for module scheduler", func() {
 			event := &etcd3.Event{
 				Type: etcd3.PUT,
-				Key:  "/sn/faas-scheduler/instances/cluster001/7.218.100.25",
+				Key:  "/sn/faas-scheduler/instances/cluster001/x.x.x.x",
 			}
 			fsr.moduleSchedulerHandler(event)
 			_, ok := selfregister.GlobalSchedulerProxy.FaaSSchedulers.Load("faas-scheduler-59ddbc4b75-8xdjf")
@@ -112,7 +112,7 @@ func TestFaasSchedulerRegistryWatcherHandler(t *testing.T) {
 		convey.Convey("etcd put invalid funcKey for module scheduler", func() {
 			event := &etcd3.Event{
 				Type: etcd3.PUT,
-				Key:  "/sn/faas-scheduler/instances/cluster001/7.218.100.25/faas-scheduler-59ddbc4b75-8xdjf",
+				Key:  "/sn/faas-scheduler/instances/cluster001/x.x.x.x/faas-scheduler-59ddbc4b75-8xdjf",
 				Value: []byte(`{
     			"instanceID": "1f060613-68af-4a02-8000-000000e077ce",
     			"instanceStatus": {

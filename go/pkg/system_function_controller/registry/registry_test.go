@@ -42,9 +42,9 @@ var (
 
 	validEtcdValue = `{
 		"runtimeID":"16444dbc",
-		"deployedIP":"10.244.136.113",
+		"deployedIP":"x.x.x.x",
 		"deployedNode":"dggphis36581",
-		"runtimeIP":"10.42.0.37",
+		"runtimeIP":"x.x.x.x",
 		"runtimePort":"32065",
 		"funcKey":"12345678901234561234567890123456/0-system-faasscheduler/$latest",
 		"resource":{"cpu":"500","memory":"500","customresources":{}},

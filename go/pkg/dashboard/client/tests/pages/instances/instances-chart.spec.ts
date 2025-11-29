@@ -38,50 +38,60 @@ describe('InstancesChart', () => {
 })
 
 describe('InstancesChart.initChart', () => {
-    const data = [
-        {
-            'id': '1025e641-f911-4500-8000-000000f8dbc2',
-            'status': 'fatal',
-            'create_time': '1762222864',
-            'job_id': 'job-febb4a18',
-            'pid': '249466',
-            'ip': 'x.x.x.x:22773',
-            'node_id': 'dggphis232339-189755',
-            'agent_id': 'function-agent-x.x.x.x-58866',
-            'parent_id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
-            'required_cpu': 3000,
-            'required_mem': 500,
-            'required_gpu': 0,
-            'required_npu': 0,
-            'restarted': 0,
-            'exit_detail': 'ancestor instance(app-ab00977c-682e-4b5e-9cb3-f928c55a7d27) is abnormal'
-        },
-        {
-            'id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
-            'status': 'fatal',
-            'create_time': '1762222864',
-            'job_id': 'job-his232339-189755',
-            'pid': '249351',
-            'ip': 'x.x.x.x:22773',
-            'node_id': 'dggphis232339-189755',
-            'agent_id': 'function-agent-x.x.x.x-58866',
-            'parent_id': 'driver-faas-frontend-dggphis232339-189755',
-            'required_cpu': 500,
-            'required_mem': 500,
-            'required_gpu': 0,
-            'required_npu': 0,
-            'restarted': 0,
-            'exit_detail': 'Instance(app-ab00977c-682e-4b5e-9cb3-f928c55a7d27) exitStatus:0'
-        },
-    ];
-
-    vi.mock('@/api/api', () => ({
-        GetInstAPI: vi.fn().mockResolvedValue({data}),
-        GetInstParentIDAPI: vi.fn().mockResolvedValue(data),
-    }));
+    vi.mock('@/api/api', () => {
+        const data = [
+            {
+                'id': '1025e641-f911-4500-8000-000000f8dbc2',
+                'status': 'fatal',
+                'create_time': '1762222864',
+                'job_id': 'job-febb4a18',
+                'pid': '249466',
+                'ip': 'x.x.x.x:22773',
+                'node_id': 'dggphis232339-189755',
+                'agent_id': 'function-agent-x.x.x.x-58866',
+                'parent_id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
+                'required_cpu': 3000,
+                'required_mem': 500,
+                'required_gpu': 0,
+                'required_npu': 0,
+                'restarted': 0,
+                'exit_detail': 'ancestor instance(app-ab00977c-682e-4b5e-9cb3-f928c55a7d27) is abnormal'
+            },
+            {
+                'id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
+                'status': 'fatal',
+                'create_time': '1762222864',
+                'job_id': 'job-his232339-189755',
+                'pid': '249351',
+                'ip': 'x.x.x.x:22773',
+                'node_id': 'dggphis232339-189755',
+                'agent_id': 'function-agent-x.x.x.x-58866',
+                'parent_id': 'driver-faas-frontend-dggphis232339-189755',
+                'required_cpu': 500,
+                'required_mem': 500,
+                'required_gpu': 0,
+                'required_npu': 0,
+                'restarted': 0,
+                'exit_detail': 'Instance(app-ab00977c-682e-4b5e-9cb3-f928c55a7d27) exitStatus:0'
+            },
+        ];
+        return {
+            GetInstAPI: vi.fn().mockResolvedValue({data}),
+            GetInstParentIDAPI: vi.fn().mockResolvedValue(data),
+        }
+    });
 
     const wrapper = mount(InstancesChart);
     const vm = wrapper.vm;
+
+    it('renders when initChart.GetInstAPI correctly', async () => {
+        vm.initChart();
+        await flushPromises();
+        expect(wrapper.text()).toContain('IDStatusJobIDPIDIPNodeIDParentIDCreateTimeRequired ' +
+            'CPURequired Memory(MB)Required GPURequired NPURestartedExitDetailLog');
+        expect(wrapper.text()).toContain('app-ab00977c-682e-4b5e-9cb3-f928c55a7d27fatal');
+        expect(wrapper.text()).toContain('1025e641-f911-4500-8000-000000f8dbc2fatal');
+    });
 
     const originalHash = window.location.hash;
     afterAll(()=>{ window.location.hash = originalHash });

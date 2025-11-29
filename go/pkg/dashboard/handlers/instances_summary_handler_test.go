@@ -66,7 +66,7 @@ func TestInstancesSummaryHandler(t *testing.T) {
 		instance1 := resource.InstanceInfo{
 			InstanceID:      "app-dfb5ed67-9342-4b50-82ff-8fa8f055a9f4",
 			InstanceStatus:  &resource.InstanceStatus{Code: 3},
-			FunctionAgentID: "function-agent-7.185.104.157-31630",
+			FunctionAgentID: "function-agent-x.x.x.x-31630",
 			FunctionProxyID: "phish232340-1936114",
 			ParentID:        "driver-faas-frontend-dggphis232340-1936114",
 			Resources:       &resources,

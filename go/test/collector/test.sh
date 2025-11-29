@@ -28,12 +28,6 @@ run_gocover_report()
     rm -rf "${OUTPUT_PATH}"
     mkdir -p "${OUTPUT_PATH}"
 
-    local proto_output=$(realpath ${ROOT_PATH}/..)
-    local posix_proto_path=$(realpath ${ROOT_PATH}/../posix/proto)
-    local fs_proto_path=${ROOT_PATH}/src/common/proto/posix/
-    cp -f ${posix_proto_path}/*.proto ${fs_proto_path}/
-    protoc --proto_path="${fs_proto_path}" --go_out="${proto_output}" --go-grpc_out="${proto_output}" "${fs_proto_path}"/*.proto
-
     cd ${CMD_PATH}
     go test -v -gcflags=all=-l -covermode="${GOCOVER_MODE}" -coverpkg="./..." "./..."
 

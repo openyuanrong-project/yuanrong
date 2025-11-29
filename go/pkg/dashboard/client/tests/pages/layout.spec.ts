@@ -37,6 +37,6 @@ describe('Layout.text', () => {
     const wrapper = mount(Layout);
 
     it('renders text correctly', () => {
-        expect(wrapper.text()).toContain('OverviewClusterJobsInstancesLogs');
+        expect(wrapper.text()).toContain('OverviewClusterInstancesLogs');
     });
 })

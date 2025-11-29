@@ -60,8 +60,8 @@ func TestGetInsSpecFromEtcdKV(t *testing.T) {
 	etcdKey := "/sn/workers/business/yrk/tenant/6d5b16f6ef0e4b7d938d5035356aa378/function/0@default@app1/" +
 		"version/latest/defaultaz/defaultaz-#-custom-600-512-cbf49869-a2e7-46e0-b9bc-c11533f38db5"
 	etcdValue := []byte("{\"ip\":\"192.168.0.97\",\"port\":\"8080\",\"cluster\":\"cluster001\",\"status\"" +
-		":\"ready\",\"p2pPort\":\"22668\",\"nodeIP\":\"10.29.111.186\",\"nodePort\":\"22423\"," +
-		"\"applier\":\"worker-manager\",\"ownerIP\":\"10.29.111.186\",\"cpu\":600,\"memory\":512,\"businessType\":\"CAE\"," +
+		":\"ready\",\"p2pPort\":\"22668\",\"nodeIP\":\"x.x.x.x\",\"nodePort\":\"22423\"," +
+		"\"applier\":\"worker-manager\",\"ownerIP\":\"x.x.x.x\",\"cpu\":600,\"memory\":512,\"businessType\":\"CAE\"," +
 		"\"hasInitializer\":true,\"creationTime\":1719788553,\"resource\":{\"worker\":{\"cpuLimit\":1000,\"cpuRequest\":100," +
 		"\"memoryLimit\":200,\"memoryRequest\":100}," +
 		"\"runtime\":{\"cpuLimit\":400,\"cpuRequest\":60,\"memoryLimit\":256,\"memoryRequest\":256}}}")
@@ -78,7 +78,7 @@ func TestGetInsSpecFromEtcdKV(t *testing.T) {
 		InstanceID:      "",
 		RequestID:       "",
 		RuntimeID:       "",
-		RuntimeAddress:  "10.29.111.186:22423",
+		RuntimeAddress:  "x.x.x.x:22423",
 		FunctionAgentID: "",
 		FunctionProxyID: "192.168.0.97:8080",
 		Function:        "6d5b16f6ef0e4b7d938d5035356aa378/0@default@app1/latest",

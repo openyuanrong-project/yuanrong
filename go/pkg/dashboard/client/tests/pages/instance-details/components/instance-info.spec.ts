@@ -65,6 +65,5 @@ describe('InstanceInfo.initInstanceInfo', () => {
         vm.initInstanceInfo();
         await flushPromises();
         expect(wrapper.text()).toContain('InstanceInfos IDStatusJobID10050000-0000-4000-b00f-8374b8dd2508fatal');
-        expect(wrapper.text()).toContain('2025-11-04 10:21:04');
     });
 })

@@ -154,7 +154,7 @@ func TestGetFuncSpecFromEtcdValue(t *testing.T) {
 				"92604748\",\"created\":\"2022-12-13 13:01:44.376 UTC\",\"statefulFlag\":false,\"hookHandler\":{\"cal" +
 				"l\":\"main.CallHandler\",\"init\":\"main.InitHandler\"}},\"codeMetaData\":{\"storage_type\":\"s3\",\"a" +
 				"ppId\":\"61022\",\"bucketId\":\"bucket-test-log1\",\"objectId\":\"hello-1671096364751\",\"bucketUr" +
-				"l\":\"http://10.244.162.129:19002\",\"sha256\":\"\",\"code_type\":\"\",\"code_url\":\"\",\"code_filen" +
+				"l\":\"http://x.x.x.x:19002\",\"sha256\":\"\",\"code_type\":\"\",\"code_url\":\"\",\"code_filen" +
 				"ame\":\"\",\"func_code\":{\"file\":\"\",\"link\":\"\"},\"code_path\":\"\"},\"envMetaData\":{\"envKe" +
 				"y\":\"85c545e0e31241d681031542:8231fc7f6dd9f6411d03bb5cf751a398bcf1d3d4fa1098022228c75cdb7420116807" +
 				"2edc1bb265f53bc8b4fee10e757693935bd8d412e292ac2349207c52311b9cef460a65c91a4103b9aed5dc920b49\",\"env" +
@@ -494,8 +494,8 @@ func TestInstanceRegistryWatcherFGHandler(t *testing.T) {
 		Type: etcd3.PUT,
 		Key: "/sn/workers/business/yrk/tenant/c53626012ba84727b938ca8bf03108ef/function/0@default@zscaetest/" +
 			"version/latest/defaultaz/defaultaz-#-custom-1000-1024-935e9454-93fa-43f1-b5e4-7cd82737dd62",
-		Value:     []byte("{\"ip\":\"192.168.0.154\",\"port\":\"8080\",\"cluster\":\"cluster001\",\"status\":\"ready\",\"p2pPort\":\"22668\",\"nodeIP\":\"10.29.111.186\",\"nodePort\":\"22423\",\"applier\":\"worker-manager\",\"ownerIP\":\"10.29.111.186\",\"businessType\":\"CAE\",\"hasInitializer\":true,\"creationTime\":1724393756,\"podUID\":\"c00e66f0-a4b1-46db-8d9c-61d7ab8c2405\",\"containerIDs\":{\"worker\":\"58dd3e59f60f7533cfe5604a076470d51b1e9b5f3e87a70c0954937fddfa7280\",\"runtime\":\"b616e60c55adab60271507c8df3aefec5923ee02fc851689294d04325ef522d1\"},\"resource\":{\"worker\":{\"cpuLimit\":1000,\"cpuRequest\":100,\"memoryLimit\":3686,\"memoryRequest\":100},\"runtime\":{\"cpuLimit\":1000,\"cpuRequest\":250,\"memoryLimit\":1024,\"memoryRequest\":1024}}}"),
-		PrevValue: []byte("{\"ip\":\"192.168.0.154\",\"port\":\"8080\",\"cluster\":\"cluster001\",\"status\":\"ready\",\"p2pPort\":\"22668\",\"nodeIP\":\"10.29.111.186\",\"nodePort\":\"22423\",\"applier\":\"worker-manager\",\"ownerIP\":\"10.29.111.186\",\"businessType\":\"CAE\",\"hasInitializer\":true,\"creationTime\":1724393756,\"podUID\":\"c00e66f0-a4b1-46db-8d9c-61d7ab8c2405\",\"containerIDs\":{\"worker\":\"58dd3e59f60f7533cfe5604a076470d51b1e9b5f3e87a70c0954937fddfa7280\",\"runtime\":\"b616e60c55adab60271507c8df3aefec5923ee02fc851689294d04325ef522d1\"},\"resource\":{\"worker\":{\"cpuLimit\":1000,\"cpuRequest\":100,\"memoryLimit\":3686,\"memoryRequest\":100},\"runtime\":{\"cpuLimit\":1000,\"cpuRequest\":250,\"memoryLimit\":1024,\"memoryRequest\":1024}}}"),
+		Value:     []byte("{\"ip\":\"192.168.0.154\",\"port\":\"8080\",\"cluster\":\"cluster001\",\"status\":\"ready\",\"p2pPort\":\"22668\",\"nodeIP\":\"x.x.x.x\",\"nodePort\":\"22423\",\"applier\":\"worker-manager\",\"ownerIP\":\"x.x.x.x\",\"businessType\":\"CAE\",\"hasInitializer\":true,\"creationTime\":1724393756,\"podUID\":\"c00e66f0-a4b1-46db-8d9c-61d7ab8c2405\",\"containerIDs\":{\"worker\":\"58dd3e59f60f7533cfe5604a076470d51b1e9b5f3e87a70c0954937fddfa7280\",\"runtime\":\"b616e60c55adab60271507c8df3aefec5923ee02fc851689294d04325ef522d1\"},\"resource\":{\"worker\":{\"cpuLimit\":1000,\"cpuRequest\":100,\"memoryLimit\":3686,\"memoryRequest\":100},\"runtime\":{\"cpuLimit\":1000,\"cpuRequest\":250,\"memoryLimit\":1024,\"memoryRequest\":1024}}}"),
+		PrevValue: []byte("{\"ip\":\"192.168.0.154\",\"port\":\"8080\",\"cluster\":\"cluster001\",\"status\":\"ready\",\"p2pPort\":\"22668\",\"nodeIP\":\"x.x.x.x\",\"nodePort\":\"22423\",\"applier\":\"worker-manager\",\"ownerIP\":\"x.x.x.x\",\"businessType\":\"CAE\",\"hasInitializer\":true,\"creationTime\":1724393756,\"podUID\":\"c00e66f0-a4b1-46db-8d9c-61d7ab8c2405\",\"containerIDs\":{\"worker\":\"58dd3e59f60f7533cfe5604a076470d51b1e9b5f3e87a70c0954937fddfa7280\",\"runtime\":\"b616e60c55adab60271507c8df3aefec5923ee02fc851689294d04325ef522d1\"},\"resource\":{\"worker\":{\"cpuLimit\":1000,\"cpuRequest\":100,\"memoryLimit\":3686,\"memoryRequest\":100},\"runtime\":{\"cpuLimit\":1000,\"cpuRequest\":250,\"memoryLimit\":1024,\"memoryRequest\":1024}}}"),
 		Rev:       1,
 	}
 
@@ -512,7 +512,7 @@ func TestInstanceRegistryWatcherFGHandler(t *testing.T) {
 			DataSystemHost:  "",
 			RequestID:       "",
 			RuntimeID:       "",
-			RuntimeAddress:  "10.29.111.186:22423",
+			RuntimeAddress:  "x.x.x.x:22423",
 			FunctionAgentID: "",
 			FunctionProxyID: "192.168.0.154:8080",
 			Function:        "c53626012ba84727b938ca8bf03108ef/0@default@zscaetest/latest",
@@ -602,7 +602,7 @@ func TestInstanceRegistryWatcherFGHandler(t *testing.T) {
 			DataSystemHost:  "",
 			RequestID:       "",
 			RuntimeID:       "",
-			RuntimeAddress:  "10.29.111.186:22423",
+			RuntimeAddress:  "x.x.x.x:22423",
 			FunctionAgentID: "",
 			FunctionProxyID: "192.168.0.154:8080",
 			Function:        "c53626012ba84727b938ca8bf03108ef/0@default@zscaetest/latest",
@@ -1050,7 +1050,7 @@ func TestMiscellaneous(t *testing.T) {
 		})
 		convey.Convey("module success", func() {
 			res := fsr.moduleSchedulerFilter(&etcd3.Event{
-				Key: "/sn/faas-scheduler/instances/cluster001/7.218.100.25/faas-scheduler-59ddbc4b75-8xdjf",
+				Key: "/sn/faas-scheduler/instances/cluster001/x.x.x.x/faas-scheduler-59ddbc4b75-8xdjf",
 			})
 			convey.So(res, convey.ShouldBeFalse)
 		})
@@ -1373,7 +1373,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 		convey.Convey("update", func() {
 			errEv := &etcd3.Event{
 				Type:      etcd3.PUT,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.120/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value:     []byte(`aaa`),
 				PrevValue: nil,
 				Rev:       0,
@@ -1383,7 +1383,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 
 			errEv1 := &etcd3.Event{
 				Type:      etcd3.PUT,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.120/frontend-768df8f66b-gvz4z/latest",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z/latest",
 				Value:     []byte(`active`),
 				PrevValue: nil,
 				Rev:       0,
@@ -1394,7 +1394,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 
 			ev := &etcd3.Event{
 				Type:      etcd3.PUT,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.120/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value:     []byte(`active`),
 				PrevValue: nil,
 				Rev:       0,
@@ -1402,7 +1402,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 			GlobalRegistry.FaaSFrontendRegistry.watcherHandler(ev)
 			ev1 := &etcd3.Event{
 				Type:      etcd3.PUT,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.220/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value:     []byte(`active`),
 				PrevValue: nil,
 				Rev:       0,
@@ -1410,21 +1410,21 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 			GlobalRegistry.FaaSFrontendRegistry.watcherHandler(ev1)
 			assert.Equal(t, len(GlobalRegistry.FaaSFrontendRegistry.ClusterFrontends["cluster001"]), 2)
 			assert.Equal(t, GlobalRegistry.FaaSFrontendRegistry.GetFrontends("cluster001"),
-				[]string{"7.218.74.120", "7.218.74.220"})
+				[]string{"x.x.x.x", "x.x.x.x"})
 
 			ev2 := &etcd3.Event{
 				Type:      etcd3.PUT,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.120/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value:     []byte(``),
 				PrevValue: nil,
 				Rev:       0,
 			}
 			GlobalRegistry.FaaSFrontendRegistry.watcherHandler(ev2)
 			assert.Equal(t, len(GlobalRegistry.FaaSFrontendRegistry.ClusterFrontends["cluster001"]), 1)
-			assert.Equal(t, GlobalRegistry.FaaSFrontendRegistry.GetFrontends("cluster001"), []string{"7.218.74.220"})
+			assert.Equal(t, GlobalRegistry.FaaSFrontendRegistry.GetFrontends("cluster001"), []string{"x.x.x.x"})
 			ev3 := &etcd3.Event{
 				Type:      etcd3.PUT,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.220/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value:     []byte(``),
 				PrevValue: nil,
 				Rev:       0,
@@ -1436,7 +1436,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 
 		convey.Convey("delete", func() {
 			ev := &etcd3.Event{
-				Key:   "/sn/frontend/instances/cluster001/7.218.74.120/frontend-768df8f66b-gvz4z",
+				Key:   "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value: []byte(`active`),
 			}
 			GlobalRegistry.FaaSFrontendRegistry.updateFrontendInstances(ev)
@@ -1444,7 +1444,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 
 			deleteErrEv := &etcd3.Event{
 				Type:      etcd3.DELETE,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.121/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value:     []byte(`active`),
 				PrevValue: nil,
 				Rev:       0,
@@ -1461,7 +1461,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 
 			deleteEv := &etcd3.Event{
 				Type:      etcd3.DELETE,
-				Key:       "/sn/frontend/instances/cluster001/7.218.74.120/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/x.x.x.x/frontend-768df8f66b-gvz4z",
 				Value:     []byte(`active`),
 				PrevValue: nil,
 				Rev:       0,

@@ -183,7 +183,7 @@ func TestIsConnRefusedErr(t *testing.T) {
 }
 
 func TestContainsConnRefusedErr(t *testing.T) {
-	err := errors.New("dial tcp 10.249.0.54:22668: connect: connection refused")
+	err := errors.New("dial tcp x.x.x.x:22668: connect: connection refused")
 	assert.True(t, ContainsConnRefusedErr(err))
 }
 

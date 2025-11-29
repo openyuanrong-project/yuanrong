@@ -40,8 +40,8 @@ func TestConfigManagerInit(t *testing.T) {
 	yrConfig := &Config{
 		Mode:                ClusterMode,
 		FunctionUrn:         "sn:cn:yrk:12345678901234561234567890123456:function:0-opc-opc:$latest",
-		ServerAddr:          "10.90.41.99:31220",
-		DataSystemAddr:      "10.90.41.99:31501",
+		ServerAddr:          "x.x.x.x:31220",
+		DataSystemAddr:      "x.x.x.x:31501",
 		DataSystemAgentAddr: "",
 		InCluster:           true,
 		LogLevel:            "INFO",
@@ -52,11 +52,11 @@ func TestConfigManagerInit(t *testing.T) {
 		t.Errorf("configManager init failed")
 	}
 
-	if configManager.Config.FunctionSystemAddress != "10.90.41.99:31220" {
+	if configManager.Config.FunctionSystemAddress != "x.x.x.x:31220" {
 		t.Errorf("FunctionSystemAddress init failed")
 	}
 
-	if configManager.Config.DataSystemAddress != "10.90.41.99:31501" {
+	if configManager.Config.DataSystemAddress != "x.x.x.x:31501" {
 		t.Errorf("DataSystemIPAddr init failed")
 	}
 
