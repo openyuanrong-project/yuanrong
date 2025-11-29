@@ -17,7 +17,7 @@ yr start --master --enable_faas_frontend=true --enable_dashboard=true --enable_c
 ```bash
 Yuanrong deployed succeed
 Cluster master info:
-    local_ip:7.185.105.138,master_ip:7.185.105.138,etcd_ip:7.185.105.138,etcd_port:32379,global_scheduler_port:22770,ds_master_port:12123,etcd_peer_port:32380,bus-proxy:22772,bus:22773,ds-worker:31501,dashboard_port:9080,
+    local_ip:x.x.x.x,master_ip:x.x.x.x,etcd_ip:x.x.x.x,etcd_port:32379,global_scheduler_port:22770,ds_master_port:12123,etcd_peer_port:32380,bus-proxy:22772,bus:22773,ds-worker:31501,dashboard_port:9080,
 ```
 
 使用 `http://local_ip:dashboard_port` 作为 `dashboard` 的 URL (默认 URL 为 `http://localhost:9080`)。

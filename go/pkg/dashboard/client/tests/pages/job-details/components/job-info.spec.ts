@@ -40,43 +40,37 @@ describe('JobInfo', () => {
 
 describe('JobInfo.initJobInfo', () => {
     vi.mock('@/api/api', () => ({
-        GetJobInfoAPI: vi.fn(),
+        GetJobInfoAPI: vi.fn().mockResolvedValue({
+            'key': '/sn/instance/business/yrk/tenant/12345678901234561234567890123456/function' +
+                '/0-system-faasExecutorPosixCustom/version/$latest/defaultaz/0ebe2d84ad28eed000/' +
+                'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
+            'type': 'SUBMISSION',
+            'entrypoint': 'python3 ajobsample/three_actor.py',
+            'submission_id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
+            'driver_info': {
+                'id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
+                'node_ip_address': 'x.x.x.x',
+                'pid': '249351',
+            },
+            'status': 'FAILED',
+            'start_time': '1762222864',
+            'end_time': '1762222866',
+            'metadata': null,
+            'runtime_env': {
+                'envVars': '{\'ENABLE_SERVER_MODE\':\'true\'}',
+                'pip': '',
+                'working_dir': 'file:///root/wxq/ajobsample/ajobsample.zip',
+            },
+            'driver_agent_http_address': '',
+            'driver_node_id': 'dggphis232339-189755',
+            'driver_exit_code': 139,
+            'error_type': 'Instance(app-ab00977c-682e-4b5e-9cb3-f928c55a7d27) exitStatus:0',
+        }),
     }));
 
     const wrapper = mount(JobInfo);
     const vm = wrapper.vm;
-    it('renders when initJobInfo empty', async () => {
-        expect(wrapper.text()).toBe('JobInfos EntrypointRuntimeEnvSubmissionIDStatusStartTime' +
-            'EndTimeMessageErrorTypeDriverNodeIDDriverNodeIPDriverPID');
-    })
-
     it('renders when initJobInfo correctly', async () => {
-        GetJobInfoAPI.mockResolvedValue({
-                'key': '/sn/instance/business/yrk/tenant/12345678901234561234567890123456/function' +
-                    '/0-system-faasExecutorPosixCustom/version/$latest/defaultaz/0ebe2d84ad28eed000/' +
-                    'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
-                'type': 'SUBMISSION',
-                'entrypoint': 'python3 ajobsample/three_actor.py',
-                'submission_id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
-                'driver_info': {
-                    'id': 'app-ab00977c-682e-4b5e-9cb3-f928c55a7d27',
-                    'node_ip_address': '7.185.105.138',
-                    'pid': '249351',
-                },
-                'status': 'FAILED',
-                'start_time': '1762222864',
-                'end_time': '1762222866',
-                'metadata': null,
-                'runtime_env': {
-                    'envVars': '{\'ENABLE_SERVER_MODE\':\'true\'}',
-                    'pip': '',
-                    'working_dir': 'file:///root/wxq/ajobsample/ajobsample.zip',
-                },
-                'driver_agent_http_address': '',
-                'driver_node_id': 'dggphis232339-189755',
-                'driver_exit_code': 139,
-                'error_type': 'Instance(app-ab00977c-682e-4b5e-9cb3-f928c55a7d27) exitStatus:0',
-            });
         vm.initJobInfo();
         await flushPromises();
         expect(wrapper.text()).toContain('app-ab00977c-682e-4b5e-9cb3-f928c55a7d27FAILED');

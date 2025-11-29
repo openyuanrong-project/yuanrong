@@ -42,7 +42,7 @@ describe('LogsNodes.initScrollerItem', () => {
                     'nodes': [{
                         'hostname': 'dggphis232339-189755',
                         'status': 'healthy',
-                        'address': '7.185.105.138',
+                        'address': 'x.x.x.x',
                         'cap_cpu': 10000,
                         'cap_mem': 38912,
                         'alloc_cpu': 10000,
@@ -64,6 +64,6 @@ describe('LogsNodes.initScrollerItem', () => {
         await vm.initNodesObj();
         await vm.initScrollerItem();
         expect(wrapper.text()).toBe('Logs Select a node to view logs:' +
-            'dggphis232339-189755(IP:7.185.105.138)dggphis232339-189755(IP:7.185.105.138)');
+            'dggphis232339-189755(IP:x.x.x.x)dggphis232339-189755(IP:x.x.x.x)');
     });
 })

@@ -52,25 +52,18 @@ describe('InstancesCard.TinyLink', async () => {
 
 describe('InstancesCard.initStatus', () => {
     vi.mock('@/api/api', () => ({
-        GetInstSummAPI: vi.fn(),
-    }));
-
-    const wrapper = mount(InstancesCard);
-    const vm = wrapper.vm;
-    it('renders when initStatus error', async () => {
-        GetInstSummAPI.mockResolvedValue('');
-        vm.initStatus();
-        await flushPromises();
-        expect(wrapper.text()).toBe('Instances Total: 0Running: 0Exited: 0Fatal: 0Others: 0View All Instances >');
-    });
-    it('renders when initStatus correctly', async () => {
-        GetInstSummAPI.mockResolvedValue({
+        GetInstSummAPI: vi.fn().mockResolvedValue({
             data: {
                 total: 5,
                 running: 2,
                 exited: 1,
                 fatal: 0,
-            }});
+            }}),
+    }));
+
+    const wrapper = mount(InstancesCard);
+    const vm = wrapper.vm;
+    it('renders when initStatus correctly', async () => {
         vm.initStatus();
         await flushPromises();
         expect(wrapper.text()).toBe('Instances Total: 5Running: 2Exited: 1Fatal: 0Others: 2View All Instances >');

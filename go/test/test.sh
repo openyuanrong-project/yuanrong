@@ -20,6 +20,7 @@ PROJECT_DIR=$(cd "${CUR_DIR}/.."; pwd)
 ROOT_PATH=${PROJECT_DIR}
 PROJECT_OUTPUT_DIR="${PROJECT_DIR}/output"
 POSIX_DIR="${PROJECT_DIR}/proto/posix"
+CLIENT_DIR="${PROJECT_DIR}/pkg/dashboard/client"
 
 # go module prepare
 export GO111MODULE=on
@@ -44,3 +45,11 @@ rm -rf "${PROJECT_OUTPUT_DIR}/yuanrong.org"
 
 # dashboard test
 sh "${CUR_DIR}/dashboard/test.sh"
+
+# dashboard client test
+cd "${CLIENT_DIR}"
+npm i
+CLIENT_CONFIG_DIR="${CLIENT_DIR}/src/config"
+rm -f "${CLIENT_CONFIG_DIR}/config.json"
+cp "${CLIENT_CONFIG_DIR}/config.json.bak" "${CLIENT_CONFIG_DIR}/config.json"
+npm run coverage

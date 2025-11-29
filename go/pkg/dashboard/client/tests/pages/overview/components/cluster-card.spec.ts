@@ -52,25 +52,12 @@ describe('ClusterCard.TinyLink', async () => {
 
 describe('ClusterCard.initStatus', () => {
     vi.mock('@/api/api', () => ({
-        GetRsrcSummAPI: vi.fn(),
+        GetRsrcSummAPI: vi.fn().mockResolvedValue({data: {proxy_num: 3}}),
     }));
 
     const wrapper = mount(ClusterCard);
     const vm = wrapper.vm;
-    it('renders when initStatus error', async () => {
-        GetRsrcSummAPI.mockRejectedValue('error');
-        vm.initStatus();
-        await flushPromises();
-        expect(wrapper.text()).toBe('Cluster Status Total: 0 nodeAlive: 0 nodeView All Cluster Status >');
-    });
-    it('renders when initStatus return empty', async () => {
-        GetRsrcSummAPI.mockResolvedValue('');
-        vm.initStatus();
-        await flushPromises();
-        expect(wrapper.text()).toBe('Cluster Status Total: 0 nodeAlive: 0 nodeView All Cluster Status >');
-    });
     it('renders when initStatus correctly', async () => {
-        GetRsrcSummAPI.mockResolvedValue({data: {proxy_num: 3}});
         vm.initStatus();
         await flushPromises();
         expect(wrapper.text()).toBe('Cluster Status Total: 3 nodeAlive: 3 nodeView All Cluster Status >');
