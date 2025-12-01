@@ -161,7 +161,7 @@
     +        tensor_client.dev_mget(key_list, tensor_list, _DEV_MGET_TIMEOUT_MS)
     +        num_load_success_param += len(tensor_list)
     +    except Exception as e:
-    +        raise f"dev_mget failed, error: {e}"
+    +        raise RuntimeError(f"dev_mget failed, error: {e}")
     +
     +    logger.info(f"Loaded {num_load_success_param} parameters from datasystem, costed {time.time() - start_time}s")
     +    return num_load_success_param

@@ -83,12 +83,12 @@ export WorkSpace=/opt/security_deployment
 执行如下命令，生成 CA 证书文件 `ca.crt`。
 
 ```shell
-mkdir -p ${WorkSpace}/etcd
+mkdir -m 700 -p ${WorkSpace}/etcd
 cd ${WorkSpace}/etcd
 openssl genrsa -out ca.key 2048
 
 # 证书CN 可根据实际配置修改，默认 etcd-ca。days 为证书有效期（天数），证书过期后需要重新生成。
-openssl req -x509 -new -nodes -key ca.key -subj "/CN=etcd-ca" -days 10000 -out ca.crt
+openssl req -x509 -new -nodes -key ca.key -subj "/CN=etcd-ca" -days 20000 -out ca.crt
 ```
 
 ### 生成 etcd 服务端私钥及证书

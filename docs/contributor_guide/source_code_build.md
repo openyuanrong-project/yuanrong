@@ -98,26 +98,32 @@ git clone -b master https://gitee.com/openeuler/yuanrong-functionsystem.git
 
 函数系统的编译依赖数据系统发布包：
 
-* 新建目录 `/opt/openyuanrong/yuanrong-functionsystem/datasystem/output`，拷贝已编译好的发布包 `yr-datasystem-vx.x.x.tar.gz` 到该目录并解压。
+* 拷贝已编译好的发布包 `yr-datasystem-vx.x.x.tar.gz` 到function-system/vendor/src目录下面。
+
+```bash
+mkdir -p functionsystem/vendor/src
+cp /opt/openyuanrong/yunarong-datasystem/output/yr-datasystem-vx.x.x.tar.gz yuanrong-functionsystem/vendor/src/
+```
+
 
 执行如下脚本编译。
 
 ```bash
-# 通过 bash build.sh -h 了解更多编译选项
+# 通过 bash run.sh -h 了解更多编译选项
 cd /opt/openyuanrong/yuanrong-functionsystem
-bash build.sh
+bash run.sh build
 ```
 
 :::{Note}
 
 可通过编译选项 `-j` 设置编译并发度。在保证编译主机空闲 CPU 和内存 1:2 配置（例如 16U32G）的情况下，建议设置为：CPU 核数 + 1，以避免链接阶段内存不足造成编译失败。
-
+可通过编译选项 `--version` 指定版本信息
+ 
 :::
 
-编译产物生成在 `yuanrong-functionsystem/output` 目录下，包含如下两个文件：
+编译产物生成在 `yuanrong-functionsystem/output` 目录下，包含一个压缩包文件：
 
-* `sym.tar.gz`：符号表信息。
-* `yr-functionsystem-vx.x.x.tar.gz`：包含二进制文件、etcd 及 cli 压缩包。
+* `yr-functionsystem-vx.x.x.tar.gz`：包含二进制文件、lib、sym(二进制符合信息)、metric、etcd 及 cli 压缩包。
 
 ### 编译 yuanrong-runtime
 

@@ -47,13 +47,13 @@ yr start --master_info "local_ip:x.x.x.x,master_ip:x.x.x.x,etcd_ip:x.x.x.x,etcd_
 
 - `--cpu_num`：CPU 总量配置参数。主节点 openYuanrong 组件默认占用 1 毫核（单位：1/1000 核），如果您希望主节点不运行分布式任务，只用于管理和调度，可配置 `--cpu_num=1`。
 - `--memory_num`：内存总量配置参数。
-- `--shared_memory_num`：用于存储数据对象的内存量。如果应用场景中有较多的数据对象存储，可适当调大。
+- `--shared_memory_num`：用于存储数据对象的内存量（单位：MB）。如果应用场景中有较多的数据对象存储，可适当调大。
 
 openYuanrong 也支持异构计算资源，通过在主从节点分别配置 `--npu_collection_mode` 及 `--gpu_collection_enable` 参数，openYuanrong 会自动采集节点上的 NPU 及 GPU 资源。此外您也可以在主从节点上分别配置 `--custom_resources` 定义自定义资源。
 
 ```bash
 # 主节点不用于运行分布式任务
-yr start --master -c 1
+yr start --master --cpu_num=1
 ```
 
 部署成功会打印如下主节点信息。

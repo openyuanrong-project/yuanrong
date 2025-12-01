@@ -11,7 +11,7 @@ yr.get
 	
     参数:
         - **obj_refs** (ObjectRef_，List[ObjectRef]) - 数据系统中的对象的 `object_ref` 。
-        - **timeout** (int，可选) - 超时值，取 ``-1`` 时默认无限等待。取值限制： ``-1``， ``(0, ∞)``，默认值为 ``constants.DEFAULT_GET_TIMEOUT`` 秒。
+        - **timeout** (int，可选) - 超时值，取 ``-1`` 时默认无限等待。取值限制： ``-1``， ``(0, ∞)``，默认值为 ``constants.DEFAULT_GET_TIMEOUT`` 秒 即 ``300``。
         - **allow_partial** (bool，可选) - 如果设置为 ``False``，当数据系统在超时期间返回部分结果时，get 接口将抛出异常。
           如果设置为 ``True``，当数据系统返回部分结果时，get 接口将返回对象列表，并将失败的对象填充为 ``None``。默认值为``_DEFAULT_ALLOW_PARTIAL``。
 
