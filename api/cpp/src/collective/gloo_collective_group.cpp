@@ -51,6 +51,8 @@ namespace YR::Collective {
                                 "invalid dType: " + std::to_string(dType));   \
     }
 
+const int DS_STORE_CHECK_INTERVAL = 100;  // ms
+
 std::string ReplaceDsStoreKey(const std::string &str)
 {
     std::string editedKey = str;
@@ -69,6 +71,7 @@ void DsStore::set(const std::string &key, const std::vector<char> &data)
     auto str = std::string(data.begin(), data.end());
     YR::KVManager::Set(ReplaceDsStoreKey(key), std::string(data.begin(), data.end()));
     keys_.emplace(ReplaceDsStoreKey(key));
+    std::this_thread::sleep_for(std::chrono::milliseconds(DS_STORE_CHECK_INTERVAL));
 }
 
 std::vector<char> DsStore::get(const std::string &key)
@@ -94,7 +97,12 @@ void DsStore::wait(const std::vector<std::string> &keys, const std::chrono::mill
     for (const auto &key : keys) {
         editedKeys.push_back(ReplaceDsStoreKey(key));
     }
-    YR::KVManager::Get(editedKeys, static_cast<int>(timeout.count() / S_TO_MS));
+    // Convert timeout to seconds for KVManager, ensuring at least 1s if timeout > 0
+    int timeoutSec = static_cast<int>(timeout.count() / S_TO_MS);
+    if (timeout.count() > 0 && timeoutSec == 0) {
+        timeoutSec = 1;
+    }
+    YR::KVManager::Get(editedKeys, timeoutSec);
 }
 
 void DsStore::clear()
@@ -116,9 +124,13 @@ GlooCollectiveGroup::GlooCollectiveGroup(const CollectiveGroupSpec &groupSpec, i
     auto prefixStore = std::make_shared<gloo::rendezvous::PrefixStore>(prefixKey, dsStore);
     std::shared_ptr<gloo::transport::Device> dev;
     auto backend = GetEnv("GLOO_BACKEND_TYPE");
+
+    // Enable Gloo internal logs
+    setenv("GLOO_LOG_LEVEL", "INFO", 1);
     if (backend.empty() || backend == "TCP") {
         gloo::transport::tcp::attr attr;
         attr.hostname = YR::Libruntime::Config::Instance().HOST_IP();
+        std::cout << "[DEBUG] Gloo TCP Device binding to HOST_IP: " << attr.hostname << std::endl;
         dev = gloo::transport::tcp::CreateDevice(attr);
     } else if (backend == "IBVERBS") {
         gloo::transport::ibverbs::attr attr;
