@@ -465,6 +465,7 @@ void FSIntfImpl::InvokeAsync(const std::shared_ptr<InvokeMessageSpec> &req, Invo
                                      }
                                      if (auto wr = weakWr.lock(); wr) {
                                          if (wr->callback) {
+                                             wr->ackReceived = true;
                                              wr->callback(INVOKE_RESPONSE, status, [](bool) {});
                                          }
                                      }
@@ -560,8 +561,7 @@ void FSIntfImpl::CallResultAsync(const std::shared_ptr<CallResultMessageSpec> re
                     return;
                 }
                 YRLOG_DEBUG_IF(!status.OK(), "send grpc call result failed for {}, err code is {}, err msg is {}",
-                               *reqId, fmt::underlying(status.Code()),
-                               status.Msg());
+                               *reqId, fmt::underlying(status.Code()), status.Msg());
                 (void)self->EraseWiredRequest(*reqId);
                 if (wr->callback != nullptr) {
                     wr->callback(CALL_RESULT_ACK, status, [](bool) {});
