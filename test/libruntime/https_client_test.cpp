@@ -98,7 +98,7 @@ TEST_F(HttpsClientTest, InitFailed)
 {
     auto librtCfg = ConstructLibruntimeConfig();
     auto httpClient = std::make_unique<ClientManager>(librtCfg);
-    auto err = httpClient->Init({"127.0.0.1.0", "12346"});
+    auto err = httpClient->Init({"127.0.0.1", "12346"});
     ASSERT_EQ(err.OK(), false);
 }
 
