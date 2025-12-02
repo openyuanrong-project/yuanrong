@@ -59,7 +59,7 @@ class ConfigManager:
         self.__ds_address = ""
         self.__connection_nums = None
         self.__log_level = logging.WARNING
-        self.__in_cluster = True
+        self.__in_cluster = Truezz
         self.__deployment_config = DeploymentConfig()
         self.tls_config = None
         self.meta_config = None
@@ -289,7 +289,7 @@ class ConfigManager:
         self.http_ioc_threads_num = conf.http_ioc_threads_num
         self.server_name = conf.server_name
         self.ns = conf.ns
-        self.working_dir = self.working_dir = conf.working_dir if conf.working_dir else os.getcwd()
+        self.working_dir = conf.working_dir if conf.working_dir else os.getcwd()
         self.enable_ds_encrypt = conf.enable_ds_encrypt
         self.ds_public_key_path = conf.ds_public_key_path
         self.runtime_public_key_path = conf.runtime_public_key_path
