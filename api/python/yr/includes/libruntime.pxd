@@ -154,6 +154,7 @@ cdef extern from "src/libruntime/objectstore/device_buffer.h" nogil:
         CAUSAL "YR::Libruntime::ConsistencyType::CAUSAL"
 
     cdef cppclass CCreateParam "YR::Libruntime::CreateParam":
+        CWriteMode writeMode
         CConsistencyType consistencyType
         CCacheType cacheType
 
