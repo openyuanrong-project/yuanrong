@@ -15,6 +15,8 @@
 set -e
 source /etc/profile.d/*.sh
 
+BUILD_VERSION=latest
+
 readonly USAGE="
 Usage: bash build.sh [-thdDcCrvPSbEm:]
 
@@ -22,13 +24,25 @@ Options:
     -v the version of yuanrong
 "
 while getopts 'v:' opt; do
-    case "$opt" in
-    v)
-        BUILD_VERSION="${OPTARG}"
-        export BUILD_VERSION="${OPTARG}"
-        ;;
+    case $opt in
+        v)
+            if [ -n "$OPTARG" ]; then
+                BUILD_VERSION="$OPTARG"
+            else 
+                BUILD_VERSION="latest"
+            fi
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+        :)
+            BUILD_VERSION="latest"
+            ;;
     esac
 done
+
+echo "BUILD_VERSION = $BUILD_VERSION"
 
 BASE_DIR=$(dirname "$(readlink -f "$0")")
 OUTPUT_DIR=${BASE_DIR}/../../output

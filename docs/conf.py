@@ -124,6 +124,10 @@ html_theme_options = {
         "json_url": "https://pages.openeuler.openatom.cn/openyuanrong/docs/versions.json",
         "version_match": os.getenv("BUILD_VERSION", "latest"),
     },
+    "logo": {
+        "image_light":"_static/logo-light.png",
+        "image_dark":"_static/logo-dark.png"
+    },
 }
 
 html_sidebars = {
