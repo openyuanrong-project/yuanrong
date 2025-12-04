@@ -125,8 +125,8 @@ html_theme_options = {
         "version_match": os.getenv("BUILD_VERSION", "latest"),
     },
     "logo": {
-        "image_light": "_static/logo-light.png",
-        "image_dark": "_static/logo-dark.png"
+        "image_light": "_static/image-light.png",
+        "image_dark": "_static/image-dark.png"
     },
 }
 
