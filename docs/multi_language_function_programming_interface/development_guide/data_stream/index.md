@@ -17,7 +17,7 @@ openYuanrong 提供了基于发布-订阅（pub/sub）模型的数据流，可�
 - 数据流都是同步接口，没有类似 epoll 的多路复用能力。
 - 流解耦了生产者和消费者，彼此间不感知对方。当生产者关闭时，消费者无法感知，需要业务层进行处理。
 
-## 创建数据流
+## 创建流
 
 流代表了生产者和消费者间的发布订阅交互关系。流随着生产者或消费者的创建而隐式创建，无需应用显式创建流。
 
@@ -31,6 +31,7 @@ openYuanrong 提供了基于发布-订阅（pub/sub）模型的数据流，可�
 ```python
 import yr
 
+yr.init()
 stream_name = "this-stream"
 try:
     # 配置流自动删除
@@ -40,44 +41,51 @@ try:
     # 关闭生产者，流 this-stream 已无生产者或消费者关联，将被自动删除
     producer.close()
 
-    config = yr.SubscriptionConfig("local-consumer")
-    # 创建消费者将再次隐私创建流 this-stream
-    consumer = yr.create_stream_consumer(stream_name, config)
+    consumer_config = yr.SubscriptionConfig("local-consumer")
+    # 创建消费者将再次隐式创建流 this-stream
+    consumer = yr.create_stream_consumer(stream_name, consumer_config)
     consumer.close()
 
     # 消费者新创建的流需要显示删除
     yr.delete_stream(stream_name)
 except RuntimeError as exp:
-    # 处理异常
+    print(exp)
+
+yr.finalize()
 ```
 
 ::::
 ::::{tab-item} C++
 
 ```cpp
+#include <iostream>
 #include "yr/yr.h"
 
 int main(int argc, char *argv[])
 {
+    YR::Init(YR::Config{}, argc, argv)
     std::string streamName = "this-stream";
     try {
         // 配置流自动删除
-        YR::ProducerConf producerConf{.delayFlushTime=5, .pageSize=1024 * 1024ul, .maxStreamSize=1024 * 1024 * 1024ul, .autoCleanup=true};
+        YR::ProducerConf pConfig{.delayFlushTime=5, .pageSize=1024 * 1024ul, .maxStreamSize=1024 * 1024 * 1024ul, .autoCleanup=true};
         // 创建生产者将隐式创建流 this-stream
-        std::shared_ptr<YR::Producer> producer = YR::CreateProducer(streamName, producerConf);
+        std::shared_ptr<YR::Producer> producer = YR::CreateProducer(streamName, pConfig);
         // 关闭生产者，流 this-stream 已无生产者或消费者关联，将被自动删除
         producer->Close();
-    
-        YR::SubscriptionConfig config("local-consumer", YR::SubscriptionType::STREAM);
-        // 创建消费者将再次隐私创建流 this-stream
-        std::shared_ptr<YR::Consumer> consumer = YR::Subscribe("streamName", config, true);
+
+        YR::SubscriptionConfig sConfig("local-consumer", YR::SubscriptionType::STREAM);
+        // 创建消费者将再次隐式创建流 this-stream
+        std::shared_ptr<YR::Consumer> consumer = YR::Subscribe(streamName, sConfig);
         consumer->Close();
 
         // 消费者新创建的流需要显示删除
         YR::DeleteStream(streamName);
     } catch (YR::Exception &e) {
-        // 处理异常
+        std::cout << e.what() << std::endl;
     }
+
+    YR::Finalize();
+    return 0;
 }
 ```
 
@@ -87,6 +95,12 @@ int main(int argc, char *argv[])
 ```java
 package com.example;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.List;
+
+import com.yuanrong.api.YR;
+import com.yuanrong.Config;
 import com.yuanrong.stream.Producer;
 import com.yuanrong.stream.ProducerConfig;
 import com.yuanrong.stream.Consumer;
@@ -95,25 +109,30 @@ import com.yuanrong.stream.SubscriptionType;
 import com.yuanrong.stream.Element;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws YRException {
+        YR.init(new Config());
+
         String streamName = "this-stream";
         try {
             // 配置流自动删除
-            ProducerConfig pCfg = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
+            ProducerConfig pConfig = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
             // 创建生产者将隐式创建流 this-stream
-            Producer producer = YR.createProducer(streamName, pCfg);
+            Producer producer = YR.createProducer(streamName, pConfig);
             // 关闭生产者，流 this-stream 已无生产者或消费者关联，将被自动删除
             producer.close();
 
-            SubscriptionConfig config = SubscriptionConfig.builder().subscriptionName("local_consumer").build();
+            SubscriptionConfig sConfig = SubscriptionConfig.builder().subscriptionName("local-consumer").build();
             // 创建消费者将再次隐私创建流 this-stream
-            Consumer consumer = YR.subscribe(streamName, config);
-
+            Consumer consumer = YR.subscribe(streamName, sConfig);
+            consumer.close();
+           
             // 消费者新创建的流需要显示删除
             YR.deleteStream(streamName);
         } catch (YRException e) {
-            // handle exception
+            e.printStackTrace();
         }
+
+        YR.Finalize();
     }
 }
 ```
@@ -131,42 +150,52 @@ public class Main {
 ```python
 import yr
 
+yr.init()
 stream_name = "this-stream"
 try:
     producer_config = yr.ProducerConfig(delay_flush_time=5, page_size=1024 * 1024, max_stream_size=1024 * 1024 * 1024, auto_clean_up=True)
     producer = yr.create_stream_producer(stream_name, producer_config)
-    # 生产一条数据
-    element = yr.Element(data=b"hello", id=0)
+
+    # 生产数据
+    element = yr.Element(value=b"hello", ele_id=0)
     producer.send(element)
 
-    # 关闭生产者
+    # 主动关闭生产者
     producer.close()
 except RuntimeError as exp:
-    # 处理异常
+    print(exp)
+
+yr.finalize()
 ```
 
 ::::
 ::::{tab-item} C++
 
 ```cpp
+#include <iostream>
 #include "yr/yr.h"
 
 int main(int argc, char *argv[])
 {
+    YR::Init(YR::Config{}, argc, argv)
     std::string streamName = "this-stream";
     try {
-        YR::ProducerConf producerConf{.delayFlushTime=5, .pageSize=1024 * 1024ul, .maxStreamSize=1024 * 1024 * 1024ul, .autoCleanup=true};
-        std::shared_ptr<YR::Producer> producer = YR::CreateProducer(streamName, producerConf);
-        
-        // 生产一条数据
-        std::string str = "hello";
-        YR::Element element((uint8_t *)(str.c_str()), str.size());
-        producer->send(element);
+        YR::ProducerConf pConfig{.delayFlushTime=5, .pageSize=1024 * 1024ul, .maxStreamSize=1024 * 1024 * 1024ul, .autoCleanup=true};
+        std::shared_ptr<YR::Producer> producer = YR::CreateProducer(streamName, pConfig);
 
+        // 生产数据
+        std::string data = "hello";
+        YR::Element element((uint8_t *)(data.c_str()), data.size());
+        producer->Send(element);
+
+        // 主动关闭生产者
         producer->Close();
     } catch (YR::Exception &e) {
-        // 处理异常
+        std::cout << e.what() << std::endl;
     }
+
+    YR::Finalize();
+    return 0;
 }
 ```
 
@@ -176,6 +205,12 @@ int main(int argc, char *argv[])
 ```java
 package com.example;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.List;
+
+import com.yuanrong.api.YR;
+import com.yuanrong.Config;
 import com.yuanrong.stream.Producer;
 import com.yuanrong.stream.ProducerConfig;
 import com.yuanrong.stream.Consumer;
@@ -184,13 +219,15 @@ import com.yuanrong.stream.SubscriptionType;
 import com.yuanrong.stream.Element;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws YRException {
+        YR.init(new Config());
+
         String streamName = "this-stream";
         try {
-            ProducerConfig pCfg = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
-            Producer producer = YR.createProducer(streamName, pCfg);
+            ProducerConfig pConfig = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
+            Producer producer = YR.createProducer(streamName, pConfig);
 
-            // 生产一条数据
+            // 生产数据
             String data = "hello";
             ByteBuffer buffer = ByteBuffer.wrap(data.getBytes());
             Element element = new Element(0L, buffer);
@@ -199,8 +236,10 @@ public class Main {
             // 关闭生产者
             producer.close();
         } catch (YRException e) {
-            // handle exception
+            e.printStackTrace();
         }
+
+        YR.Finalize();
     }
 }
 ```
@@ -232,55 +271,73 @@ public class Main {
 ```python
 import yr
 
+yr.init()
 stream_name = "this-stream"
 try:
     producer_config = yr.ProducerConfig(delay_flush_time=5, page_size=1024 * 1024, max_stream_size=1024 * 1024 * 1024, auto_clean_up=True)
     producer = yr.create_stream_producer(stream_name, producer_config)
 
-    config = yr.SubscriptionConfig("local_consumer")
-    consumer = yr.create_stream_consumer(stream_name, config)
+    consumer_config = yr.SubscriptionConfig("local-consumer")
+    consumer = yr.create_stream_consumer(stream_name, consumer_config)
 
-    element_in = yr.Element(data=b"hello", id=0)
-    producer.send(data_in)
-    # 等待到一条数据或者1秒超时
-    element_out = consumer.receive(1000, 1)
-    print("receive:" + element_out.data.decode())
+    element = yr.Element(value=b"hello", ele_id=0)
+    producer.send(element)
+
+    # 消费数据，等待到一条数据或者1秒超时
+    elements = consumer.receive(1000, 1)
+    for e in elements:
+        print("receive:" + e.data.decode())
 
     producer.close()
+    # 主动关闭消费者
     consumer.close()
 except RuntimeError as exp:
-    # 处理异常
+    print(exp)
+
+yr.finalize()
 ```
 
 ::::
 ::::{tab-item} C++
 
 ```cpp
+#include <iostream>
 #include "yr/yr.h"
 
 int main(int argc, char *argv[])
 {
+    YR::Init(YR::Config{}, argc, argv)
     std::string streamName = "this-stream";
     try {
-        YR::ProducerConf producerConf{.delayFlushTime=5, .pageSize=1024 * 1024ul, .maxStreamSize=1024 * 1024 * 1024ul, .autoCleanup=true};
-        std::shared_ptr<YR::Producer> producer = YR::CreateProducer(streamName, producerConf);
+        YR::ProducerConf pConfig{.delayFlushTime=5, .pageSize=1024 * 1024ul, .maxStreamSize=1024 * 1024 * 1024ul, .autoCleanup=true};
+        std::shared_ptr<YR::Producer> producer = YR::CreateProducer(streamName, pConfig);
 
-        YR::SubscriptionConfig config("local-consumer", YR::SubscriptionType::STREAM);
-        std::shared_ptr<YR::Consumer> consumer = YR::Subscribe("streamName", config, true);
+        YR::SubscriptionConfig sConfig("local-consumer", YR::SubscriptionType::STREAM);
+        std::shared_ptr<YR::Consumer> consumer = YR::Subscribe(streamName, sConfig);
 
-        // 生产一条数据
-        std::string str = "hello";
-        YR::Element element((uint8_t *)(str.c_str()), str.size());
-        producer->send(element);
+        std::string data = "hello";
+        YR::Element element((uint8_t *)(data.c_str()), data.size());
+        producer->Send(element);
 
+        // 消费数据，等待到一条数据或者1秒超时
         std::vector<YR::Element> elements;
-        consumer->Receive(1, 6000, elements);
+        consumer->Receive(1, 1000, elements);
+        for (auto e : elements) {
+            std::string str(reinterpret_cast<char *>(e.ptr), e.size);
+            // 手动ACK
+            consumer->Ack(e.id);
+            std::cout << "receive: " << str << std::endl;
+        }
 
         producer->Close();
+        // 主动关闭消费者
         consumer->Close();
     } catch (YR::Exception &e) {
-        // 处理异常
+        std::cout << e.what() << std::endl;
     }
+
+    YR::Finalize();
+    return 0;
 }
 ```
 
@@ -290,6 +347,12 @@ int main(int argc, char *argv[])
 ```java
 package com.example;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.List;
+
+import com.yuanrong.api.YR;
+import com.yuanrong.Config;
 import com.yuanrong.stream.Producer;
 import com.yuanrong.stream.ProducerConfig;
 import com.yuanrong.stream.Consumer;
@@ -298,32 +361,40 @@ import com.yuanrong.stream.SubscriptionType;
 import com.yuanrong.stream.Element;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws YRException {
+        YR.init(new Config());
+
         String streamName = "this-stream";
         try {
-            ProducerConfig pCfg = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
-            Producer producer = YR.createProducer(streamName, pCfg);
+            ProducerConfig pConfig = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
+            Producer producer = YR.createProducer(streamName, pConfig);
 
-            // 生产一条数据
+            SubscriptionConfig sConfig = SubscriptionConfig.builder().subscriptionName("local-consumer").build();
+            Consumer consumer = YR.subscribe(streamName, sConfig);
+
             String data = "hello";
             ByteBuffer buffer = ByteBuffer.wrap(data.getBytes());
             Element element = new Element(0L, buffer);
             producer.send(element);
 
-            List<Element> recv = consumer.receive(3, 6000);
-            if (recv.isEmpty()) {
-                // handle empty.
-            }
-            Element e = recv.get(0);
+            // 消费数据，等待到一条数据或者3秒超时
             Charset charset = Charset.forName("UTF-8");
-            String res = charset.decode(e.getBuffer()).toString();
-            consumer.ack(e.getId());
+            List<Element> elements = consumer.receive(1, 3000);
+            for (Element e : elements) {
+                String str = charset.decode(e.getBuffer()).toString();
+                // 手动ACK
+                consumer.ack(e.getId());
+                System.out.println("receive: " + str);
+            }
 
             producer.close();
+            // 主动关闭消费者
             consumer.close();
         } catch (YRException e) {
-            // handle exception
+            e.printStackTrace();
         }
+
+        YR.Finalize();
     }
 }
 ```
@@ -331,14 +402,3 @@ public class Main {
 ::::
 :::::
 
-## 数据项
-
-数据流以数据项为单位发送数据，数据项结构体如下:
-
-| **字段** | **类型**  | **说明**       |
-| -------- | --------- | -------------- |
-| **ptr**  | uint8_t * | 指向数据的指针。 |
-| **size** | unit64_t  | 数据长度。       |
-| **id**   | uint64_t  | 数据项的 id。 |
-
-`ptr` 字段指向数据的存放地址。在生产者端, `ptr` 字段指向应用的内存空间，因为发送的数据是应用填充的。在消费者端, `ptr` 字段指向的地址空间位于应用函数和数据系统间的共享内存中，这也是为什么会需要 ACK 操作的原因。
