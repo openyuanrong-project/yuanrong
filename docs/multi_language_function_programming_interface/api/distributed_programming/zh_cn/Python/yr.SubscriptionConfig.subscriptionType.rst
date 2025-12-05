@@ -1,7 +1,7 @@
 .. _subscriptionType:
 
 yr.SubscriptionConfig.subscriptionType
-------------------------------------
+--------------------------------------------
 
 .. py:attribute:: SubscriptionConfig.subscriptionType
    :type: SubscriptionType

@@ -1,9 +1,9 @@
-.. _extend_config:
+.. _extend_config_sub:
 
-yr.ProducerConfig.extend_config
+yr.SubscriptionConfig.extend_config
 ------------------------------------
 
-.. py:attribute:: ProducerConfig.extend_config
+.. py:attribute:: SubscriptionConfig.extend_config
    :type: Dict[str, str]
 
    扩展配置，以字典形式存储，允许用户自定义配置项。

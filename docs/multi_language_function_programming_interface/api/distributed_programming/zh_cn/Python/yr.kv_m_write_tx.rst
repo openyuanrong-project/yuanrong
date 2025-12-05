@@ -8,7 +8,7 @@ yr.kv_m_write_tx
     参数:
         - **key** (List[str]) - 为保存的数据设置一组键来标识数据。使用此键查询数据时，不能为空。
         - **values** (List[bytes]) - 需要存储的一组二进制数据。云外最大存储限制为 ``100`` M。
-        - **m_set_param** (MSetParam，可选) 多千伏配置参数写入数据系统。包括 ``existence``、``write_mode``、``ttl_second`` 和 ``cache_type``。
+        - **m_set_param** (MSetParam，可选) - 多键配置参数写入数据系统。包括 ``existence``、``write_mode``、``ttl_second`` 和 ``cache_type``。
 
     返回:
         无。

@@ -17,7 +17,7 @@ yr.SubscriptionConfig
          - 订阅类型，包括 ``STREAM``，``ROUND_ROBIN`` 和 ``KEY_PARTITIONS``。
        * - :ref:`subscription_name <subscription_name>`
          - 订阅名，用于标识生产者配置中的订阅。
-       * - :ref:`extend_config <extend_config>`
+       * - :ref:`extend_config <extend_config_sub>`
          - 扩展配置。
 
     **方法**：

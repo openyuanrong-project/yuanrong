@@ -1,4 +1,4 @@
-.. _write_mode_cp:
+.. _write_mode_sp:
 
 yr.runtime.SetParam.write_mode
 ------------------------------------

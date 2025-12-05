@@ -130,6 +130,7 @@ Stream
         关闭后，生产者不能再被使用。
 
         .. code-block:: cpp
+
            producer->Close();
         
         抛出：
@@ -191,7 +192,7 @@ Stream
             
        订阅名称。
     
-    .. cpp:member:: std::string subscriptionName
+    .. cpp:member:: SubscriptionType subscriptionType
 
        订阅类型，包含三种类型：STREAM、ROUND_ROBIN 和 KEY_PARTITIONS。
        STREAM 表示订阅组中的单个消费者会消费流。
