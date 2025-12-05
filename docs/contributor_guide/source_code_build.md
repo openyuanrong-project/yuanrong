@@ -98,10 +98,10 @@ git clone -b master https://gitee.com/openeuler/yuanrong-functionsystem.git
 
 函数系统的编译依赖数据系统发布包：
 
-* 拷贝已编译好的发布包 `yr-datasystem-vx.x.x.tar.gz` 到function-system/vendor/src目录下面。
+* 拷贝已编译好的发布包 `yr-datasystem-vx.x.x.tar.gz` 到yuanrong-functionsystem/vendor/src目录下面。
 
 ```bash
-mkdir -p functionsystem/vendor/src
+mkdir -p yuanrong-functionsystem/vendor/src
 cp /opt/openyuanrong/yunarong-datasystem/output/yr-datasystem-vx.x.x.tar.gz yuanrong-functionsystem/vendor/src/
 ```
 
