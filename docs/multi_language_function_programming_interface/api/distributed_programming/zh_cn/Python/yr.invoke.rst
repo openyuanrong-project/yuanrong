@@ -46,5 +46,5 @@ yr.invoke
             >>> print(yr.get(ret))
             >>> yr.finalize()
 
-.. _InvokeOptions: ../../Python/generated/yr.InvokeOptions.html#yr.InvokeOptions
-.. _FunctionProxy: ../../Python/generated/yr.FunctionProxy.html#yr.FunctionProxy
+.. _InvokeOptions: ../../zh_cn/Python/yr.InvokeOptions.html#yr.InvokeOptions
+.. _FunctionProxy: ../../zh_cn/Python/yr.FunctionProxy.html#yr.FunctionProxy

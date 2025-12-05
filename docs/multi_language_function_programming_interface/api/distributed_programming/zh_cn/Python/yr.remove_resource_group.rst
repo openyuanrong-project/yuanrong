@@ -18,4 +18,4 @@ yr.remove_resource_group
         >>> rg = yr.create_resource_group([{"NPU":1},{"CPU":2000,"Memory":2000}], "rgname")
         >>> yr.remove_resource_group(rg)
 
-.. _ResourceGroup: ../../Python/generated/yr.ResourceGroup.html#yr.ResourceGroup
+.. _ResourceGroup: ../../zh_cn/Python/yr.ResourceGroup.html#yr.ResourceGroup

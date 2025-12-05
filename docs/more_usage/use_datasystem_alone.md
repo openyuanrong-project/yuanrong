@@ -13,7 +13,7 @@ openYuanrong 数据系统提供了 Python/C++ 语言接口，封装 heterogeneou
 首先安装 openYuanrong 数据系统（包含 Python、C++ SDK以及命令行工具）：
 
 ```bash
-pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/openyuanrong_datasystem-0.5.0-cp39-cp39-manylinux_2_34_x86_64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/x86_64/openyuanrong_datasystem-0.6.0-cp39-cp39-manylinux_2_34_x86_64.whl
 ```
 
 以 H2D(Host to Device)/D2H(Device to Host) 数据传输为例，异构对象接口提供了 MGetH2D 和 MSetD2H 接口，实现数据在 HBM 和 DRAM 之间快速 swap。

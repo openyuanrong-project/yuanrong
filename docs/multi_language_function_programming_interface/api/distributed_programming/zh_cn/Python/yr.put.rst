@@ -42,4 +42,4 @@ yr.put
         >>> obj_ref4 = yr.put(100)
         >>> print(yr.get(obj_ref4))
 
-.. _ObjectRef: ../../Python/generated/yr.object_ref.ObjectRef.html#yr.object_ref.ObjectRef
+.. _ObjectRef: ../../zh_cn/Python/yr.object_ref.ObjectRef.html#yr.object_ref.ObjectRef

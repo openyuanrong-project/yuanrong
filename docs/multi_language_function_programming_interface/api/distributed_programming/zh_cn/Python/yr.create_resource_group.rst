@@ -43,4 +43,4 @@ yr.create_resource_group
         >>>
         >>> rg2 = yr.create_resource_group([{"NPU/Ascend910B4/count":1},{"CPU":2000,"Memory":2000}], "rgname")
 
-.. _ResourceGroup: ../../Python/generated/yr.ResourceGroup.html#yr.ResourceGroup
+.. _ResourceGroup: ../../zh_cn/Python/yr.ResourceGroup.html#yr.ResourceGroup

@@ -36,4 +36,4 @@ yr.get_function_group_context
         >>> assert rets == [name for i in range(1, 9)]
         >>> yr.finalize()
 
-.. _FunctionGroupContext: ../../Python/generated/yr.FunctionGroupContext.html#yr.FunctionGroupContext
+.. _FunctionGroupContext: ../../zh_cn/Python/yr.FunctionGroupContext.html#yr.FunctionGroupContext

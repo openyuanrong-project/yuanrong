@@ -32,4 +32,4 @@ yr.kv_write_with_param
         >>>
         >>> yr.finalize()
 
-.. _SetParam: ../../Python/generated/yr.kv_write_with_param.html
+.. _SetParam: ../../zh_cn/Python/yr.runtime.SetParam.html

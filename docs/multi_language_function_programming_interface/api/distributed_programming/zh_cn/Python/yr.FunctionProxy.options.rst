@@ -31,4 +31,4 @@ yr.FunctionProxy.options
         >>>
         >>> yr.finalize()
 
-.. _InvokeOptions: ../../Python/generated/yr.InvokeOptions.html#yr.InvokeOptions
+.. _InvokeOptions: ../../zh_cn/Python/yr.InvokeOptions.html#yr.InvokeOptions

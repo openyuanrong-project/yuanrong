@@ -85,6 +85,6 @@ yr.create_function_group
             >>>
             >>> yr.finalize()
 
-.. _FunctionGroupOptions: ../../Python/generated/yr.FunctionGroupOptions.html#yr.FunctionGroupOptions
-.. _function_proxy.FunctionProxy: ../../Python/generated/yr.FunctionProxy.html#yr.FunctionProxy
-.. _instance_proxy.InstanceCreator: ../../Python/generated/yr.InstanceCreator.html#yr.InstanceCreator
+.. _FunctionGroupOptions: ../../zh_cn/Python/yr.FunctionGroupOptions.html#yr.FunctionGroupOptions
+.. _function_proxy.FunctionProxy: ../../zh_cn/Python/yr.FunctionProxy.html#yr.FunctionProxy
+.. _instance_proxy.InstanceCreator: ../../zh_cn/Python/yr.InstanceCreator.html#yr.InstanceCreator

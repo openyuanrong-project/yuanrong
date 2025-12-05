@@ -27,4 +27,4 @@ yr.kv_get_with_param
         >>> params.get_params = [get_param]
         >>> v1 = yr.kv_get_with_param(["kv-key"], params, 10)
 
-.. _GetParams: ../../Python/generated/yr.runtime.GetParams.html#yr.runtime.GetParams
+.. _GetParams: ../../zh_cn/Python/yr.runtime.GetParams.html#yr.runtime.GetParams

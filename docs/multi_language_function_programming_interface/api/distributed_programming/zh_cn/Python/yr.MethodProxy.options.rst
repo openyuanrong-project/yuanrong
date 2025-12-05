@@ -13,4 +13,4 @@ yr.MethodProxy.options
     返回：
         方法代理包装器。数据类型为 FuncWrapper。
 
-.. _InvokeOptions: ../../Python/generated/yr.InvokeOptions.html#yr.InvokeOptions
+.. _InvokeOptions: ../../zh_cn/Python/yr.InvokeOptions.html#yr.InvokeOptions

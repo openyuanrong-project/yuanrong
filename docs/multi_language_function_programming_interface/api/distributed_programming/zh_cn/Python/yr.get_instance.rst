@@ -22,4 +22,4 @@ yr.get_instance
     样例：
         >>> yr.get_instance("name")
 
-.. _InstanceProxy: ../../Python/generated/yr.decorator.instance_proxy.InstanceProxy.html#yr.decorator.instance_proxy.InstanceProxy
+.. _InstanceProxy: ../../zh_cn/Python/yr.decorator.instance_proxy.InstanceProxy.html#yr.decorator.instance_proxy.InstanceProxy

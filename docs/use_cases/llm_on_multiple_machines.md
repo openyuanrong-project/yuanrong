@@ -80,11 +80,22 @@ docker run \
 
 2. 安装 openYuanrong
 
+   在 Linux x86_64 环境上：
+   
    ```bash
-   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/openyuanrong-0.5.0-cp311-cp311-manylinux_2_34_x86_64.whl
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/x86_64/openyuanrong-0.6.0-cp311-cp311-manylinux_2_34_x86_64.whl
 
    # 安装数据系统 SDK
-   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/openyuanrong-datasystem-0.5.0-cp311-cp311-manylinux2014_x86_64.whl
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/x86_64/openyuanrong_datasystem-0.6.0-cp311-cp311-manylinux_2_34_x86_64.whl
+   ```
+   
+   在 Linux aarch64（ARM）环境上：
+
+   ```bash
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/aarch64/openyuanrong-0.6.0-cp311-cp311-manylinux_2_34_aarch64.whl
+
+   # 安装数据系统 SDK
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/aarch64/openyuanrong_datasystem-0.6.0-cp311-cp311-manylinux_2_34_aarch64.whl
    ```
 
 3. 部署 openYuanrong

@@ -16,13 +16,13 @@ openYuanrong 目前支持在 Linux x86_64 及 aarch64 (ARM) 上安装。不同�
 
 ```bash
 # 支持以下版本
-# openyuanrong-0.5.0-cp310-cp310-manylinux_2_34_x86_64.whl
-# openyuanrong-0.5.0-cp311-cp311-manylinux_2_34_x86_64.whl
-# openyuanrong-0.5.0-cp39-cp39-manylinux_2_34_x86_64.whl
-# openyuanrong-0.5.0-cp310-cp310-manylinux_2_34_aarch64.whl
-# openyuanrong-0.5.0-cp311-cp311-manylinux_2_34_aarch64.whl
-# openyuanrong-0.5.0-cp39-cp39-manylinux_2_34_aarch64.whl
-pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/openyuanrong-0.5.0-cp39-cp39-manylinux_2_34_x86_64.whl
+# openyuanrong-0.6.0-cp310-cp310-manylinux_2_34_x86_64.whl
+# openyuanrong-0.6.0-cp311-cp311-manylinux_2_34_x86_64.whl
+# openyuanrong-0.6.0-cp39-cp39-manylinux_2_34_x86_64.whl
+# openyuanrong-0.6.0-cp310-cp310-manylinux_2_34_aarch64.whl
+# openyuanrong-0.6.0-cp311-cp311-manylinux_2_34_aarch64.whl
+# openyuanrong-0.6.0-cp39-cp39-manylinux_2_34_aarch64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/x86_64/openyuanrong-0.6.0-cp39-cp39-manylinux_2_34_x86_64.whl
 ```
 
 您可能希望从源码编译 openYuanrong 版本，以满足更多自定义场景，请参考章节：[源码编译 openYuanrong](../contributor_guide/source_code_build.md)。

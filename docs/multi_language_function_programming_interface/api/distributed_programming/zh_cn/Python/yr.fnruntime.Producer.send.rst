@@ -14,4 +14,5 @@ yr.fnruntime.Producer.send
     异常：
         - **RuntimeError** – 如果发送操作失败。
         
-    .. _Element: ../../Python/generated/yr.Element.html#yr.Element
+
+.. _Element: ../../zh_cn/Python/yr.Element.html#yr.Element

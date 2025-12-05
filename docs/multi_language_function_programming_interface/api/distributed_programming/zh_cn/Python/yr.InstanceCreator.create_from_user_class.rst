@@ -14,4 +14,4 @@ yr.InstanceCreator.create_from_user_class
     返回：
         InstanceCreator 对象本身。数据类型为 InstanceCreator。
 
-.. _InvokeOptions: ../../Python/generated/yr.InvokeOptions.html#yr.InvokeOptions
+.. _InvokeOptions: ../../zh_cn/Python/yr.InvokeOptions.html#yr.InvokeOptions
