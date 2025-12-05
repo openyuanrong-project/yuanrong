@@ -232,6 +232,8 @@
 | `--etcd_compact_retention` | etcd 压缩的 revision 数量阈值。 | ``100000`` | 选填。|
 | `--etcd_target_name_override`           | etcd TLS 证书域名。               | ``""`` | 用于 etcd TLS 证书校验，需要与实际的证书保存一致。                                                |
 
+(security-params)=
+
 ## 安全配置
 
 启动脚本配置参数如下：

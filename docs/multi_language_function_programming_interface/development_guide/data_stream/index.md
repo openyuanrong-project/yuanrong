@@ -116,7 +116,11 @@ public class Main {
         String streamName = "this-stream";
         try {
             // 配置流自动删除
-            ProducerConfig pConfig = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
+            ProducerConfig pConfig = ProducerConfig.builder()
+                                         .delayFlushTimeMs(5L)
+                                         .pageSizeByte(1024 * 1024L)
+                                         .maxStreamSize(1024 * 1024 * 1024L)
+                                         .autoCleanup(true).build();
             // 创建生产者将隐式创建流 this-stream
             Producer producer = YR.createProducer(streamName, pConfig);
             // 关闭生产者，流 this-stream 已无生产者或消费者关联，将被自动删除
@@ -141,7 +145,7 @@ public class Main {
 ::::
 :::::
 
-## 生产数据
+## 生产流数据
 
 生产者（Producer）可向流中发送数据。生产者发送的数据会先放入缓冲区，系统根据生产者配置的 Flush 策略（发送间隔一段时间或者缓冲写满）刷新缓冲使其对消费者可见。生产者不再使用时，需要主动关闭。
 
@@ -226,7 +230,11 @@ public class Main {
 
         String streamName = "this-stream";
         try {
-            ProducerConfig pConfig = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
+            ProducerConfig pConfig = ProducerConfig.builder()
+                                         .delayFlushTimeMs(5L)
+                                         .pageSizeByte(1024 * 1024L)
+                                         .maxStreamSize(1024 * 1024 * 1024L)
+                                         .autoCleanup(true).build();
             Producer producer = YR.createProducer(streamName, pConfig);
 
             // 生产数据
@@ -249,7 +257,7 @@ public class Main {
 ::::
 :::::
 
-## 消费数据
+## 消费流数据
 
 消费者（Consumer）可接收流中的数据，使用 `Ack` 方法确认数据接收。消费者不再使用时，需要主动关闭。
 
@@ -369,7 +377,11 @@ public class Main {
 
         String streamName = "this-stream";
         try {
-            ProducerConfig pConfig = ProducerConfig.builder().delayFlushTimeMs(5L).pageSizeByte(1024 * 1024L).maxStreamSize(1024 * 1024 * 1024L).autoCleanup(true).build();
+            ProducerConfig pConfig = ProducerConfig.builder()
+                                         .delayFlushTimeMs(5L)
+                                         .pageSizeByte(1024 * 1024L)
+                                         .maxStreamSize(1024 * 1024 * 1024L)
+                                         .autoCleanup(true).build();
             Producer producer = YR.createProducer(streamName, pConfig);
 
             SubscriptionConfig sConfig = SubscriptionConfig.builder().subscriptionName("local-consumer").build();

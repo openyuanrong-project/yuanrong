@@ -31,7 +31,7 @@ print(yr.get(result))
 yr.finalize()
 ```
 
-运行程序，在函数的标准输出[日志文件](../../../observability/logs.md#函数日志)中，您将看到四行相同的输出 `run add`，表明函数执行一次失败后又重试了 `3` 次。
+运行程序，在函数的标准输出[日志](../../../observability/logs.md)文件中，您将看到四行相同的输出 `run add`，表明函数执行一次失败后又重试了 `3` 次。
 
 :::
 
