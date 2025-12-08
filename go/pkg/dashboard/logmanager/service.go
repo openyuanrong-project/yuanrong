@@ -54,3 +54,15 @@ func (s *Server) ReportLog(_ context.Context, req *logservice.ReportLogRequest) 
 		Message: "Log reported successfully",
 	}, nil
 }
+
+// RemoveLog 处理 RemoveLog RPC 请求
+func (s *Server) RemoveLog(_ context.Context, req *logservice.ReportLogRequest) (*logservice.ReportLogResponse, error) {
+	log.GetLogger().Infof("receive remove log request: %v", req)
+	for _, item := range req.GetItems() {
+		managerSingleton.RemoveLogItem(item)
+	}
+	return &logservice.ReportLogResponse{
+		Code:    0,
+		Message: "Log removed successfully",
+	}, nil
+}

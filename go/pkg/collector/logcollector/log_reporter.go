@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	maxNewFileChanSize = 100
+	maxFileChanSize = 100
 )
 
 // reportedLogFiles will not remove elements even if the target process exits
@@ -63,7 +63,7 @@ func tryReportLog(name string) bool {
 		log.GetLogger().Debugf("log item details to report: %+v", item)
 		reportedLogFiles.hashmap[item.Filename] = struct{}{}
 		reportedLogFiles.Unlock()
-		if err := reportLog(item); err != nil {
+		if err := connectLogService(item, reportLog); err != nil {
 			log.GetLogger().Errorf("failed to report log file %s, error: %v", item.Filename, err)
 			return false
 		}
@@ -93,7 +93,22 @@ func parseLogFileName(filePath string) (*logservice.LogItem, bool) {
 	return nil, false
 }
 
-func reportLog(item *logservice.LogItem) error {
+func reportLog(client logservice.LogManagerServiceClient, ctx context.Context,
+	item *logservice.LogItem) (*logservice.ReportLogResponse, error) {
+	return client.ReportLog(ctx, &logservice.ReportLogRequest{
+		Items: []*logservice.LogItem{item},
+	})
+}
+
+func removeLog(client logservice.LogManagerServiceClient, ctx context.Context,
+	item *logservice.LogItem) (*logservice.ReportLogResponse, error) {
+	return client.RemoveLog(ctx, &logservice.ReportLogRequest{
+		Items: []*logservice.LogItem{item},
+	})
+}
+
+func connectLogService(item *logservice.LogItem, logFunc func(logservice.LogManagerServiceClient, context.Context,
+	*logservice.LogItem) (*logservice.ReportLogResponse, error)) error {
 	retryInterval := constant.GetRetryInterval()
 	maxRetryTimes := constant.GetMaxRetryTimes()
 	client := GetLogServiceClient()
@@ -106,9 +121,7 @@ func reportLog(item *logservice.LogItem) error {
 
 	for i := 0; i < maxRetryTimes; i++ {
 		log.GetLogger().Infof("start to report log %s, attempt: %d", item.Filename, i)
-		response, err := client.ReportLog(ctx, &logservice.ReportLogRequest{
-			Items: []*logservice.LogItem{item},
-		})
+		response, err := logFunc(client, ctx, item)
 		if err != nil {
 			log.GetLogger().Errorf("failed to report log %s, error: %v", item.Filename, err)
 			time.Sleep(retryInterval)
@@ -126,7 +139,7 @@ func reportLog(item *logservice.LogItem) error {
 	return fmt.Errorf("failed to report log: exceeds max retry time: %d", maxRetryTimes)
 }
 
-func handleNewFile(watcher *fsnotify.Watcher, newFileChan chan string, directory string) {
+func handleFile(watcher *fsnotify.Watcher, newFileChan chan string, removeFileChan chan string, directory string) {
 	for {
 		select {
 		case file, ok := <-newFileChan:
@@ -138,6 +151,13 @@ func handleNewFile(watcher *fsnotify.Watcher, newFileChan chan string, directory
 			if relPath, err := filepath.Rel(directory, file); err == nil {
 				tryReportLog(relPath)
 			}
+		case file, ok := <-removeFileChan:
+			if !ok {
+				log.GetLogger().Warnf("remove file event chan is closed")
+				return
+			}
+			log.GetLogger().Debugf("find remove file %s", file)
+			tryRemoveLog(file, directory)
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				log.GetLogger().Warnf("new file event chan is closed")
@@ -148,8 +168,27 @@ func handleNewFile(watcher *fsnotify.Watcher, newFileChan chan string, directory
 	}
 }
 
-func monitorNewFile(watcher *fsnotify.Watcher, newFileChan chan string, directory string) {
+func tryRemoveLog(file string, directory string) {
+	name, err := filepath.Rel(directory, file)
+	if err != nil {
+		log.GetLogger().Errorf("failed to remove log %s, error: %v", file, err)
+		return
+	}
+	if item, ok := parseLogFileName(name); ok {
+		reportedLogFiles.Lock()
+		log.GetLogger().Infof("find log file to remove: %s", item.Filename)
+		log.GetLogger().Debugf("log item details to remove: %+v", item)
+		delete(reportedLogFiles.hashmap, item.Filename)
+		reportedLogFiles.Unlock()
+		if err = connectLogService(item, removeLog); err != nil {
+			log.GetLogger().Errorf("failed to remove log file %s, error: %v", item.Filename, err)
+		}
+	}
+}
+
+func monitorFile(watcher *fsnotify.Watcher, newFileChan chan string, removeFileChan chan string, directory string) {
 	defer close(newFileChan)
+	defer close(removeFileChan)
 	defer watcher.Close()
 	for {
 		select {
@@ -161,6 +200,10 @@ func monitorNewFile(watcher *fsnotify.Watcher, newFileChan chan string, director
 			if event.Op&fsnotify.Create == fsnotify.Create {
 				log.GetLogger().Debugf("find a new file is created: %s", event.Name)
 				newFileChan <- event.Name
+			}
+			if event.Op&fsnotify.Remove == fsnotify.Remove || event.Op&fsnotify.Rename == fsnotify.Rename {
+				log.GetLogger().Debugf("find a file is created: %s %s", event.Name, event.Op)
+				removeFileChan <- event.Name
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
@@ -187,9 +230,10 @@ func createLogReporter(directory string) error {
 		return err
 	}
 
-	newFileChan := make(chan string, maxNewFileChanSize)
-	go handleNewFile(watcher, newFileChan, directory)
-	go monitorNewFile(watcher, newFileChan, directory)
+	newFileChan := make(chan string, maxFileChanSize)
+	removeFileChan := make(chan string, maxFileChanSize)
+	go handleFile(watcher, newFileChan, removeFileChan, directory)
+	go monitorFile(watcher, newFileChan, removeFileChan, directory)
 	return nil
 }
 

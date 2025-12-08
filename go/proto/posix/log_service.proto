@@ -25,6 +25,7 @@ option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/logservi
 service LogManagerService {
   rpc Register (RegisterRequest) returns (RegisterResponse) {}
   rpc ReportLog (ReportLogRequest) returns (ReportLogResponse) {}
+  rpc RemoveLog (ReportLogRequest) returns (ReportLogResponse) {}
 }
 
 service LogCollectorService {

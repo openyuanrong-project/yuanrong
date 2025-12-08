@@ -150,3 +150,8 @@ func (m *manager) OnInstanceExit(instance *types.InstanceSpecification) {
 func isDriverInstance(instance *types.InstanceSpecification) bool {
 	return strings.HasPrefix(instance.InstanceID, "driver") && instance.ParentID == ""
 }
+
+// RemoveLogItem handles the remove log request
+func (m *manager) RemoveLogItem(item *logservice.LogItem) {
+	m.LogDB.Remove(NewLogEntry(item))
+}
