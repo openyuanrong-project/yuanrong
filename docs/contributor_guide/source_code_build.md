@@ -89,41 +89,83 @@ bash build.sh -X off
 
 ### 编译 yuanrong-functionsystem
 
-首先下载源码。创建一个代码目录，例如 `mkdir -p /opt/openyuanrong/`，在目录下执行如下命令。
+**Step1: 源码下载**
 
-```bash
-# 这里下载的是 yuanrong-functionsystem 仓的 master 分支，按需替换为您 fork 的个人仓及分支。
+在编译目录中通过Git或其他方式下载函数系统的源代码。以下示例将在`/opt/openyuanrong`文件夹中下载函数系统源码为`yuanrong-functionsystem`文件夹。
+
+```shell
+cd /opt/openyuanrong
 git clone -b master https://gitee.com/openeuler/yuanrong-functionsystem.git
 ```
 
-函数系统的编译依赖数据系统发布包：
+**Step2: 获取依赖**
 
-* 拷贝已编译好的发布包 `yr-datasystem-vx.x.x.tar.gz` 到yuanrong-functionsystem/vendor/src目录下面。
+根据架构设计，函数系统的编译过程会依赖数据系统的SDK，因此需要将数据系统的编译产物或发布产物拷贝至函数系统的构建依赖中。函数系统的构建脚本将会在启动时根据[`vendor/VendorList.csv`文件](https://gitee.com/openeuler/yuanrong-functionsystem/blob/master/vendor/VendorList.csv)的配置自动下载或引入依赖，对于数据系统的编译依赖将默认通过本地文件的方式引入。即使用路径描述符`file://localhost/vendor/src/yr-datasystem.tar.gz`描述数据系统来源且不会校验依赖Hash值。
 
-```bash
+假设数据系统的编译产物路径为`/opt/openyuanrong/yuanrong-datasystem/output/yr-datasystem-v0.0.0.tar.gz`，您可以通过以下命令将数据系统编译产物拷贝至`VendorList.csv`中配置的默认路径。
+
+```shell 
+cd /opt/openyuanrong
 mkdir -p yuanrong-functionsystem/vendor/src
-cp /opt/openyuanrong/yunarong-datasystem/output/yr-datasystem-vx.x.x.tar.gz yuanrong-functionsystem/vendor/src/
+cp -a yuanrong-datasystem/output/yr-datasystem-v0.0.0.tar.gz yuanrong-functionsystem/vendor/src/yr-datasystem.tar.gz
 ```
 
+**Step3: 源码编译**
 
-执行如下脚本编译。
+在函数系统的源码根目录中，我们可以使用内置的编译脚本的`build`指令实现源码的编译。编译过程将分为三个环节：三方件下载编译，二方件编译，系统源码编译。整个流程将自动完成，对于已经完成编译的组件将自动跳过。
 
-```bash
-# 通过 bash run.sh -h 了解更多编译选项
-cd /opt/openyuanrong/yuanrong-functionsystem
-bash run.sh build
+```shell
+cd /opt/openyuanrong
+chmod +x run.sh
+./run.sh build
 ```
+
+`build`指令关键参数：
+
+* `JOB_NUM`，`-j`：编译并发度，设置程序编译时使用的CPU核心数量。默认值为：OS核心数
+* `VERSION`，`-v`：编译版本号，设置程序编译是程序中记录的版本号。默认值为：0.0.0
+
+更多指令请参考：`./run.sh --help`，`./run.sh build --help`
 
 :::{Note}
 
-可通过编译选项 `-j` 设置编译并发度。在保证编译主机空闲 CPU 和内存 1:2 配置（例如 16U32G）的情况下，建议设置为：CPU 核数 + 1，以避免链接阶段内存不足造成编译失败。
-可通过编译选项 `--version` 指定版本信息
- 
+建议通过编译选项 `-j` 设置编译并发度，以避免编译链接阶段内存不足造成编译失败。内存峰值占用(GB)约为并发度的1.5~1.8倍，即`MEM(GB) ≈ JOB(CPU) * 1.8(GB/CPU)`，建议设置安全并发度：CPU 核数 /2
+
 :::
 
-编译产物生成在 `yuanrong-functionsystem/output` 目录下，包含一个压缩包文件：
+**Step3: 产物打包**
 
-* `yr-functionsystem-vx.x.x.tar.gz`：包含二进制文件、lib、sym(二进制符合信息)、metric、etcd 及 cli 压缩包。
+函数系统的主要编译产物为多个二进制程序与公共的动态库，同时将搭配一些依赖和运行配置。因此您可以使用`pack`命令完成函数系统的构建产物打包。打包产物和打包内容将统一存放在`output`文件夹中。
+
+```
+cd /opt/openyuanrong
+chmod +x run.sh
+./run.sh pack
+```
+
+`pack`指令关键参数：
+
+* `VERSION`，`-v`：编译版本号，设置程序编译是程序中记录的版本号。默认值为：0.0.0
+
+更多指令请参考：`./run.sh --help`，`./run.sh pack --help`
+
+产物目录与关键产物如下所示：
+
+```
+tree output/
+├── functionsystem
+│   ├── bin          # 函数系统编译产物
+│   ├── config       # 函数系统运行配置
+│   ├── deploy       # 函数系统部署配置
+│   ├── lib          # 函数系统动态库
+│   └── sym          # 函数系统符号表
+├── metrics
+│   ├── config       # 可观测配置
+│   ├── include      # 可观测接口
+│   └── lib          # 可观测动态库
+├── metrics.tar.gz   # 可观测打包产物
+└── yr-functionsystem-v0.0.0.tar.gz # 函数系统打包产物
+```
 
 ### 编译 yuanrong-runtime
 
