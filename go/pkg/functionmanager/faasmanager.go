@@ -504,6 +504,10 @@ func (m *Manager) saveStateLoop() {
 	}
 }
 
+func killInstanceOuter(clientID string, traceID string) {
+
+}
+
 func (m *Manager) handleKeepAlive(requestData []byte, traceID string) *commonType.CallHandlerResponse {
 	remoteClientID := string(requestData)
 	log.GetLogger().Infof("receive keep-alive lease from faas-frontend, traceID: %s", traceID)
