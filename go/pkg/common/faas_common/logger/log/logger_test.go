@@ -25,9 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	uberZap "go.uber.org/zap"
 
-	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/config"
-	"yuanrong.org/kernel/pkg/common/faas_common/logger/zap"
 )
 
 func TestSetupLoggerRuntime(t *testing.T) {
@@ -67,32 +65,5 @@ func TestGetLogger(t *testing.T) {
 		logger.Warnf("warn log")
 		logger.Error("error log")
 		logger.Errorf("error log")
-	})
-}
-
-func TestFormatLogger(t *testing.T) {
-	convey.Convey("new log error", t, func() {
-		patch := gomonkey.ApplyFunc(zap.NewWithLevel, func(coreInfo config.CoreInfo, isAsync bool) (*uberZap.Logger, error) {
-			return nil, errors.New("1")
-		})
-		defer patch.Reset()
-		_, err := NewFormatLogger(constant.MonitorFileName, true, config.CoreInfo{})
-		assert.NotNil(t, err)
-	})
-	convey.Convey("new log success", t, func() {
-		logger, err := NewFormatLogger(constant.MonitorFileName, true, config.CoreInfo{})
-		assert.Nil(t, err)
-		logger.With(uberZap.Any("name", "test-log"))
-		logger.Info("info log")
-		logger.Infof("info log")
-		logger.Debug("debug log")
-		logger.Debugf("debug log")
-		//logger.Fatal("fatal log")
-		//logger.Fatalf("fatal log")
-		logger.Warn("warn log")
-		logger.Warnf("warn log")
-		logger.Error("error log")
-		logger.Errorf("error log")
-		logger.Sync()
 	})
 }

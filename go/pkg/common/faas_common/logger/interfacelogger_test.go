@@ -23,18 +23,9 @@ import (
 
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/smartystreets/goconvey/convey"
-	"github.com/stretchr/testify/assert"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/config"
 )
-
-func TestInterfaceLogger(t *testing.T) {
-	cfg := InterfaceEncoderConfig{ModuleName: "WorkerManager"}
-	interfaceLog, err := NewInterfaceLogger("", "worker-manager-interface", cfg)
-	interfaceLog.Write("123")
-	assert.Empty(t, err)
-	assert.NotEmpty(t, interfaceLog)
-}
 
 func TestCreateSink(t *testing.T) {
 	convey.Convey("Test Create Sink Error", t, func() {

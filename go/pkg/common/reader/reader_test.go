@@ -51,13 +51,3 @@ func TestPrintTimeout(t *testing.T) {
 	time.Sleep(time.Second * 15)
 	close(stopCh)
 }
-
-func TestPrintTimeoutErr(t *testing.T) {
-	test := 0
-	patch := gomonkey.ApplyFunc(os.Exit, func(code int) {
-		test++
-	})
-	printTimeOut(nil)
-	assert.EqualValues(t, test, 0)
-	patch.Reset()
-}

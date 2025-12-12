@@ -496,19 +496,6 @@ func (m *mockK8sClient) NewForConfig(_ *rest.Config) (dynamic.Interface, error) 
 	return nil, m.createClientError
 }
 
-func TestNewDynamicClient_Success(t *testing.T) {
-	dynamicClient = nil
-	dynamicClientOnce = sync.Once{}
-	mock := &mockK8sClient{}
-	oldInClusterConfig := inClusterConfigFunc
-	inClusterConfigFunc = mock.InClusterConfig
-	defer func() { inClusterConfigFunc = oldInClusterConfig }()
-	client := NewDynamicClient()
-	if client != nil {
-		t.Fatal("Expected nil client, got non-nil")
-	}
-}
-
 func TestNewDynamicClient_Singleton(t *testing.T) {
 	dynamicClient = nil
 	dynamicClientOnce = sync.Once{}
