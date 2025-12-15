@@ -99,6 +99,12 @@ cp -fr ${BASE_DIR}/../deploy/data_system/* ${OUTPUT_DIR}/openyuanrong/datasystem
 cp -fr ${BASE_DIR}/../deploy ${OUTPUT_DIR}/openyuanrong
 rm -rf ${OUTPUT_DIR}/openyuanrong/deploy/data_system
 
+if [ -d "${BASE_DIR}/../../yuanrong-datasystem" ];then
+  mkdir -p ${OUTPUT_DIR}/openyuanrong/deploy/k8s/build/datasystem
+  cp -fr ${BASE_DIR}/../../yuanrong-datasystem/k8s/helm_chart/datasystem ${OUTPUT_DIR}/openyuanrong/deploy/k8s/charts/
+  cp -fr ${BASE_DIR}/../../yuanrong-datasystem/k8s/docker/* ${OUTPUT_DIR}/openyuanrong/deploy/k8s/build/datasystem/
+fi
+
 frontend_filename=$(ls *frontend*.tar.gz)
 if [ -n "${frontend_filename}" ]; then
     tar -zxvf ${frontend_filename} -C ${OUTPUT_DIR}/openyuanrong

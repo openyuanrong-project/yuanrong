@@ -2,14 +2,13 @@ ARG docker_image
 FROM ${docker_image}
 
 RUN if [ -f /etc/bashrc ]; then sed -i "s/umask .*/umask 0027/g" /etc/bashrc && source /etc/bashrc; fi
-
 # runtime env
 ENV USER_UID=1003 \
     USER_NAME=snuser \
     GROUP_ID=1003 \
     GROUP_NAME=snuser \
     HOME=/home/snuser \
-    PYTHON3_BIN_PATH=/opt/python3.9 \
+    PYTHON3_BIN_PATH=/opt/buildtools/python3.9 \
     RUNTIME_LANGUAGE=python3.9 \
     JAVA8_BIN_PATH=/opt/function/runtime/java8/rtsp/jre \
     JAVA11_BIN_PATH=/opt/function/runtime/java11/rtsp/jre \
@@ -23,8 +22,14 @@ ENV USER_UID=1003 \
     SNHOME=/home/sn \
     RUNTIMEMANAGER=/home/sn/bin/runtime_manager
 
-ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/lib64 \
-    SNLIB=/home/snuser/snlib
+ENV JAVA_HOME=/opt/buildtools/jdk8
+ENV GOROOT=/opt/buildtools/golang_go-1.24.1
+ENV GOPATH=/opt/buildtools/go_workspace
+ENV PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$GOROOT/bin:$GOPATH/bin:/opt/buildtools/nodejs/bin:$PATH
+ENV PYTHON_PATH_3911=/opt/buildtools/python3.9
+ENV PATH=$PYTHON_PATH_3911/bin:$HOME/.local/bin:$PATH
+ENV LD_LIBRARY_PATH=$PYTHON_PATH_3911/lib::/usr/lib:/usr/lib64
+ENV SNLIB=/home/snuser/snlib
 
 # the second digit is set to 5, which gives the custom UID and GID permission to run a new runtime process
 RUN mkdir -m 750 ${HOME} && \
@@ -57,15 +62,12 @@ RUN mkdir -m 750 ${HOME} && \
         chown ${FUNCTION_AGENT_UID}:${FUNCTION_AGENT_GROUP_ID} ${HOME}/.cache && \
         chown ${FUNCTION_AGENT_UID}:${FUNCTION_AGENT_GROUP_ID} ${HOME}/.conda && \
         chown ${FUNCTION_AGENT_UID}:${FUNCTION_AGENT_GROUP_ID} /opt/conda/envs; fi
-COPY --chown=snuser:snuser ${FUNCTIONSYSTEM_OUTPUT_DIR}/pattern/pattern_serve ${HOME}/serve/
 
-RUN yum install -y python3-pip.noarch
 USER ${USER_NAME}
 # USER_UID GROUP_ID 1003
 
 RUN echo "install python wheel package"; \
-    pip3.9 install -i http://mirrors.tools.huawei.com/pypi/simple --trusted-host=mirrors.tools.huawei.com/pypi/simple --user \
-    protobuf==4.25.5 \
+    pip3.9 install -i https://mirrors.huaweicloud.com/repository/pypi/simple --trusted-host=mirrors.huaweicloud.com/pypi/simple --user \
     cloudpickle==2.2.1 \
     urllib3==1.26.5 \
     msgpack==1.0.5 \
@@ -103,8 +105,8 @@ RUN if [ -f ${HOME}/runtime/go/bin/goruntime ]; then \
 USER root
 
 # runtime-manager
-COPY --chown=sn:sn  "${FUNCTIONSYSTEM_OUTPUT_DIR}"/deploy/k8s/build/functionsystem/entrypoint/entrypoint-runtime-manager ${SNHOME}/bin/entrypoint-runtime-manager
-COPY --chown=sn:sn   ${FUNCTIONSYSTEM_OUTPUT_DIR}/deploy/k8s/build/functionsystem/entrypoint/health-check ${SNHOME}/bin
+COPY --chown=sn:sn  "${FUNCTIONSYSTEM_OUTPUT_DIR}"/deploy/k8s/build/functionsystem/entrypoints/entrypoint-runtime-manager ${SNHOME}/bin/entrypoint-runtime-manager
+COPY --chown=sn:sn   ${FUNCTIONSYSTEM_OUTPUT_DIR}/deploy/k8s/build/functionsystem/entrypoints/health-check ${SNHOME}/bin
 COPY --chown=sn:sn   ${FUNCTIONSYSTEM_OUTPUT_DIR}/functionsystem/bin/runtime_manager ${SNHOME}/bin/runtime_manager
 
 # give runtime manager capabilities
@@ -113,13 +115,7 @@ RUN setcap 'cap_dac_override,cap_sys_admin,cap_kill,cap_setgid,cap_setuid+ep' ${
     if [ -f ${HOME}/runtime/go/bin/goruntime ]; then \
     setcap 'cap_dac_override+ep' ${HOME}/runtime/go/bin/goruntime; fi && \
     echo "sn    ALL=NOPASSWD:/bin/bash -c /usr/bin/dmesg -T | tail -100" >> /etc/sudoers && \
-    chmod -R 550 ${SNHOME}/bin
-    rm -rf ${HOME}/serve/*.whl && \
-    rm -rf ${HOME}/serve/Ascend*.run && \
-    chmod 550 ${HOME}/serve && \
-    chmod -R 550 ${HOME}/serve && \
-    chown ${USER_UID}:${GROUP_ID} ${HOME}/serve && \
-    chown -R ${USER_UID}:${GROUP_ID} ${HOME}/serve && \
+    chmod -R 550 ${SNHOME}/bin && \
     echo "/home/snuser/snlib" >> /etc/ld.so.conf.d/snlib.conf && \
     echo "/home/snuser/runtime/go/bin" >> /etc/ld.so.conf.d/snlib.conf && sudo ldconfig
 
