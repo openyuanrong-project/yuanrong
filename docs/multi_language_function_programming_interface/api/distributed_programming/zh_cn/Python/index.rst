@@ -93,6 +93,15 @@ Python
    :hidden:
    :maxdepth: 1
 
+   yr.Group
+   yr.config.GroupOptions
+
+
+.. toctree::
+   :glob:
+   :hidden:
+   :maxdepth: 1
+
    yr.create_resource_group
    yr.remove_resource_group
    yr.ResourceGroup
@@ -316,7 +325,7 @@ Python
      - 自动部署配置类。
 
 
-组 API
+成组 API
 ----------------------
 
 .. list-table::

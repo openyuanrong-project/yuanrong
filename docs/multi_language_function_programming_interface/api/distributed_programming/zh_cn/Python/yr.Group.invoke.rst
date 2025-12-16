@@ -11,5 +11,6 @@ yr.Group.invoke
     如果其中任何一个实例创建失败，整个实例组都会被回滚。
 
     实例组的配置和相关选项由 `GroupOptions` 定义。
+
     返回：
         None。

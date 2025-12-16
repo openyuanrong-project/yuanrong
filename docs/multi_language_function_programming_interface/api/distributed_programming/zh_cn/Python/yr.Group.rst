@@ -15,7 +15,7 @@ yr.Group
     分组实例的方法。它确保组内的所有实例被视为一个整体进行管理，并且在组创建
     过程中如果发生任何失败，都会回滚整个实例组。
 
-    **样例**：
+    样例：
         >>> import yr
         >>>
         >>> yr.init()
@@ -40,11 +40,12 @@ yr.Group
         >>>
         >>> yr.finalize()
 
-    **方法**：
+    方法：
 
     .. list-table::
        :widths: 40 60
        :header-rows: 0
+
        * - :ref:`__init__ <init_Group>`
          -
        * - :ref:`invoke <invoke_g>`
