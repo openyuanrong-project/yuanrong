@@ -7,7 +7,7 @@ yr.config.GroupOptions
 
     分组实例调度的配置选项。
 
-    属性：
+    **属性**：
 
     .. list-table::
        :header-rows: 0
@@ -20,7 +20,7 @@ yr.config.GroupOptions
        * - :ref:`strategy <strategy>`
          - 创建实例组的策略。None：不使用策略。SPREAD：尽可能将多个实例分散到不同节点上。STRICT_PACK：所有实例必须放置在同一节点，否则创建失败。PACK：尽可能将多个实例打包到同一节点。STRICT_SPREAD：所有实例必须放置在不同节点，否则创建失败。默认值：``None``。
 
-    方法：
+    **方法**：
 
     .. list-table::
        :header-rows: 0

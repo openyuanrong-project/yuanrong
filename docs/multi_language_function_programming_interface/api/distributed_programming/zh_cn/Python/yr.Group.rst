@@ -40,7 +40,7 @@ yr.Group
         >>>
         >>> yr.finalize()
 
-    方法：
+    **方法**：
 
     .. list-table::
        :widths: 40 60
@@ -60,6 +60,7 @@ yr.Group
 .. toctree::
     :maxdepth: 1
     :hidden:
+
     yr.Group.__init__
     yr.Group.invoke
     yr.Group.terminate

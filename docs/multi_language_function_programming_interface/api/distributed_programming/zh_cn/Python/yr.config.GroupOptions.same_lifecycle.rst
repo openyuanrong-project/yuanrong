@@ -1,7 +1,7 @@
 .. _same_lifecycle:
 
 yr.config.GroupOptions.same_lifecycle
-------------------------------------
+---------------------------------------
 
 .. py:attribute:: GroupOptions.same_lifecycle
    :type: str
