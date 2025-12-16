@@ -72,6 +72,15 @@ docker run \
 
 1. 为 vLLM Ascend 打补丁
 
+   :::{Note}
+
+   首先配置您的 git 用户名和邮箱（通过 git config --list 查看是否已配置）。如下所示：
+
+   git config --global user.name "your name"
+   git config --global user.email "email@your_email"
+
+   :::
+
    ```bash
    cd /vllm-workspace/vllm-ascend
    git am /workspace/tools/patch/0001-implement-yr-datasystem-connector-and-support-multimoda.patch

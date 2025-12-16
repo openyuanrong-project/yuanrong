@@ -248,6 +248,15 @@ docker run \
 
 2. 为 vLLM Ascend 打补丁
 
+   :::{Note}
+
+   首先配置您的 git 用户名和邮箱（通过 git config --list 查看是否已配置）。如下所示：
+
+   git config --global user.name "your name"
+   git config --global user.email "email@your_email"
+
+   :::
+
    ```bash
    cd /vllm-workspace/vllm-ascend
    git am /workspace/tools/patch/0001-implement-yr-datasystem-connector-and-support-multimoda.patch
@@ -306,6 +315,7 @@ export SERVER_PORT=9000
 
 # 模型文件路径
 export MODEL_PATH="/workspace/models/qwen2.5_7B"
+# 将 openYuanrong 模型部署脚本所在目录加入 Python 模块搜索路径
 export PYTHONPATH=$PYTHONPATH:/workspace/tools/deploy
 
 # 启用 vLLM 的 v1 API 模式
@@ -318,7 +328,7 @@ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 # 替换 YR_INSTALL_PATH 为 openYuanrong 安装路径，可使用 yr version 命令查看
 # 例如：/usr/local/Python-3.11.9/lib/python3.11/site-packages/yr/inner
-export LD_LIBRARY_PATH=${YR_INSTALL_PATH}/functiosystem/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${YR_INSTALL_PATH}/functionsystem/lib:$LD_LIBRARY_PATH
 export HCL_OP_EXPANSION_MODE="AIV"
 # 是否启用 openYuanrong 多级缓存前缀匹配能力，值为 1 表示启动
 export USING_PREFIX_CONNECTOR=1
