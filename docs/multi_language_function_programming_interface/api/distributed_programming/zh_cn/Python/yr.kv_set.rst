@@ -25,7 +25,6 @@ yr.kv_set
         >>> set_param.existence = yr.ExistenceOpt.NX
         >>> set_param.write_mode = yr.WriteMode.NONE_L2_CACHE_EVICT
         >>> set_param.ttl_second = 10
-        >>> set_param.cache_type = yr.CacheType.DISK
         >>> yr.kv_set("kv-key", b"value1", set_param)
         >>>
         >>> yr.finalize()

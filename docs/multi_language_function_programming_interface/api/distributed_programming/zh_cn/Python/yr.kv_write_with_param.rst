@@ -21,13 +21,10 @@ yr.kv_write_with_param
     样例：
         >>> import yr
         >>> yr.init()
-        >>> # worker启动参数里面要配置shared_disk_directory， shared_disk_size_mb这两个参数,
-        >>> # 否则这个例子会出错
         >>> set_param = yr.SetParam()
         >>> set_param.existence = yr.ExistenceOpt.NX
         >>> set_param.write_mode = yr.WriteMode.NONE_L2_CACHE_EVICT
         >>> set_param.ttl_second = 10
-        >>> set_param.cache_type = yr.CacheType.DISK
         >>> yr.kv_write_with_param("kv-key", b"value1", set_param)
         >>>
         >>> yr.finalize()

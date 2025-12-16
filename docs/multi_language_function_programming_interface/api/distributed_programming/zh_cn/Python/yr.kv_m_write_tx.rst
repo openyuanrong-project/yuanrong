@@ -23,7 +23,6 @@ yr.kv_m_write_tx
         >>> mset_param.existence = yr.ExistenceOpt.NX
         >>> mset_param.write_mode = yr.WriteMode.NONE_L2_CACHE_EVICT
         >>> mset_param.ttl_second = 100
-        >>> mset_param.cache_type = yr.CacheType.DISK
         >>> yr.kv_m_write_tx(["key1", "key2"], [b"value1", b"value2"], mset_param)
         >>>
         >>> yr.finalize()
