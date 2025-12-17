@@ -55,12 +55,12 @@ source /etc/profile.d/buildtools.sh
 
 openYuanrong 分为四个代码仓库：
 
-* [yuanrong-runtime](https://gitee.com/openeuler/yuanrong-runtime){target="_blank"}：运行时仓库，编译依赖 yuanrong-functionsystem 和 yuanrong-datasystem 仓库的发布包。
+* [yuanrong](https://gitee.com/openeuler/yuanrong){target="_blank"}：运行时仓库，编译依赖 yuanrong-functionsystem 和 yuanrong-datasystem 仓库的发布包。
 * [yuanrong-functionsystem](https://gitee.com/openeuler/yuanrong-functionsystem){target="_blank"}：函数系统仓库，编译依赖 yuanrong-datasystem 仓库的发布包。
 * [yuanrong-datasystem](https://gitee.com/openeuler/yuanrong-datasystem){target="_blank"} ：数据系统仓库，可独立编译。
 * [ray-adapter](https://gitee.com/openeuler/ray-adapter){target="_blank"}：ray adapter 仓库，可独立编译。
 
-使用多语言函数编程接口，需要编译 yuanrong-runtime 仓库；单独使用数据系统接口，需要编译 yuanrong-datasystem 仓库；使用 ray adapter 接口，需要编译 ray-adapter 仓库。
+使用多语言函数编程接口，需要编译 yuanrong 仓库；单独使用数据系统接口，需要编译 yuanrong-datasystem 仓库；使用 ray adapter 接口，需要编译 ray-adapter 仓库。
 
 ### 编译 yuanrong-datasystem
 
@@ -170,26 +170,27 @@ tree output/
 └── yr-functionsystem-v0.0.0.tar.gz # 函数系统打包产物
 ```
 
-### 编译 yuanrong-runtime
+### 编译 yuanrong
 
 首先下载源码。创建一个代码目录，例如 `mkdir -p /opt/openyuanrong/`，在目录下执行如下命令。
 
 ```bash
-# 这里下载的是 yuanrong-runtime 仓 master 分支，按需替换为您 fork 的个人仓。
-git clone -b master https://gitee.com/openeuler/yuanrong-runtime.git
+# 这里下载的是 yuanrong 仓 master 分支，按需替换为您 fork 的个人仓。
+git clone -b master https://gitee.com/openeuler/yuanrong.git
 ```
 
 运行时的编译依赖数据系统和函数系统发布包：
 
-* 新建目录 `/opt/openyuanrong/datasystem/output`，拷贝已编译好的数据系统发布包 `yr-datasystem-vx.x.x.tar.gz` 到该目录并解压。解压已编译好的函数系统发布包 `yr-functionsystem-vx.x.x.tar.gz`，拷贝包中 `metrics` 文件夹到 `/opt/openyuanrong` 目录下。
+* 新建目录 `/opt/openyuanrong/yuanrong/datasystem/output`，拷贝已编译好的数据系统发布包 `yr-datasystem-vx.x.x.tar.gz` 到该目录并通过 `tar -zxf yr-datasystem-vx.x.x.tar.gz --strip-components=1` 命令解压。解压已编译好的函数系统发布包 `yr-functionsystem-vx.x.x.tar.gz`，拷贝包中 `metrics` 文件夹到 `/opt/openyuanrong/yuanrong/` 目录下。
 
 执行如下脚本编译。
 
 ```bash
 # 通过 bash build.sh -h 了解更多编译选项
-cd /opt/openyuanrong/yuanrong-runtime
+cd /opt/openyuanrong/yuanrong
 bash build.sh -P
 ```
+如果出现依赖下载失败报错，可以尝试删除 /opt/openyuanrong/yuanrong/thirdparty/runtime_deps 之后重新编译
 
 :::{Note}
 
