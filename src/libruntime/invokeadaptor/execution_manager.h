@@ -17,6 +17,7 @@
 #pragma once
 #include "src/libruntime/fsclient/fs_intf.h"
 #include "src/utility/thread_pool.h"
+#include "boost/asio.hpp"
 
 namespace YR {
 namespace Libruntime {
@@ -35,7 +36,7 @@ protected:
     void DoHandle(std::function<void()> &&hdlr, std::string reqId = "");
 
 private:
-    ThreadPool callExecutor;
+    std::shared_ptr<boost::asio::thread_pool> callExecutor_;
     bool useCustomExecutor;
     size_t concurrency_ = 1;
     std::function<void(std::function<void(void)> &&)> customExecutorSubmit;

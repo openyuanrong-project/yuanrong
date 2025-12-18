@@ -15,10 +15,12 @@
  */
 
 #include "execution_manager.h"
+#include "boost/asio.hpp"
 namespace YR {
 namespace Libruntime {
 ExecutionManager::ExecutionManager(size_t concurrency, std::function<void(std::function<void(void)> &&)> submitHook)
-    : useCustomExecutor(submitHook != nullptr), customExecutorSubmit(submitHook)
+    : callExecutor_(std::make_shared<boost::asio::thread_pool>(concurrency)),
+      useCustomExecutor(submitHook != nullptr), customExecutorSubmit(submitHook)
 {
 }
 
@@ -28,12 +30,6 @@ ErrorInfo ExecutionManager::DoInit(size_t concurrency)
         return ErrorInfo();
     }
     concurrency_ = concurrency;
-    if (concurrency > 1) {
-        auto errMsg = this->callExecutor.Init(concurrency, "call_executor");
-        if (!errMsg.empty()) {
-            return ErrorInfo(ErrorCode::ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, errMsg);
-        }
-    }
     return ErrorInfo();
 }
 
@@ -45,8 +41,8 @@ bool ExecutionManager::isMultipleConcurrency()
 void ExecutionManager::DoHandle(std::function<void()> &&hdlr, std::string reqId)
 {
     if (!useCustomExecutor) {
-        if (concurrency_ > 1) {
-            this->callExecutor.Handle(std::move(hdlr), reqId);
+        if (concurrency_ > 1 && !this->callExecutor_) {
+            boost::asio::post(*this->callExecutor_, std::move(hdlr));
         } else {
             hdlr();
         }
@@ -57,12 +53,6 @@ void ExecutionManager::DoHandle(std::function<void()> &&hdlr, std::string reqId)
 
 void ExecutionManager::ErasePendingThread(const std::string &reqId)
 {
-    if (useCustomExecutor) {
-        return;
-    }
-    if (concurrency_ > 1) {
-        this->callExecutor.ErasePendingThread(reqId);
-    }
 }
 }  // namespace Libruntime
 }  // namespace YR
