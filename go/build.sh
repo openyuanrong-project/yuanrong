@@ -65,11 +65,10 @@ rm -rf "${OUTPUT_DIR}/yuanrong.org"
 echo "start to compile dashboard -s ${SCC_BUILD_ENABLED}"
 mkdir -p "${OUTPUT_DIR}/bin/"
 rm -rf "${OUTPUT_DIR}/bin/dashboard"
-
 DASHBOARD_FLAGS="${FLAGS} -X 'yuanrong.org/kernel/pkg/dashboard/flags.version=${VERSION}'"
 CC='gcc -fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2' go build -tags="${BUILD_TAGS}" -buildmode=pie -ldflags "${DASHBOARD_FLAGS}"  -o \
 "${OUTPUT_DIR}"/bin/dashboard "${PROJECT_DIR}"/cmd/dashboard/main.go
-
+strip "${OUTPUT_DIR}"/bin/dashboard
 mkdir -p "${OUTPUT_DIR}/config/"
 rm -rf "${OUTPUT_DIR}/config/dashboard*"
 cp -ar "${PROJECT_DIR}/build/dashboard/config/" "${OUTPUT_DIR}/"
@@ -96,6 +95,7 @@ echo LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 COLLECTOR_FLAGS="${FLAGS} -X 'yuanrong.org/kernel/pkg/collector/common.version=${VERSION}'"
 CC='gcc -fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2' go build -tags="${BUILD_TAGS}" -buildmode=pie -ldflags "${COLLECTOR_FLAGS}"  -o \
 "${OUTPUT_DIR}"/bin/collector "${PROJECT_DIR}"/cmd/collector/main.go
+strip "${OUTPUT_DIR}"/bin/collector
 
 cd "${OUTPUT_DIR}"
 DASHBOARD_TAR_NAME="yr-dashboard-${VERSION}.tar.gz"
