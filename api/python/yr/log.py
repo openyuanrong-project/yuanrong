@@ -83,7 +83,6 @@ class RuntimeLogger:
     def __init_file_logger(self) -> None:
         # logging will collect processes information by default. Set these values
         # to False can improve performance
-        logging.logProcesses = False
         logging.logMultiprocessing = False
         logging.Formatter.default_msec_format = "%s.%03d"
         logging.Formatter.converter = time.localtime

@@ -31,6 +31,7 @@ const int LIMITED_RETRY_TIME = 2;
 const size_t IN_MEM_STORE_SIZE_THRESHOLD = 100 * 1024;  // 100KB
 const int DEFAULT_INVOKE_TIMEOUT = 900;                 // second
 const int DISCONNECT_TIMEOUT_MS = 900 * 1000;           // 900 s
+const int PROXY_DISCONNECT_TIMEOUT_MS = 60 * 1000;           // 60 s
 const int RT_DISCONNECT_TIMEOUT_MS = 10 * 1000;         // 10 s
 const char* const DEFAULT_SOCKET_PATH = "/home/snuser/socket/runtime.sock";
 const char* const UNSUPPORTED_RGROUP_NAME = "primary";

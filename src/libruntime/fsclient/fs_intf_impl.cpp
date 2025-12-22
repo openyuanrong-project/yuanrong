@@ -1198,7 +1198,7 @@ ErrorInfo FSIntfImpl::Start(const std::string &jobID, const std::string &instanc
             this->instanceID, "function-proxy", runtimeID,
             ReaderWriterClientOption{.ip = fsIp,
                                      .port = fsPort,
-                                     .disconnectedTimeout = DISCONNECT_TIMEOUT_MS,
+                                     .disconnectedTimeout = PROXY_DISCONNECT_TIMEOUT_MS,
                                      .security = security,
                                      .resendCb = std::bind(&FSIntfImpl::ResendRequests, this, _1),
                                      .disconnectedCb = std::bind(&FSIntfImpl::NotifyDisconnected, this, _1)},
