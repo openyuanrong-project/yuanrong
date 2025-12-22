@@ -392,8 +392,6 @@ spec:
               value: "/home/sn/resource"
             - name: LIB_PATH
               value: "{{ .Values.global.runtime.libPath }}"
-            - name: ENABLE_AGENT_CRD_REGISTRY
-              value: "true"
           resources:
             limits:
               cpu: {{ .Values.global.resources.faasScheduler.limits.cpu }}
