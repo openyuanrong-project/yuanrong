@@ -314,6 +314,18 @@ def get(obj_refs: Union["ObjectRef", List, "RgObjectRef"], timeout: int = consta
         except Exception as e:
             raise e
         return Serialization().deserialize(obj_refs.data)
+    if isinstance(obj_refs, (list, tuple)):
+        if len(obj_refs) == 0:
+            return []
+        if all(isinstance(r, RgObjectRef) for r in obj_refs):
+            results = []
+            for ref in obj_refs:
+                try:
+                    ref.resource_group.wait(timeout)
+                except Exception as e:
+                    raise e
+                results.append(Serialization().deserialize(ref.data))
+            return results
     is_single_obj = isinstance(obj_refs, ObjectRef)
     if is_single_obj:
         obj_refs = [obj_refs]
