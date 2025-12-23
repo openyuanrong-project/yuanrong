@@ -71,7 +71,7 @@
 | `--ds_log_monitor_enable` | 数据系统是否开启资源日志监控。 | ``false`` |选填。  |
 | `--etcd_log_path` | etcd 日志子目录。 | ``""``  |选填，配置值不能包含 ``..``。  |
 | `--user_log_export_mode` | runtime 标准输出日志导出方式。 | ``file`` | 选填，runtime 标准输出日志导出方式。取值：``file``（导出至文件）、``std``（导出至标准输出流），默认导出至文件。 |
-| `--enable_separated_redirect_runtime_std` | 开启 runtime 日志分进程落盘。 | ``false`` | 选填，为 ``true`` 时，在 runtime 标准输出日志导出方式为文件时生效。不同的 runtime 进程的 std 输出会重定向到不同的文件，输出文件名为 ``{runtimeID}.out {runtimeID}.err``。此模式不支持 runtime 日志的压缩和轮转等功能。 |
+| `--enable_separated_redirect_runtime_std` | 开启 runtime 日志分进程落盘。 | ``true`` | 选填，为 ``true`` 时，在 runtime 标准输出日志导出方式为文件时生效。不同的 runtime 进程的 std 输出会重定向到不同的文件，输出文件名为 ``{runtimeID}.out {runtimeID}.err``。此模式不支持 runtime 日志的压缩和轮转等功能。 |
 | `--runtime_std_rolling_enable` | 开启 runtime 标准输出日志的滚动压缩。 | ``false`` | 选填。仅在 runtime 日志分进程落盘时生效，会同时开始标准输出的日志的滚动和压缩。 |
 
 * `${deploy_path}` 为部署脚本指定的部署路径。
@@ -195,7 +195,7 @@
 | `--ds_spill_size_limit` | 写入磁盘大小限制（单位：MB）。 | ``20480`` |选填。 |
 | `--ds_rpc_thread_num` | rpc 线程数量。 | ``32`` |选填。 |
 | `--ds_node_dead_timeout_s` | ds-worker 与 ds-master 之间心跳的超时时间（秒），当心跳超时时 ds-master 会将 ds-worker 的资源清理掉。 | ``86400`` |选填。 |
-| `--ds_client_dead_timeout_s` | ds-client 跟 ds-worker 之间心跳的超时时间（秒），当心跳超时时 ds-worker 会将 ds-client 的资源清理掉。 | ``86400`` | 选填。|
+| `--ds_client_dead_timeout_s` | ds-client 跟 ds-worker 之间心跳的超时时间（秒），当心跳超时时 ds-worker 会将 ds-client 的资源清理掉。 | ``60`` | 选填。|
 | `--ds_node_timeout_s` | 数据系统节点超时时间（单位：s）。 | ``1800`` |选填。 |
 | `--ds_heartbeat_interval_ms` | 数据系统心跳超时时间（单位：ms）。 | ``300000`` |选填。 |
 | `--ds_max_client_num` | 单个数据系统 worker 最大 client 数。 | ``1000`` |选填。 |

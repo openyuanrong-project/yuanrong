@@ -248,7 +248,7 @@ DS_SPILL_SIZE_LIMIT=20480
 DS_RPC_THREAD_NUM=32
 DS_NODE_TIMEOUT_S=1800
 DS_HEARTBEAT_INTERVAL_MS=300000
-DS_CLIENT_DEAD_TIMEOUT_S=864000
+DS_CLIENT_DEAD_TIMEOUT_S=60
 DS_NODE_DEAD_TIMEOUT_S=864000
 DS_MAX_CLIENT_NUM=1000
 DS_MEMORY_RECLAMATION_TIME_SECOND=5
@@ -305,7 +305,7 @@ RUNTIME_DS_ENCRYPT_ENABLE="false"
 RUNTIME_DS_CONNECT_TIMEOUT="1800"
 CACHE_STORAGE_AUTH_TYPE="Noauth"
 CACHE_STORAGE_AUTH_ENABLE="false"
-SEPARATED_REDIRECT_RUNTIME_STD="false"
+SEPARATED_REDIRECT_RUNTIME_STD="true"
 USER_LOG_EXPORT_MODE="file"
 # Runtime OOM kill
 MEMORY_DETECTION_INTERVAL="1000"
@@ -463,7 +463,7 @@ function usage() {
   echo -e "     --ds_node_timeout_s                                 data system master node timeout, unit second(default 1800)"
   echo -e "     --ds_heartbeat_interval_ms                          data system worker heartbeat interval, unit ms(default 300000)"
   echo -e "     --ds_node_dead_timeout_s                            data system master node dead timeout, unit second(default 864000)"
-  echo -e "     --ds_client_dead_timeout_s                          data system master client dead timeout, unit second(default 864000)"
+  echo -e "     --ds_client_dead_timeout_s                          data system master client dead timeout, unit second(default 60)"
   echo -e "     --ds_max_client_num                                 data system worker max client number (default 1000)"
   echo -e "     --ds_memory_reclamation_time_second                 data system worker memory reclamation time, unit second(default 5)"
   echo -e "     --ds_component_auth_enable                          data system component auth enabled(default false)"
