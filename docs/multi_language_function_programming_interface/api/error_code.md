@@ -65,3 +65,70 @@
 - timeout 类异常。
 
 :::
+
+(error-code-rest-api)=
+
+## REST API 错误码 
+
+| **错误码** | **错误信息**                     | **描述**                                     |
+| ---------- | -------------------------------- | -------------------------------------------- |
+| 4037       | session config invalid           | 用户指定实例会话不合法。                     |
+| 4101       | FunctionNameExist                | 函数名已存在。                               |
+| 4102       | AliasNameAlreadyExists           | 别名已存在。                                 |
+| 4103       | TotalRoutingWeightNotOneHundred  | 总路由权重不是 100。                         |
+| 4104       | InvalidUserParam                 | 用户输入参数无效。                           |
+| 4105       | FunctionVersionDeletionForbidden | 函数版本有别名，因此不能删除。               |
+| 4106       | LayerVersionSizeOutOfLimit       | 层版本超出限制。                             |
+| 4107       | TenantLayerSizeOutOfLimit        | 租户层大小超出限制。                         |
+| 4108       | LayerVersionNumOutOfLimit        | 层版本号超出限制。                           |
+| 4109       | TriggerNumOutOfLimit             | 函数触发器数量超出限制。                     |
+| 4110       | FunctionVersionOutOfLimit        | 函数版本超过限制。                           |
+| 4111       | AliasOutOfLimit                  | 函数别名数超过限制。                         |
+| 4112       | LayerIsUsed                      | 如果函数使用该层，则不能删除。               |
+| 4113       | LayerVersionNotFound             | 层版本未创建。                               |
+| 4114       | RepeatedPublishmentError         | 两次发布没有区别。                           |
+| 4115       | FunctionNotFound                 | 函数未创建或已删除。                         |
+| 4116       | FunctionVersionNotFound          | 函数版本未创建或已删除。                     |
+| 4117       | AliasNameNotFound                | 别名未创建或已删除。                         |
+| 4118       | TriggerNotFound                  | 触发器未创建或已删除。                       |
+| 4119       | LayerNotFound                    | 层未创建或已删除。                           |
+| 4120       | PoolNotFound                     | 池未创建或已删除。                           |
+| 4123       | PageInfoError                    | 页面信息超出列表边界。                       |
+| 4124       | TriggerPathRepeated              | 触发器的路径被其他触发器使用。               |
+| 4125       | DuplicateCompatibleRuntimes      | 在兼容运行时列表中发现重复项。               |
+| 4126       | CompatibleRuntimeError           | 一些兼容的运行时不在配置列表中。             |
+| 4127       | ZipFileCountError                | zip 文件中的文件数量超出配置限制。           |
+| 4128       | ZipFilePathError                 | zip 文件中的某些文件路径无效。               |
+| 4129       | ZipFileUnzipSizeError            | 解压缩文件大小超过配置限制。                 |
+| 4130       | ZipFileSizeError                 | 压缩包大小超出配置限制。                     |
+| 4134       | RevisionIDError                  | 请求的修订 ID 与存储中操作的条目 ID 不匹配。 |
+| 121016     | SaveFileError                    | 处理包的 zip 文件时，保存临时文件时出错。    |
+| 121017     | UploadFileError                  | 上传文件时处理包 zip 文件出错。              |
+| 121018     | EmptyAliasAndVersion             | 别名名称和版本为空。                         |
+| 121019     | ReadingPackageTimeout            | 读取软件包时超时。                           |
+| 121026     | BucketNotFound                   | 未找到特定业务 ID 的桶信息。                 |
+| 121029     | ZipFileError                     | 处理包的 zip 文件时出错。                    |
+| 121030     | DownloadFileError                | 从包存储中获取预签名下载 URL 时出错。        |
+| 121032     | DeleteFileError                  | 删除包存储对象时出错。                       |
+| 121036     | InvalidFunctionLayer             | 该层的租户信息与其请求的上下文不匹配。       |
+| 121046     | InvalidQueryURN                  | 查询请求中的 URN 无效。                      |
+| 121047     | InvalidQualifier                 | 请求中的限定符无效，它表示版本或别名。       |
+| 121048     | ReadBodyError                    | 处理 HTTP 请求的正文时发生错误。             |
+| 121049     | AuthCheckError                   | 当身份验证 HTTP 请求时发生错误。             |
+| 121052     | InvalidJSONBody                  | 解析 HTTP 请求的正文为 JSON 格式时出错。     |
+| 121057     | TriggerIDNotFound                | 请求中的触发器 ID 在存储中找不到。           |
+| 121058     | FunctionNameFormatErr            | 存储中函数名称格式错误。                     |
+| 122001     | KVNotFound                       | etcd 没有这样的 kv。                         |
+| 122002     | EtcdError                        | etcd 中的错误。                              |
+| 122003     | TransactionFailed                | etcd 事务出错。                              |
+| 122004     | UnmarshalFailed                  | 反序列化为 JSON 时出错。                     |
+| 122005     | MarshalFailed                    | 序列化为字符串时出错。                       |
+| 122006     | VersionOrAliasEmpty              | 版本或别名是空字符串。                       |
+| 122007     | ResourceIDEmpty                  | 资源 ID 为空字符串。                         |
+| 122008     | NoTenantInfo                     | 租户信息不存在。                             |
+| 122009     | NoResourceInfo                   | 资源信息不存在。                             |
+| 130600     | InvalidParamErrorCode            | 解析 HTTP 请求的参数时出错。                 |
+| 150424     | function metadata not found      | 找不到函数元数据。                           |
+| 150500     | /                                | 系统内部错误。                               |
+| 150444     | instance label not found         | 指定实例 label 不存在。                      |
+| 330404     | subcribe stream failed"          | 订阅流失败。                                 |
