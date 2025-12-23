@@ -40,6 +40,13 @@ global:
       requests:
         cpu: "500m"
         memory: "1Gi"
+    metaService:
+      limits:
+        cpu: "2"
+        memory: "6Gi"
+      requests:
+        cpu: "1"
+        memory: "3Gi"  
     functionMaster:
       limits:
         cpu: "500m"
@@ -88,6 +95,7 @@ global:
     fassFrontendPort: 8888
     faasFrontendNodePort: 31222
     faasSchedulerPort: 9994
+    metaService: 31182
     functionProxyPort: 22423
     functionProxyGrpcPort: 32568
     functionAgentPort: 58866
@@ -104,7 +112,7 @@ global:
     faasScheduler: 2
     faasFrontend: 1
     faasManager: 1
-
+    metaService: 1
   # common log config
   log:
     # log output host path
@@ -551,9 +559,7 @@ global:
   tenant:
     credential: "967221D8F1630ACBB7EFF58B:6D62A66AF4BE5368FF8AECEF5E572CC3759781822FB02224E8151C6ED151A6D4A0435550678F4A914318E3389116BFB963FC0FEABA3B18A04EC85B804CB4A371AB082962DDD7D2B6C48A0295AB66B4AE4E74F124F4A0D3475A92E05B175F84F0D7282418048AC909104C509CF13EF841B36619888BD339CB10CCE90374170D0A425BF39B8C887E31185CFB61C161D58024EB6E604721AF34473EA3F65C509959758C761EFDBF5DE9E60F95AADA63739BCA7DE7EBFE9D75900365AE93947DAA6DF6F885039A13564B9F9E787DCCDDCEA3FF35A1A91E4064F2D3FB5878D905537A2285A8E677AFE7C815CF87D006AC0DF6601021369987D37CC5E2889F294A151E81D413A4E641EA6CC68A"
 
-  # ComponentAuth configuration for datasystem
-  enableComponentAuth: false
   # ETCD configuration for datasystem
-  # Config ETCD server address.
-  etcdAddress: base-etcd.default.svc.cluster.local:2379
-
+  etcd:
+    etcdAddress: base-etcd.default.svc.cluster.local:2379
+    enableComponentAuth: false
