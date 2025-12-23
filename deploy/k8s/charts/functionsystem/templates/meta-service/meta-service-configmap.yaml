@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ .Values.global.namespace }}
+  name: meta-service-configmap
+
+data:
+  config.json: |
+    {
+      "etcd": {
+        "servers": ["{{ .Values.global.etcdManagement.detcd }}"],
+        "user": "{{ .Values.global.etcdManagement.etcdUser }}",
+        "password": "{{ .Values.global.etcdManagement.etcdPassword }}",
+        "sslEnable": {{ .Values.global.etcdManagement.sslEnable }},
+        "authType": "{{ .Values.global.etcdManagement.authType }}"
+      },
+      "metaEtcdEnable": {{ .Values.global.etcdManagement.metaEtcdEnable }},
+      "metaEtcd": {
+        "servers": ["{{ .Values.global.etcdManagement.metcd }}"],
+        "user": "{{ .Values.global.etcdManagement.metaEtcdUser }}",
+        "password": "{{ .Values.global.etcdManagement.metaEtcdPassword }}",
+        "sslEnable": {{ .Values.global.etcdManagement.sslEnable }},
+        "authType": "{{ .Values.global.etcdManagement.authType }}"
+      },
+      "clusters": "{{ .Values.global.common.instanceClusterList }}",
+      "decryptAlgorithm": {{ .Values.global.common.decryptAlgorithm | quote }},
+      "bucket": [
+        {
+          "bucketId": "",
+          "businessId": "",
+          "appId": "",
+          "appSecret": "",
+          "url": "",
+          "writable": 1,
+          "description": "",
+          "createTime": "",
+          "updateTime": ""
+        }
+      ],
+      "runtimeType": [
+          "nodejs10.15.2",
+          "java1.8",
+          "java8",
+          "java11",
+          "java17",
+          "java21",
+          "python3.6",
+          "python3.7",
+          "python3.8",
+          "python3.9",
+          "python3.10",
+          "python3.11",
+          "cpp11",
+          "cpp11-bin",
+          "custom-runtime",
+          "posix-custom-runtime",
+          "go1.13"
+      ],
+      "fileServer": {
+        "storageType": "{{ .Values.global.common.storageType }}",
+        "s3": {
+          "endpoint": {{ .Values.global.obsManagement.s3Endpoint | default "minio.default.svc.cluster.local:9000" | quote }},
+          "accessKey": "{{ .Values.global.obsManagement.s3AccessKey  }}",
+          "secretKey": "{{ .Values.global.obsManagement.s3SecretKey  }}",
+          "secure": false,
+          "caFile": "",
+          "presignedUrlExpires": 3600,
+          "timeout": 40,
+          "trustedCA": false
+        }
+      },
+      "trigger": {
+        "urlPrefix": "",
+        "type": [
+          {
+            "sourceProvider": "",
+            "effect": "",
+            "action": ""
+          }
+        ]
+      },
+      "compatibleRuntimeType": [
+          "nodejs10.15.2",
+          "java1.8",
+          "python3.7",
+          "python3.8",
+          "python3.9",
+          "python3.10",
+          "python3.11",
+          "cpp11",
+          "cpp11-bin",
+          "custom-runtime",
+          "posix-custom-runtime",
+          "go1.13"
+      ],
+      "urn": {
+        "prefix": "sn",
+        "zone": "cn",
+        "resourceType": "function"
+      },
+      "function": {
+          "default": {
+            "version": "$latest",
+            "envPrefix": "func-",
+            "pageIndex": 1,
+            "pageSize": 1000,
+            "cpuList": [
+                500,
+                1500,
+                4000
+            ],
+            "memoryList": [
+                500,
+                3000,
+                16000
+            ],
+            "timeout": {{ .Values.global.timeout }},
+            "defaultMinInstance": "0",
+            "defaultMaxInstance": "100",
+            "defaultConcurrentNum": "100",
+            "maxInstanceUpperLimit": "1000",
+            "concurrentNumUpperLimit": "{{ .Values.global.common.concurrentNumUpperLimit }}",
+            "minCpu": {{ .Values.global.runtime.minInstanceCpuSize }},
+            "minMemory": {{ .Values.global.runtime.minInstanceMemorySize }},
+            "maxCpu": {{ .Values.global.runtime.maxInstanceCpuSize }},
+            "maxMemory": {{ .Values.global.runtime.maxInstanceMemorySize }}
+          },
+          "package": {
+            "uploadTempPath": "/home/sn/upload",
+            "zipFileSizeMaxMB": 1,
+            "unzipFileSizeMaxMB": 1,
+            "fileCountsMax": 1,
+            "dirDepthMax": 1,
+            "ioReadTimeout": 100000
+          },
+        "versionMax": {{ .Values.global.common.maxFunctionVersion }},
+        "instanceLabelMax": {{ .Values.global.common.maxInstanceLabel }},
+        "aliasMax": 8,
+        "layerMax": 1
+      },
+      "server": {
+        "port": 8081
+      },
+      "mutualTLSConfig": {
+        "tlsEnable": false,
+        "rootCAFile": "",
+        "moduleCertFile": "",
+        "moduleKeyFile": "",
+        "serverName": ""
+      },
+      "scc": {
+        "enable": {{ .Values.global.scc.enable }},
+        "algorithm": "{{ .Values.global.scc.algorithm }}"
+      },
+      "mutualSSLConfig": {
+        "sslEnable": {{ .Values.global.mutualSSLConfig.sslEnable }},
+        "rootCAFile": "{{ .Values.global.mutualSSLConfig.sslBasePath }}/ca.crt",
+        "moduleCertFile": "{{ .Values.global.mutualSSLConfig.sslBasePath }}/module.crt",
+        "moduleKeyFile": "{{ .Values.global.mutualSSLConfig.sslBasePath }}/module.key",
+        "pwdFile": "{{ .Values.global.mutualSSLConfig.sslBasePath }}/cert_pwd",
+        "serverName": "{{ .Values.global.mutualSSLConfig.serverName }}",
+        "sslDecryptTool": "{{ .Values.global.mutualSSLConfig.sslDecryptTool }}"
+      }
+    }
+  log.json: |-
+    {
+      "filepath": "{{ .Values.global.log.functionSystem.path }}",
+      "level": "{{ .Values.global.log.functionSystem.level }}",
+        {{- if .Values.global.log.functionSystem.compress }}
+      "rolling": {
+        "maxsize": {{ .Values.global.log.functionSystem.rolling.maxSize }},
+        "maxbackups": {{ .Values.global.log.functionSystem.rolling.maxfiles }},
+        "maxage": 1,
+        "compress": true
+      },
+        {{- end }}
+      "tick": 10,
+      "first": 10,
+      "thereafter": 5
+    }

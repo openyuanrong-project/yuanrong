@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: meta-service
+  name: meta-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: NodePort
+  ports:
+  - port: 8081
+    protocol: TCP
+    targetPort: 8081
+    nodePort: {{ .Values.global.port.metaService  }}
+  selector:
+    app: meta-service
+  sessionAffinity: None
+status:
+  loadBalancer: {}

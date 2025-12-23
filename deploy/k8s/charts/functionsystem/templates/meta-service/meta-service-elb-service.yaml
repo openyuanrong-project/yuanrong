@@ -1,0 +1,20 @@
+{{- if .Values.global.network.elbId }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubernetes.io/elb.id: {{ quote .Values.global.network.elbId }}
+  name: meta-service-elb
+  namespace: {{ .Values.global.namespace }}
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+    - name: meta-service-elb-api
+      port: {{ .Values.global.port.metaService  }}
+      protocol: TCP
+      targetPort: 8081
+  selector:
+    app: meta-service
+  sessionAffinity: None
+  type: LoadBalancer
+{{- end }}
