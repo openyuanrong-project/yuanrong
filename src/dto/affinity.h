@@ -64,7 +64,7 @@ public:
         auto values = GetValues();
         for (auto &value : values) {
             std::size_t h3 = std::hash<std::string>()(value);
-            std::size_t res = res ^ h3;
+            res = res ^ h3;
         }
         return res;
     }
