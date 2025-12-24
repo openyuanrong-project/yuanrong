@@ -3,6 +3,7 @@
 # Declare variables to be passed into your templates.
 
 global:
+  timeout: "900"
   litebusDataKey: "AB05D39677C54E231CC4224812F1C51E95D72792F1F1A4C338F4404D80017860"
   namespace: "default"
   # cluster ID
@@ -501,6 +502,8 @@ global:
     metaStoreCheckHealthIntervalMs: 5000
     # the timeout of etcd healthcheck rpc
     metaStoreTimeoutMs: 10000
+    sslEnable: false
+    metaEtcdEnable: false
 
   # obs configurations management
   obsManagement:
