@@ -295,6 +295,8 @@ spec:
             value: {{ quote .Values.global.runtime.isProtoMsgToRuntime }}
           - name: MASSIF_ENABLE
             value: {{ quote .Values.global.runtime.massifEnable }}
+          - name: ENABLE_DISTRIBUTED_CONVERGENT_CALL_STACK
+            value: {{ quote .Values.global.runtime.disConvCallStack.enable }}
           - name: RESOURCE_PATH
             value: /home/sn/resource
           - name: RUNTIME_HOME_DIR

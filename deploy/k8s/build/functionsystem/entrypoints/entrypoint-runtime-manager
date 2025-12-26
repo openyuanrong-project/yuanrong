@@ -135,4 +135,5 @@ exec "${RUNTIMEMANAGER}" --runtime_dir="${HOME}/runtime" --runtime_logs_dir="${R
 --runtime_home_dir="${RUNTIME_HOME_DIR}" --nodejs_entry="${NODEJS_ENTRY}" --resource_label_path="${RESOURCE_LABEL_PATH}" --npu_device_info_path="${NPU_DEVICE_INFO_PATH}" \
 --runtime_ds_connect_timeout="${RUNTIME_DS_CONNECT_TIMEOUT}" --kill_process_timeout_seconds="${KILL_PROCESS_TIMEOUT_SECONDS}" \
 --enable_clean_stream_producer="${ENABLE_CLEAN_STREAM_PRODUCER}" \
---runtime_instance_debug_enable="${RUNTIME_INSTANCE_DEBUG_ENABLE}" --user_log_export_mode="${USER_LOG_EXPORT_MODE}"
+--runtime_instance_debug_enable="${RUNTIME_INSTANCE_DEBUG_ENABLE}" --user_log_export_mode="${USER_LOG_EXPORT_MODE}" \
+--enable_dis_conv_call_stack="${ENABLE_DISTRIBUTED_CONVERGENT_CALL_STACK}"

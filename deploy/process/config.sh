@@ -35,7 +35,7 @@ ds_worker_unique_enable,log_level:,\
 enable_distributed_master,\
 log_root:,fs_log_path:,fs_log_level:,fs_log_compress_enable:,fs_log_rolling_max_size:,fs_log_rolling_max_files:,fs_log_rolling_retention_days:,\
 fs_log_async_log_buf_secs:,fs_log_async_log_max_queue_size:,fs_log_async_log_thread_count:,fs_also_log_to_stderr:,\
-runtime_log_level:,runtime_log_path:,runtime_log_rolling_max_size:,runtime_log_rolling_max_files:,runtime_default_config:,etcd_log_path:,\
+runtime_log_level:,runtime_log_path:,runtime_log_rolling_max_size:,runtime_log_rolling_max_files:,runtime_default_config:,etcd_log_path:,enable_dis_conv_call_stack:,\
 runtime_std_rolling_enable:,\
 ds_log_level:,ds_log_path:,ds_log_rolling_max_size:,ds_log_rolling_max_files:,\
 is_schedule_tolerate_abnormal:,max_instance_cpu_size:,max_instance_memory_size:,\
@@ -133,6 +133,7 @@ METRICS_CONFIG_FILE=$(readlink -m '${BASE_DIR}/../../../functionsystem/config/me
 RUNTIME_METRICS_CONFIG=""
 STATE_STORAGE_TYPE="datasystem"
 PULL_RESOURCE_INTERVAL=1000
+ENABLE_DIS_CONV_CALL_STACK=false
 BLOCK=false
 ENABLE_MULTI_MASTER="false"
 ELECTION_MODE="standalone"
@@ -374,6 +375,7 @@ function usage() {
   echo -e "     --cpu_reserved                                      cpu reserved for data system worker(default 0)"
   echo -e "     --state_storage_type                                state storage type, options: disable/datasystem (default disable)"
   echo -e "     --pull_resource_interval                            set the interval of pull resource, unit ms(default 1000)"
+  echo -e "     --enable_dis_conv_call_stack                        enable distributed convergent call stack, options:true/false(default true)"
   echo -e "     --block                                             deploy by the blocking way or run in background(default false for master and true for agent)"
   echo -e "     --custom_resources                                  will pass to function agent as custom resources"
   echo -e "     --labels                                            will pass to function agent as init labels"
@@ -581,6 +583,7 @@ function parse_opt() {
     --enable_trace) ENABLE_TRACE=$2 && shift 2 ;;
     --trace_config) TRACE_CONFIG=$2 && shift 2 ;;
     --runtime_trace_config) RUNTIME_TRACE_CONFIG=$2 && shift 2 ;;
+    --enable_dis_conv_call_stack) ENABLE_DIS_CONV_CALL_STACK=$2 && shift 2 ;;
     --enable_metrics) ENABLE_METRICS=$2 && shift 2 ;;
     --metrics_config) METRICS_CONFIG=$2 && shift 2 ;;
     --metrics_config_file) METRICS_CONFIG_FILE=$2 && shift 2 ;;
@@ -1077,6 +1080,10 @@ function check_input() {
      log_error "enable_trace can only be 'true' or 'false'"
      return 1
   fi
+  if [ "X${ENABLE_DIS_CONV_CALL_STACK}" != "Xtrue" ] && [ "X${ENABLE_DIS_CONV_CALL_STACK}" != "Xfalse" ]; then
+     log_error "enable_dis_conv_call_stack can only be 'true' or 'false'"
+     return 1
+  fi
   if [ "X${ENABLE_METRICS}" != "Xtrue" ] && [ "X${ENABLE_METRICS}" != "Xfalse" ]; then
      log_error "enable_metrics can only be 'true' or 'false'"
      return 1
@@ -1442,7 +1449,7 @@ function export_config() {
   # etcd
   export ETCD_IP ETCD_PORT ETCD_PEER_PORT ETCD_PROXY_NUMS ETCD_PROXY_NUMS ETCD_PROXY_PORT ETCD_NO_FSYNC
   # trace and metrics
-  export ENABLE_TRACE TRACE_CONFIG RUNTIME_TRACE_CONFIG ENABLE_METRICS METRICS_CONFIG METRICS_CONFIG_FILE STATUS_COLLECT_ENABLE STATUS_COLLECT_INTERVAL
+  export ENABLE_TRACE TRACE_CONFIG RUNTIME_TRACE_CONFIG ENABLE_METRICS METRICS_CONFIG METRICS_CONFIG_FILE STATUS_COLLECT_ENABLE STATUS_COLLECT_INTERVAL ENABLE_DIS_CONV_CALL_STACK
   export FUNCTION_AGENT_LITEBUS_THREAD FUNCTION_PROXY_LITEBUS_THREAD FUNCTION_MASTER_LITEBUS_THREAD
   export SYSTEM_TIMEOUT FUNCTION_PROXY_UNIQUE_ENABLE
   export ENABLE_META_STORE ENABLE_PERSISTENCE META_STORE_MODE META_STORE_EXCLUDED_KEYS

@@ -321,6 +321,12 @@ global:
     # jvm prestart custom args
     # example '["-XX:+UseG1GC","-XX:+TieredCompilation"]'
     jvmCustomArgs: '[]'
+    # If true, enables distributed convergent call stack, exception thrown by user code will be accurately located,
+    # user can locate remote exceptions and errors occurred in the distributed call chain in a simpler way
+    # using distributed convergent call stack like in a single process
+    # otherwise disable
+    disConvCallStack:
+      enable: false
     # default args for runtime
     defaultArgs:
       java8: '["-XX:InitialRAMPercentage=35.0", "-XX:+UseConcMarkSweepGC", "-XX:+CMSClassUnloadingEnabled", "-XX:+CMSIncrementalMode", "-XX:+CMSScavengeBeforeRemark", "-XX:+UseCMSInitiatingOccupancyOnly", "-XX:CMSInitiatingOccupancyFraction=70", "-XX:CMSFullGCsBeforeCompaction=5", "-XX:MaxGCPauseMillis=200", "-XX:+ExplicitGCInvokesConcurrent", "-XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses"]'
