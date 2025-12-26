@@ -142,7 +142,7 @@ spec:
         volumeMounts:
         - mountPath: /etc/localtime
           name: local-time
-        - mountPath: /home/sn/config
+        - mountPath: /home/yuanrong/config
           name: meta-service-configmap
         - mountPath: /home/sn/log
           name: varlog
