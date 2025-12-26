@@ -229,10 +229,10 @@ nlohmann::json GetExportConfigs()
 std::string GetLibPath()
 {
     auto path = GetCurrentPath();
-    auto idx = path.rfind("yuanrong-runtime");
+    auto idx = path.find("yuanrong/");
     if (idx != std::string::npos) {
         std::string subPath = path.substr(0, idx);
-        return subPath + "yuanrong-runtime/metrics/lib";
+        return subPath + "yuanrong/metrics/lib";
     }
     return "";
 }

@@ -12,7 +12,7 @@ global:
   # If the value is false, the default priorityClass is system-cluster-critical.
   # If the value is true, a priorityClass with preemptionPolicy Never is created.
   enableNonPreemptive: false
-  imageRegistry:
+  imageRegistry: ImageRepo
   images:
     common: functionsystem:version_replace
     agentInit: function-agent-init:version_replace

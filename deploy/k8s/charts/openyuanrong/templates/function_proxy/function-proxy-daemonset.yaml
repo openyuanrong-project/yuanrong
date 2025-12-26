@@ -68,6 +68,13 @@ spec:
         - configMap:
             defaultMode: 0440
             items:
+              - key: services.yaml
+                path: services.yaml
+            name: services-config
+          name: services
+        - configMap:
+            defaultMode: 0440
+            items:
               - key: redisConfig.json
                 path: conf.json
             name: function-proxy-config
@@ -411,3 +418,6 @@ spec:
               readOnly: true
             - mountPath: /home/sn/metrics
               name: metrics-parent-dir
+            - mountPath: /home/sn/service-config
+              name: services
+              readOnly: true

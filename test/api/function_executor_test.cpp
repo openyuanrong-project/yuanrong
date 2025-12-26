@@ -82,7 +82,7 @@ TEST_F(FunctionExecutorTest, LoadFunctionsSuccessfullyTest)
 {
     fs::path currentPath = fs::current_path();
     auto path = currentPath.string();
-    auto idx = path.rfind("yuanrong");
+    auto idx = path.find("yuanrong/");
     std::string subPath = path.substr(0, idx);
     auto libPath = subPath + "yuanrong/metrics/lib";
     InitGlobalTimer();

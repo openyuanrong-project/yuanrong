@@ -9,7 +9,8 @@ ENV USER_UID=${SN_ID} \
 ENV GROUP_ID=${USER_UID} \
     GROUP_NAME=${USER_NAME} \
     HOME=/home/${USER_NAME} \
-    FUNCTIONSYSTEM_OUTPUT_DIR=openyuanrong
+    FUNCTIONSYSTEM_OUTPUT_DIR=openyuanrong \
+    LIB_PATH=${HOME}/lib
 
 ENV HOME_FUNCTION_MASTER=${HOME}/function-master \
     HOME_IAM_ADAPTOR=${HOME}/iam-adaptor \
