@@ -11,11 +11,11 @@
 
 * 硬件
 
-    | 项目       | 要求                 |
+    | 项目       | 要求                  |
     |------------|---------------------|
-    | CPU        | 4U 以上，推荐 16U    |
-    | 内存        | 10GB 以上，推荐 32G  |
-    | 硬盘空间    | 50GB 以上            |
+    | CPU        | 4核 以上，推荐 16核        |
+    | 内存        | 10GB 以上，推荐 32GB     |
+    | 硬盘空间    | 50GB 以上             |
     | 操作系统平台 | Linux x64/Linux ARM |
 
 * 操作系统
@@ -118,7 +118,7 @@ cp -a yuanrong-datasystem/output/yr-datasystem-v0.0.0.tar.gz yuanrong-functionsy
 在函数系统的源码根目录中，我们可以使用内置的编译脚本的`build`指令实现源码的编译。编译过程将分为三个环节：三方件下载编译，二方件编译，系统源码编译。整个流程将自动完成，对于已经完成编译的组件将自动跳过。
 
 ```shell
-cd /opt/openyuanrong
+cd /opt/openyuanrong/yuanrong-functionsystem
 chmod +x run.sh
 ./run.sh build
 ```
@@ -136,7 +136,7 @@ chmod +x run.sh
 
 :::
 
-**Step3: 产物打包**
+**Step4: 产物打包**
 
 函数系统的主要编译产物为多个二进制程序与公共的动态库，同时将搭配一些依赖和运行配置。因此您可以使用`pack`命令完成函数系统的构建产物打包。打包产物和打包内容将统一存放在`output`文件夹中。
 
@@ -190,7 +190,7 @@ git clone -b master https://gitee.com/openeuler/yuanrong.git
 cd /opt/openyuanrong/yuanrong
 bash build.sh -P
 ```
-如果出现依赖下载失败报错，可以尝试删除 /opt/openyuanrong/yuanrong/thirdparty/runtime_deps 之后重新编译
+如果出现依赖下载失败报错，可以尝试删除 /opt/openyuanrong/yuanrong/thirdparty/runtime_deps 目录后重新编译
 
 :::{Note}
 
