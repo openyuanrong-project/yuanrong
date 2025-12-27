@@ -288,6 +288,7 @@ cdef extern from "src/proto/libruntime.pb.h" nogil:
         CREATE_NORMAL_FUNCTION_INSTANCE "libruntime::InvokeType::CreateInstanceStateless"
         INVOKE_NORMAL_FUNCTION "libruntime::InvokeType::InvokeFunctionStateless"
         GET_NAMED_INSTANCE_METADATA "libruntime::InvokeType::GetNamedInstanceMeta"
+        DELETE_REMOTE_TENSOR "libruntime::InvokeType::DeleteRemoteTensor"
 
     cdef enum CSubscriptionType "libruntime::SubscriptionType":
         STREAM "libruntime::SubscriptionType::STREAM"
@@ -348,6 +349,8 @@ cdef extern from "src/dto/invoke_options.h" nogil:
         string initializerCodeId
         bool isGenerator
         bool isAsync
+        string tensorTransportTarget
+        bool enableTensorTransport
 
     cdef cppclass CGroupOptions "YR::Libruntime::GroupOpts":
         string groupName
@@ -399,6 +402,7 @@ cdef extern from "src/dto/invoke_options.h" nogil:
         unordered_map[string, string] envVars
         int timeout
         bool isGetInstance
+        bool isDeleteRemoteTensor
         string traceId
         string workingDir
         bool preemptedAllowed

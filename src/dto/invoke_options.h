@@ -166,6 +166,8 @@ struct InvokeOptions {
 
     bool isGetInstance = false;
 
+    bool isDeleteRemoteTensor = false;
+
     std::unordered_map<std::string, std::string> invokeLabels;
 
     std::unordered_map<std::string, std::string> aliasParams;
@@ -194,6 +196,8 @@ struct FunctionMeta {
     bool isAsync = false;
     bool isGenerator = false;
     bool needOrder = false;
+    std::string tensorTransportTarget = "";
+    bool enableTensorTransport = false;
     bool IsServiceApiType()
     {
         return (apiType == libruntime::ApiType::Faas or apiType == libruntime::ApiType::Serve);

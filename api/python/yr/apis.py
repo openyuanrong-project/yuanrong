@@ -32,6 +32,7 @@ from yr.config_manager import ConfigManager
 from yr.decorator import function_proxy, instance_proxy
 from yr.executor.executor import Executor
 from yr.fnruntime import Consumer, Producer, auto_get_cluster_access_info
+from yr.npu_object import NpuObject
 from yr.object_ref import ObjectRef
 from yr.resource_group_ref import RgObjectRef
 from yr.runtime import ExistenceOpt, WriteMode, CacheType, SetParam, MSetParam, CreateParam, GetParams
@@ -42,6 +43,7 @@ from yr.common.utils import CrossLanguageInfo
 from yr.resource_group import ResourceGroup
 
 from yr.serialization import Serialization
+from yr.ds_tensor_client_manager import get_tensor_client
 
 __g_is_init = False
 _MAX_INT = 0x7FFFFFFF
@@ -263,6 +265,45 @@ def put(obj: object, create_param: CreateParam = CreateParam()) -> ObjectRef:
     return ObjectRef(runtime_holder.global_runtime.get_runtime().put(obj, create_param), need_incre=False)
 
 
+def _recurse(obj, ref_obj):
+    if isinstance(obj, NpuObject):
+        try:
+            import torch
+            from torch.npu import current_device
+            data_system_import = True
+        except ImportError as e:
+            data_system_import = False
+            import_error = e
+        if not data_system_import:
+            raise RuntimeError(f"import err: {import_error}")
+
+        out_tensor = torch.zeros(size=obj.size, dtype=obj.dtype, device=current_device())
+        ds_tensor_client = get_tensor_client()
+        failed_keys = ds_tensor_client.dev_mget([obj.id], [out_tensor])
+        if failed_keys:
+            raise RuntimeError(f"dev_mget failed, failed keys: {failed_keys}")
+        ref_obj.npu_obj_ids.append(obj.id)
+        ref_obj.instance_id = obj.instance_id
+        return out_tensor
+    if isinstance(obj, list):
+        return [_recurse(item, ref_obj) for item in obj]
+    if isinstance(obj, dict):
+        return {k: _recurse(v, ref_obj) for k, v in obj.items()}
+    if isinstance(obj, set):
+        new_set = set()
+        for item in obj:
+            new_set.add(_recurse(item, ref_obj))
+        return new_set
+    if isinstance(obj, tuple):
+        return tuple(_recurse(item, ref_obj) for item in obj)
+    return obj
+
+
+def _restore(obj, object_refs):
+    for i, _ in enumerate(obj):
+        obj[i] = _recurse(obj[i], object_refs[i])
+
+
 @check_initialized
 def get(obj_refs: Union["ObjectRef", List, "RgObjectRef"], timeout: int = constants.DEFAULT_GET_TIMEOUT,
         allow_partial: bool = _DEFAULT_ALLOW_PARTIAL) -> object:
@@ -334,6 +375,7 @@ def get(obj_refs: Union["ObjectRef", List, "RgObjectRef"], timeout: int = consta
     _check_object_ref(obj_refs)
     objects = runtime_holder.global_runtime.get_runtime().get(
         [ref.id for ref in obj_refs], timeout, allow_partial)
+    _restore(objects, obj_refs)
     if is_single_obj:
         return objects[0]
     return objects
@@ -651,15 +693,24 @@ def method(*args, **kwargs):
 
         return identity_decorator
 
-    if len(args) != 0 or "return_nums" not in kwargs:
-        raise ValueError("invalid params")
-
     def annotate_method(class_method):
-        return_nums = kwargs.get("return_nums", None)
+        return_nums = kwargs.get("return_nums", 1)
         if not isinstance(return_nums, int):
             raise TypeError(
                 f"invalid return_nums type: {type(return_nums)}, should be an int")
         class_method.__return_nums__ = return_nums
+
+        tensor_transport_target = kwargs.get("tensor_transport_target", None)
+        if isinstance(tensor_transport_target, str) and tensor_transport_target != "npu":
+            raise TypeError(
+                f"invalid tensor_transport_target value: {tensor_transport_target}")
+        class_method.__tensor_transport_target__ = "" if tensor_transport_target is None else tensor_transport_target
+
+        enable_tensor_transport = kwargs.get("enable_tensor_transport", None)
+        if enable_tensor_transport is not None and not isinstance(enable_tensor_transport, bool):
+            raise TypeError(
+                f"invalid tensor_transport_target type: {type(enable_tensor_transport)}, should be an bool")
+        class_method.__enable_tensor_transport__ = enable_tensor_transport
         return class_method
 
     return annotate_method

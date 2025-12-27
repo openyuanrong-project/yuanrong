@@ -16,12 +16,14 @@
 
 """function handler"""
 
+import os
 import traceback
 import inspect
 from typing import List, Tuple
+import uuid
 
 from yr.libruntime_pb2 import InvokeType
-
+from yr.npu_object import NpuObject
 import yr
 from yr import log
 from yr.code_manager import CodeManager
@@ -31,8 +33,81 @@ from yr.exception import YRInvokeError
 from yr.executor.handler_intf import HandlerIntf
 from yr.executor.instance_manager import InstanceManager
 from yr.signature import recover_args
+from yr.ds_tensor_client_manager import get_tensor_client
+
+try:
+    import torch
+    import torch_npu
+    from torch.npu import current_device
+
+    TORCH_IMPORTED = True
+except ImportError as import_err:
+    TORCH_IMPORTED = False
+    _import_error = import_err
 
 USER_SHUTDOWN_FUNC_NAME = "__yr_shutdown__"
+
+
+def _store_tensor_to_ds(results, instance_function_name):
+    def dev_mset_to_ds(tensor: torch.Tensor, instance_function_name):
+        key = str(uuid.uuid4())
+        ds_client = get_tensor_client()
+        log.get_logger().info(
+            f"start dev mset, tensor key is {key}, function name: {instance_function_name}")
+        failed_keys = ds_client.dev_mset([key], [tensor])
+        if failed_keys:
+            log.get_logger().error(
+                f"dev mset failed, failed keys is {failed_keys}, function name is {instance_function_name}")
+            raise RuntimeError(
+                f"dev_mset failed, failed keys: {failed_keys}, function name: {instance_function_name}")
+        InstanceManager().store_tensor_in_local(tensor, key)
+        return NpuObject(key, tensor.size(), tensor.dtype, tensor.device, os.getenv("YR_DS_ADDRESS"),
+                         os.getenv("INSTANCE_ID"))
+
+    if isinstance(results, torch.Tensor):
+        return dev_mset_to_ds(results, instance_function_name)
+    if isinstance(results, list):
+        return [dev_mset_to_ds(result, instance_function_name) for result in results]
+    if isinstance(results, tuple):
+        return tuple(dev_mset_to_ds(result, instance_function_name) for result in results)
+    if isinstance(results, set):
+        return {dev_mset_to_ds(result, instance_function_name) for result in results}
+    if isinstance(results, dict):
+        return {k: dev_mset_to_ds(v, instance_function_name) for k, v in results.items()}
+    return results
+
+
+def _get_tensor_from_ds(*args, **kwargs):
+    new_args = []
+    new_kwargs = {}
+
+    def dev_mget_from_ds(arg):
+        if isinstance(arg, NpuObject):
+            if not TORCH_IMPORTED:
+                raise RuntimeError(f"import err: {_import_error}")
+            ds_client = get_tensor_client()
+            out_tensor = torch.zeros(size=arg.size, dtype=arg.dtype, device=f'npu:{current_device()}')
+            log.get_logger().info(f"start get tensor from ds, arg id is {arg.id}, current device is {current_device()}")
+            failed_keys = ds_client.dev_mget([arg.id], [out_tensor])
+            if failed_keys:
+                log.get_logger().info(f"dev_mget failed, arg id is {arg.id}, failed key is {failed_keys}")
+                raise RuntimeError(f"dev_mget failed, failed keys: {failed_keys}")
+            return out_tensor
+        elif isinstance(arg, list):
+            return [dev_mget_from_ds(item) for item in arg]
+        elif isinstance(arg, tuple):
+            return tuple(dev_mget_from_ds(item) for item in arg)
+        elif isinstance(arg, set):
+            return {dev_mget_from_ds(item) for item in arg}
+        elif isinstance(arg, dict):
+            return {key: dev_mget_from_ds(value) for key, value in arg.items()}
+        return arg
+
+    for arg in args:
+        new_args.append(dev_mget_from_ds(arg))
+    for k, v in kwargs.items():
+        new_kwargs[k] = dev_mget_from_ds(v)
+    return new_args, new_kwargs
 
 
 class FunctionHandler(HandlerIntf):
@@ -56,6 +131,8 @@ class FunctionHandler(HandlerIntf):
                 result = self.__invoke_stateless_function(func_meta, args)
             elif invoke_type == InvokeType.GetNamedInstanceMeta:
                 result = InstanceManager().class_code
+            elif invoke_type == InvokeType.DeleteRemoteTensor:
+                result = self.__delete_tensors(args)
             else:
                 msg = f"invalid invoke type {invoke_type}"
                 log.get_logger().warning(msg)
@@ -116,9 +193,14 @@ class FunctionHandler(HandlerIntf):
         InstanceManager().init(instance)
 
     def __invoke_instance(self, func_meta, args, is_actor_async) -> object:
-        instance_function_name = func_meta.functionName
+        enable_tensor_transport = func_meta.enableTensorTransport
+        tensor_transport_target = func_meta.tensorTransportTarget
         args, kwargs = self.__get_param(args)
 
+        if tensor_transport_target == 'npu':
+            args, kwargs = _get_tensor_from_ds(*args, **kwargs)
+
+        instance_function_name = func_meta.functionName
         instance = InstanceManager().instance()
         if instance is None:
             raise RuntimeError(
@@ -133,12 +215,20 @@ class FunctionHandler(HandlerIntf):
                 if inspect.isawaitable(res):
                     return await res
                 return res
+
             return wrapper
 
         func = getattr(instance, instance_function_name)
         if not func_meta.isAsync and is_actor_async:
             func = sync_to_async(func)
-        return func(*args, **kwargs)
+        results = func(*args, **kwargs)
+        if enable_tensor_transport:
+            return _store_tensor_to_ds(results, instance_function_name)
+        return results
+
+    def __delete_tensors(self, args):
+        args, _ = self.__get_param(args)
+        return InstanceManager().erase_tensors(args)
 
     def __initialize_stateless_instance(self, func_meta):
         if func_meta.initializerCodeID:

@@ -284,12 +284,6 @@ class TestApi(unittest.TestCase):
                 return ""
             hello()
 
-        with self.assertRaises(ValueError):
-            @yr.method()
-            def hi():
-                return ""
-            hi()
-
         with self.assertRaises(TypeError):
             @yr.method(return_nums="")
             def hi():

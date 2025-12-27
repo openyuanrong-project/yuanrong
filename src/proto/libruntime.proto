@@ -27,6 +27,7 @@ enum InvokeType {
     CreateInstanceStateless = 2;
     InvokeFunctionStateless = 3;
     GetNamedInstanceMeta = 4;
+    DeleteRemoteTensor = 5;
 }
 
 enum LanguageType {
@@ -93,6 +94,8 @@ message FunctionMeta {
     bool isAsync = 13;
     bool isGenerator = 14;
     bool needOrder = 15;
+    string tensorTransportTarget = 16;
+    bool enableTensorTransport = 17;
 }
 
 message FunctionID {

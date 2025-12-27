@@ -470,7 +470,10 @@ ErrorInfo Libruntime::InvokeByInstanceId(const YR::Libruntime::FunctionMeta &fun
             AddGeneratorReceiver(spec);
             if (PutRefArgToDs(spec)) {
                 auto namedId = spec->GetNamedInstanceId();
-                if (namedId.empty()) {
+                if (spec->opts.isDeleteRemoteTensor) {
+                    spec->invokeInstanceId = spec->instanceId;
+                    spec->invokeType = libruntime::InvokeType::DeleteRemoteTensor;
+                } else if (namedId.empty()) {
                     spec->invokeInstanceId = memStore->GetInstanceId(spec->instanceId);
                 } else {
                     spec->invokeInstanceId = memStore->GetInstanceId(namedId);

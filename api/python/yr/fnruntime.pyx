@@ -402,6 +402,8 @@ cdef function_meta_from_py(CFunctionMeta & functionMeta, func_meta: FunctionMeta
     functionMeta.initializerCodeId = func_meta.initializerCodeID
     functionMeta.isGenerator = func_meta.isGenerator
     functionMeta.isAsync = func_meta.isAsync
+    functionMeta.tensorTransportTarget = func_meta.tensorTransportTarget
+    functionMeta.enableTensorTransport = func_meta.enableTensorTransport
 
 cdef function_meta_from_cpp(const CFunctionMeta & function):
     cdef:
@@ -419,7 +421,9 @@ cdef function_meta_from_cpp(const CFunctionMeta & function):
                              ns=function.ns.decode(),
                              initializerCodeID=function.initializerCodeId.decode(),
                              isGenerator=function.isGenerator,
-                             isAsync=function.isAsync)
+                             isAsync=function.isAsync,
+                             tensorTransportTarget=function.tensorTransportTarget,
+                             enableTensorTransport=function.enableTensorTransport)
     return func_meta
 
 cdef function_group_running_info_from_cpp(const CFunctionGroupRunningInfo & info):
@@ -461,6 +465,8 @@ cdef invoke_type_from_cpp(const CInvokeType & c_invoke_type):
         invoke_type = InvokeType.InvokeFunctionStateless
     elif c_invoke_type == CInvokeType.GET_NAMED_INSTANCE_METADATA:
         invoke_type = InvokeType.GetNamedInstanceMeta
+    elif c_invoke_type == CInvokeType.DELETE_REMOTE_TENSOR:
+        invoke_type = InvokeType.DeleteRemoteTensor
     return invoke_type
 
 cdef parse_rginfo_to_python(cRgInfoUnit: CResourceGroupUnit):
@@ -750,7 +756,7 @@ cdef CErrorInfo function_execute_callback_internal(const CFunctionMeta & functio
         return error_info_from_py(error_info)
     need_serialize = False
     if func_meta.apiType == ApiType.Function and \
-            invoke_type in (InvokeType.InvokeFunction, InvokeType.InvokeFunctionStateless, InvokeType.GetNamedInstanceMeta):
+            invoke_type in (InvokeType.InvokeFunction, InvokeType.InvokeFunctionStateless, InvokeType.GetNamedInstanceMeta, InvokeType.DeleteRemoteTensor):
         need_serialize = True
     if func_meta.isGenerator and invoke_type in (InvokeType.InvokeFunction, InvokeType.InvokeFunctionStateless):
         generator_id = returnObjects.at(0).get().id.decode()
@@ -966,6 +972,7 @@ cdef parse_invoke_opts(CInvokeOptions & opts, opt: yr.InvokeOptions, group_info:
     opts.preemptedAllowed = opt.preempted_allowed
     opts.instancePriority = opt.instance_priority
     opts.scheduleTimeoutMs = opt.schedule_timeout_ms
+    opts.isDeleteRemoteTensor = opt.is_delete_remote_tensor
 
 cdef class Producer:
     """

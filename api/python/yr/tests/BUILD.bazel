@@ -148,3 +148,12 @@ py_test(
     deps = ["//api/python:yr_lib"],
     env = SAN_ENV,
 )
+py_test(
+    name="test_ds_tensor_client_manager",
+    size="small",
+    srcs=["test_ds_tensor_client_manager.py"],
+    tags = ["smoke"],
+    imports = ["../../"],
+    deps = ["//api/python:yr_lib"],
+    env = SAN_ENV,
+)

@@ -359,9 +359,8 @@ void InvokeAdaptor::CallHandler(const std::shared_ptr<CallMessageSpec> &req)
                     return;
                 });
             };
-            YRLOG_DEBUG("start exec user func, req id is {}, is async {}, func name is {}",
-                        req->Immutable().requestid(), metaData.functionmeta().isasync(),
-                        metaData.functionmeta().functionname());
+            YRLOG_DEBUG("start exec user func, req id is {}, is async {}, function meta is {}",
+                        req->Immutable().requestid(), metaData.functionmeta().isasync(), metaData.DebugString());
             if (metaData.functionmeta().isasync() && !req->Immutable().iscreate()) {
                 fiberPool_->Handle([handler]() mutable { handler(); });
             } else {
@@ -613,6 +612,8 @@ CallResult InvokeAdaptor::Call(const CallRequest &req, const libruntime::MetaDat
     functionMeta.apiType = metaData.functionmeta().apitype();
     functionMeta.isGenerator = metaData.functionmeta().isgenerator();
     functionMeta.isAsync = metaData.functionmeta().isasync();
+    functionMeta.enableTensorTransport = metaData.functionmeta().enabletensortransport();
+    functionMeta.tensorTransportTarget = metaData.functionmeta().tensortransporttarget();
     if (functionMeta.apiType != libruntime::ApiType::Function) {
         returnObjects[0]->alwaysNative = true;
     }

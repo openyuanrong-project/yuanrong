@@ -33,6 +33,7 @@ class InstanceManager:
         self.__is_async = False
         self.__code_obj_ref = None
         self.__code_id = None
+        self._tensor_map = {}
 
     @property
     def config(self):
@@ -111,6 +112,15 @@ class InstanceManager:
         self.__class_code = ins_package.get_class_code()
         self.__is_async = ins_package.get_is_async()
         self.set_code_ref(ins_package.get_code_id(), True)
+
+    def store_tensor_in_local(self, tensor, npu_obj_id):
+        self._tensor_map[npu_obj_id] = tensor
+
+    def erase_tensors(self, npu_obj_ids):
+        if not isinstance(npu_obj_ids, list):
+            return
+        for npu_id in npu_obj_ids:
+            self._tensor_map.pop(npu_id, None)
 
 
 class InstancePackage:
