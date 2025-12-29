@@ -1,0 +1,608 @@
+version = "1"
+
+[mode]
+
+[mode.master]
+etcd = true
+ds_master = true
+ds_worker = true
+function_master = true
+function_proxy = true
+function_agent = true
+frontend = false
+dashboard = false
+collector = false
+meta_service = false
+function_scheduler = false
+
+[mode.agent]
+etcd = false
+ds_master = false
+function_master = false
+ds_worker = true
+function_proxy = true
+function_agent = true
+frontend = false
+dashboard = false
+collector = false
+meta_service = false
+function_scheduler = false
+
+{#
+ Select etcd_local:
+ - Prefer the entry whose ip == values.host_ip
+ - If none matches (etcd not on this node), fall back to the first entry
+ This avoids index errors when etcd runs on a different node.
+ #}
+{% set etcd_candidates = values.etcd.address | selectattr('ip', 'equalto', values.host_ip) | list %}
+{% if etcd_candidates %}
+{% set etcd_local = etcd_candidates[0] %}
+{% else %}
+{% set etcd_local = values.etcd.address[0] %}
+{% endif %}
+
+{% if values.etcd.enable_multi_master %}
+{% set etcd_cluster %}
+{% for node in values.etcd.address -%}
+{{ node.ip }}:{{ node.port }}{% if not loop.last %},{% endif %}
+{%- endfor %}
+{% endset %}
+{% else %}
+{% set etcd_cluster = etcd_local.ip ~ ':' ~ etcd_local.port %}
+{% endif %}
+
+{% set fs_log_config = {
+    "filepath": values.fs.log.path,
+    "level": values.fs.log.level,
+    "compress": values.fs.log.compress_enable,
+    "rolling": {
+        "maxsize": values.fs.log.rolling_max_size,
+        "maxfiles": values.fs.log.rolling_max_files,
+        "retentionDays": values.fs.log.rolling_retention_days
+    },
+    "async": {
+        "logBufSecs": values.fs.log.async_log_buf_secs,
+        "maxQueueSize": values.fs.log.async_log_max_queue_size,
+        "threadCount": values.fs.log.async_log_thread_count
+    },
+    "alsologtostderr": values.fs.log.also_log_to_stderr
+} %}
+
+{#
+ Determine local etcd index in values.etcd.address for multi-master.
+ #}
+{% set ns = namespace(etcd_index=0) %}
+{% for node in values.etcd.address %}
+{% if node.ip == etcd_local.ip and node.port == etcd_local.port and node.peer_port == etcd_local.peer_port %}
+{% set ns.etcd_index = loop.index0 %}
+{% endif %}
+{% endfor %}
+
+[etcd]
+bin_path = "{{ values.etcd.bin_path }}"
+
+[etcd.health_check]
+enable = true
+auth_type = "{{ values.etcd.auth_type }}"
+etcdctl_path = "{{ values.yr_package_path }}/third_party/etcd/etcdctl"
+timeout = 20
+endpoint = "{% if values.etcd.enable_multi_master %}{% for node in values.etcd.address -%}{{ 'https' if values.etcd.auth_type == 'TLS' else 'http' }}://{{ node.ip }}:{{ node.port }}{% if not loop.last %},{% endif %}{%- endfor %}{% else %}{{ 'https' if values.etcd.auth_type == 'TLS' else 'http' }}://{{ etcd_local.ip }}:{{ etcd_local.port }}{% endif %}"
+{% if values.etcd.auth_type == "TLS" %}
+client_cert_file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_cert_file }}"
+client_key_file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_key_file }}"
+{% endif %}
+
+[etcd.env]
+LD_LIBRARY_PATH = ""
+
+[etcd.args]
+name = "{% if values.etcd.enable_multi_master %}etcd{{ ns.etcd_index }}{% else %}etcd0{% endif %}"
+unsafe-no-fsync = {{ 'false' if values.etcd.enable_multi_master else 'true' }}
+data-dir="{{ values.deploy_path }}/third_party/etcd"
+auto-compaction-retention="100000"
+auto-compaction-mode="revision"
+quota-backend-bytes="8589934592"
+# if tls enabled, use https urls
+listen-client-urls = "{{ 'https' if values.etcd.auth_type == 'TLS' else 'http' }}://{{ etcd_local.ip }}:{{ etcd_local.port }}"
+advertise-client-urls = "{{ 'https' if values.etcd.auth_type == 'TLS' else 'http' }}://{{ etcd_local.ip }}:{{ etcd_local.port }}"
+listen-peer-urls = "{{ 'https' if values.etcd.auth_type == 'TLS' else 'http' }}://{{ etcd_local.ip }}:{{ etcd_local.peer_port }}"
+{% if values.etcd.enable_multi_master or values.etcd.auth_type == "TLS" %}
+initial-advertise-peer-urls = "{{ 'https' if values.etcd.auth_type == 'TLS' else 'http' }}://{{ etcd_local.ip }}:{{ etcd_local.peer_port }}" 
+{% endif %}
+{% if values.etcd.auth_type == "TLS" %}
+client-cert-auth = true
+cipher-suites = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_AES_256_GCM_SHA384"
+trusted-ca-file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.ca_file }}"
+cert-file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.cert_file }}"
+key-file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.key_file }}"
+peer-client-cert-auth = true
+peer-trusted-ca-file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.ca_file }}"
+peer-cert-file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.cert_file }}"
+peer-key-file = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.key_file }}"
+{% endif %}
+{% if values.etcd.enable_multi_master %}
+initial-cluster = "{% for node in values.etcd.address -%}
+etcd{{ loop.index0 }}={{ 'https' if values.etcd.auth_type == 'TLS' else 'http' }}://{{ node.ip }}:{{ node.peer_port }}{% if not loop.last %},{% endif %}
+{%- endfor %}"
+initial-cluster-state = "new"
+initial-cluster-token = "etcd-cluster-1"
+{% endif -%}
+
+[ds_master]
+bin_path = "{{ values.ds_master.bin_path }}"
+
+[ds_master.health_check]
+enable = true
+timeout = 65
+endpoint = "{{ values.deploy_path }}/ds_master_{{ values.pid }}/master/health"
+
+[ds_master.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/datasystem/lib"
+
+[ds_master.args]
+master_address = "{{ values.ds_master.ip }}:{{ values.ds_master.port }}"
+log_dir = "{{ values.deploy_path }}/logs/data_system/master"
+worker_address = "{{ values.ds_master.ip }}:{{ values.ds_master.port }}"
+unix_domain_socket_dir = "{{ values.deploy_path }}/ds_master_{{ values.pid }}/socket"
+v = "0"
+minloglevel = "0"
+health_check_path = "{{ values.deploy_path }}/ds_master_{{ values.pid }}/master/health"
+ready_check_path = "{{ values.deploy_path }}/ds_master_{{ values.pid }}/master/ready"
+enable_reconciliation = false
+rpc_thread_num = 32
+heartbeat_interval_ms = 3000
+enable_multi_stubs = true
+max_log_size = 40
+max_log_file_num = 32
+node_dead_timeout_s = 30
+node_timeout_s = 10
+rocksdb_store_dir = "{{ values.deploy_path }}/ds_master_{{ values.pid }}/rocksdb"
+etcd_address = "{{ etcd_cluster }}"
+cluster_name = ""
+etcd_target_name_override = ""
+enable_etcd_auth = "{{ 'true' if values.etcd.auth_type == 'TLS' else 'false' }}"
+arena_per_tenant = 16
+enable_fallocate = true
+enable_huge_tlb = false
+enable_thp = false
+etcd_ca = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.ca_file }}"
+etcd_cert = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_cert_file }}"
+etcd_key = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_key_file }}"
+enable_curve_zmq = "{{ 'true' if values.ds.curve.enable else 'false' }}"
+curve_key_dir = "{{ values.ds.curve.base_path }}"
+logfile_mode = 416
+l2_cache_type = "none"
+sfs_path = ""
+log_monitor = false
+zmq_chunk_sz = 1048576
+enable_lossless_data_exit_mode = false
+enable_distributed_master = false
+stderrthreshold = 3
+
+[ds_worker]
+bin_path = "{{ values.ds_worker.bin_path }}"
+
+[ds_worker.health_check]
+enable = true
+timeout = 65
+endpoint = "{{ values.deploy_path }}/ds_worker_{{ values.pid }}/worker/health"
+
+[ds_worker.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/datasystem/lib"
+
+[ds_worker.args]
+master_address = "{% if values.etcd.enable_multi_master %}{% else %}{{ values.ds_master.ip ~ ':' ~ values.ds_master.port }}{% endif %}"
+log_dir = "{{ values.deploy_path }}/logs/data_system/worker"
+worker_address = "{{ values.ds_worker.ip }}:{{ values.ds_worker.port }}"
+unix_domain_socket_dir = "{{ values.deploy_path }}/ds_worker_{{ values.pid }}/socket"
+v = "0"
+minloglevel = "0"
+health_check_path = "{{ values.deploy_path }}/ds_worker_{{ values.pid }}/worker/health"
+ready_check_path = "{{ values.deploy_path }}/ds_worker_{{ values.pid }}/worker/ready"
+enable_reconciliation = false
+rpc_thread_num = 32
+heartbeat_interval_ms = 300000
+enable_multi_stubs = true
+max_log_size = 40
+max_log_file_num = 32
+node_dead_timeout_s = 86400
+node_timeout_s = 1800
+rocksdb_store_dir = "{{ values.deploy_path }}/ds_worker_{{ values.pid }}/rocksdb"
+etcd_address = "{{ etcd_cluster }}"
+cluster_name = ""
+etcd_target_name_override = ""
+enable_etcd_auth = "{{ 'true' if values.etcd.auth_type == 'TLS' else 'false' }}"
+arena_per_tenant = 16
+enable_fallocate = true
+enable_huge_tlb = false
+enable_thp = false
+etcd_ca = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.ca_file }}"
+etcd_cert = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_cert_file }}"
+etcd_key = "{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_key_file }}"
+enable_curve_zmq = "{{ 'true' if values.ds.curve.enable else 'false' }}"
+curve_key_dir = "{{ values.ds.curve.base_path }}"
+logfile_mode = 416
+l2_cache_type = "none"
+sfs_path = ""
+log_monitor = false
+zmq_chunk_sz = 1048576
+enable_lossless_data_exit_mode = false
+enable_distributed_master = {{ 'true' if values.etcd.enable_multi_master else 'false' }}
+stderrthreshold = 3
+shared_memory_size_mb = {{ values.shared_memory_num }}
+client_dead_timeout_s = 86400
+max_client_num = 1000
+memory_reclamation_time_second = 5
+#spill
+spill_directory = ""
+spill_size_limit = "{% if values.ds_worker.spill %}21474836480{% endif %}" # copy from data_system/deploy/install.sh
+
+[function_master]
+bin_path = "{{ values.function_master.bin_path }}"
+
+[function_master.health_check]
+enable = true
+timeout = 60
+endpoint = "{{ 'https' if values.fs.tls.enable else 'http' }}://{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}/global-scheduler/healthy"
+
+[function_master.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
+LD_PRELOAD = "" # for jemalloc use
+
+[function_master.args]
+ip = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
+{% if values.meta_store.enable and values.meta_store.mode != "passthrough" %}
+meta_store_address = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
+{% else %}
+meta_store_address = "{{ etcd_cluster }}"
+{% endif %}
+log_config = '''{{ fs_log_config | tojson }}'''
+etcd_address = "{{ etcd_cluster }}"
+node_id = "{{ values.node_id }}"
+sys_func_retry_period = 5000
+runtime_recover_enable = false
+litebus_thread_num = 20
+system_timeout = 1800000
+enable_metrics = true
+metrics_config = "{{ values.metrics.metrics_config }}"
+metrics_config_file = "{{ values.metrics.metrics_config_file }}"
+pull_resource_interval = 1000
+is_schedule_tolerate_abnormal = false
+enable_print_resource_view = false
+schedule_plugins = '''{{ values.fs.schedule_plugins }}'''
+schedule_relaxed = -1
+max_priority = 0
+enable_preemption = false
+enable_meta_store = false
+enable_persistence = false
+meta_store_mode = "local"
+meta_store_excluded_keys = ","
+election_mode = "{{ 'etcd' if values.etcd.enable_multi_master else 'standalone' }}"
+services_path = "{{ values.yr_package_path }}/cli/services.yaml"
+lib_path = "{{ values.yr_package_path }}/functionsystem/lib"
+etcd_auth_type = "{{ values.etcd.auth_type }}"
+etcd_root_ca_file = "{{ values.etcd.auth.ca_file }}"
+etcd_cert_file = "{{ values.etcd.auth.client_cert_file }}"
+etcd_key_file = "{{ values.etcd.auth.client_key_file }}"
+etcd_ssl_base_path = "{{ values.etcd.auth.base_path }}"
+etcd_table_prefix = ""
+etcd_target_name_override = ""
+ssl_enable = "{{ 'true' if values.fs.tls.enable else 'false' }}"
+ssl_base_path = "{{ values.fs.tls.base_path }}"
+ssl_root_file = "{{ values.fs.tls.ca_file }}"
+ssl_cert_file = "{{ values.fs.tls.cert_file }}"
+ssl_key_file = "{{ values.fs.tls.key_file }}"
+meta_store_max_flush_concurrency = 100
+meta_store_max_flush_batch_size = 50
+
+[function_proxy]
+bin_path = "{{ values.function_proxy.bin_path }}"
+
+[function_proxy.health_check]
+enable = true
+timeout = 60
+endpoint = "{{ 'https' if values.fs.tls.enable else 'http' }}://{{ values.function_proxy.ip }}:{{ values.function_proxy.port }}/local-scheduler/healthy"
+
+[function_proxy.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
+LD_PRELOAD = "" # for jemalloc use
+
+[function_proxy.args]
+ip = "{{ values.function_proxy.ip }}"
+{% if values.meta_store.enable and values.meta_store.mode != "passthrough" %}
+meta_store_address = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
+{% else %}
+meta_store_address = "{{ etcd_cluster }}"
+{% endif %}
+log_config = '''{{ fs_log_config | tojson }}'''
+etcd_address = "{{ etcd_cluster }}"
+node_id = "{{ values.node_id }}"
+services_path = "{{ values.yr_package_path }}/cli/services.yaml"
+lib_path = "{{ values.yr_package_path }}/functionsystem/lib"
+enable_metrics = true
+metrics_config = ""
+metrics_config_file = "{{ values.metrics.metrics_config_file }}"
+litebus_thread_num = 20
+runtime_recover_enable = false
+system_timeout = 1800000
+enable_print_resource_view = false
+schedule_plugins = '''{{ values.fs.schedule_plugins }}'''
+schedule_relaxed = -1
+max_priority = 0
+enable_preemption = false
+enable_meta_store = false
+meta_store_mode = "local"
+meta_store_excluded_keys = ","
+election_mode = "{{ 'etcd' if values.etcd.enable_multi_master else 'standalone' }}"
+ssl_enable = "{{ 'true' if values.fs.tls.enable else 'false' }}"
+ssl_base_path = "{{ values.fs.tls.base_path }}"
+ssl_root_file = "{{ values.fs.tls.ca_file }}"
+ssl_cert_file = "{{ values.fs.tls.cert_file }}"
+ssl_key_file = "{{ values.fs.tls.key_file }}"
+etcd_auth_type = "{{ values.etcd.auth_type }}"
+etcd_root_ca_file = "{{ values.etcd.auth.ca_file }}"
+etcd_cert_file = "{{ values.etcd.auth.client_cert_file }}"
+etcd_key_file = "{{ values.etcd.auth.client_key_file }}"
+etcd_ssl_base_path = "{{ values.etcd.auth.base_path }}"
+etcd_table_prefix = ""
+etcd_target_name_override = ""
+address = "{{ values.function_proxy.ip }}:{{ values.function_proxy.port }}"
+grpc_listen_port = {{ values.function_proxy.grpc_listen_port }}
+enable_driver = false
+enable_trace = false
+runtime_heartbeat_enable = true
+runtime_max_heartbeat_timeout_times = 18
+runtime_heartbeat_timeout_ms = 100000
+state_storage_type = "disable"
+runtime_init_call_timeout_seconds = 600
+global_scheduler_address = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
+update_resource_cycle = 1000
+runtime_conn_timeout_s = 30
+pseudo_data_plane = false
+cache_storage_host = "{{ values.ds_worker.ip }}"
+cache_storage_port = {{ values.ds_worker.port }}
+enable_server_mode = true
+max_instance_cpu_size = 16000
+max_instance_memory_size = 1073741824
+min_instance_cpu_size = 0
+min_instance_memory_size = 0
+unregister_while_stop = true
+runtime_ds_auth_enable = false
+runtime_ds_encrypt_enable = "{{ 'true' if values.ds.curve.enable else 'false' }}"
+curve_key_path = "{{ values.ds.curve.base_path }}"
+cache_storage_auth_enable = "{{ 'true' if values.ds.curve.cache_storage_auth_enable else 'false' }}"
+cache_storage_auth_type = "{{ values.ds.curve.cache_storage_auth_type }}"
+ssl_downgrade_enable = true
+enable_print_perf = false
+is_partial_watch_instances = false
+runtime_instance_debug_enable = false
+
+[function_agent]
+bin_path = "{{ values.function_agent.bin_path }}"
+
+[function_agent.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
+RUNTIME_METRICS_CONFIG = "false"
+INIT_LABELS = ""
+
+[function_agent.health_check]
+enable = true
+timeout = 60
+endpoint = "{{ 'https' if values.fs.tls.enable else 'http' }}://{{ values.function_agent.ip }}:{{ values.function_agent.port }}/function-agent/healthy"
+
+[function_agent.args]
+enable_merge_process = true
+ip = "{{ values.function_agent.ip }}"
+node_id = "{{ values.node_id }}"
+agent_uid = "{{ values.node_id }}"
+alias = ""
+log_config = '''{{ fs_log_config | tojson }}'''
+litebus_thread_num = 20
+local_scheduler_address = "{{ values.function_proxy.ip }}:{{ values.function_proxy.port }}"
+agent_listen_port = {{ values.function_agent.port }}
+runtime_dir = "{{ values.yr_package_path }}/runtime/service"
+runtime_home_dir = ""
+runtime_logs_dir = "{{ values.deploy_path }}/logs"
+runtime_std_log_dir = ""
+runtime_ld_library_path = "{{ values.yr_package_path }}/runtime/service/cpp/snlib:{{ values.yr_package_path }}/runtime/sdk/cpp/lib"
+runtime_log_level = "{{ values.log_level }}"
+runtime_max_log_size = 40
+runtime_max_log_file_num = 20
+runtime_config_dir = "{{ values.yr_package_path }}/runtime/service/cpp/config"
+enable_separated_redirect_runtime_std = false
+user_log_export_mode = "file"
+npu_collection_mode = "all"
+gpu_collection_enable = false
+proxy_grpc_server_port = "{{ values.function_proxy.grpc_listen_port }}"
+setCmdCred = false
+python_dependency_path = "{{ values.yr_package_path }}/runtime/service/python"
+python_log_config_path = "{{ values.yr_package_path }}/runtime/service/python/config/python-runtime-log.json"
+java_system_property = "{{ values.yr_package_path }}/runtime/service/java/log4j2.xml"
+java_system_library_path = "{{ values.yr_package_path }}/runtime/service/java/lib"
+host_ip = "{{ values.function_agent.ip }}"
+port = {{ values.function_agent.port }}
+data_system_port = "{{ values.ds_worker.port }}"
+agent_address = "{{ values.function_agent.ip }}:{{ values.function_agent.port }}"
+enable_metrics = true
+metrics_config = ""
+metrics_config_file = "{{ values.metrics.metrics_config_file }}"
+runtime_initial_port = 21006
+port_num = 65535
+system_timeout = 1800000
+metrics_collector_type = "proc"
+proc_metrics_cpu = {{ values.cpu_num }}
+custom_resources = ""
+is_protomsg_to_runtime = true # if cli_package_path/runtime/service/cpp/snlib exist, set to false
+massif_enable = false
+enable_inherit_env = false
+memory_detection_interval = 1000
+oom_kill_enable = false
+oom_kill_control_limit = 0
+oom_consecutive_detection_count = 3
+kill_process_timeout_seconds = 0
+runtime_ds_connect_timeout = 1800
+runtime_direct_connection_enable = false
+ssl_enable = "{{ 'true' if values.fs.tls.enable else 'false' }}"
+ssl_base_path = "{{ values.fs.tls.base_path }}"
+ssl_root_file = "{{ values.fs.tls.ca_file }}"
+ssl_cert_file = "{{ values.fs.tls.cert_file }}"
+ssl_key_file = "{{ values.fs.tls.key_file }}"
+etcd_auth_type = "{{ values.etcd.auth_type }}"
+etcd_root_ca_file = "{{ values.etcd.auth.ca_file }}"
+etcd_cert_file = "{{ values.etcd.auth.client_cert_file }}"
+etcd_key_file = "{{ values.etcd.auth.client_key_file }}"
+etcd_ssl_base_path = "{{ values.etcd.auth.base_path }}"
+runtime_default_config = ""
+proc_metrics_memory = {{ values.memory_num }}
+runtime_instance_debug_enable = false
+local_node_id = "{{ values.node_id }}"
+
+[function_scheduler]
+bin_path = "{{ values.function_scheduler.bin_path }}"
+
+[function_scheduler.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib:{{ values.yr_package_path }}/runtime/service/go/bin"
+GO_RUNTIME_BIN="{{ values.yr_package_path }}/runtime/service/go/bin"
+POD_NAME="scheduler-process"
+FUNCTION_LIB_PATH="{{ values.yr_package_path }}/faas/faasscheduler/faasscheduler.so"
+INIT_ARGS_FILE_PATH="{{ values.deploy_path }}/function_scheduler_init_args.json"
+ENABLE_SERVER_MODE="true"
+INIT_HANDLER="faasscheduler.InitHandler"
+CALL_HANDLER="faasscheduler.CallHandler"
+CHECKPOINT_HANDLER="faasscheduler.CheckpointHandler"
+RECOVER_HANDLER="faasscheduler.RecoverHandler"
+SHUTDOWN_HANDLER="faasscheduler.ShutdownHandler"
+SIGNAL_HANDLER="faasscheduler.SignalHandler"
+YR_FUNCTION_LIB_PATH="{{ values.yr_package_path }}/faas/faasscheduler/"
+GLOG_log_dir="{{ values.fs.log.path }}"
+YR_LOG_LEVEL="{{ values.fs.log.level }}"
+POD_IP="{{ values.function_scheduler.ip }}"
+NODE_IP="{{ values.function_scheduler.ip }}"
+DATASYSTEM_ADDR="{{ values.ds_worker.ip }}:{{ values.ds_worker.port }}"
+INSTANCE_ID="driver-scheduler-${NODE_ID}"
+FAAS_LOG_PATH="{{ values.fs.log.path }}"
+
+[function_scheduler.health_check]
+enable = true
+timeout = 60
+
+[function_scheduler.args]
+jobId= "{{ values.node_id }}"
+runtimeId="scheduler_libruntime"
+instanceId="driver-scheduler-{{ values.node_id }}"
+functionName='0/0-system-faasscheduler/$latest'
+logLevel="{{ values.fs.log.level }}"
+logPath="{{ values.fs.log.path }}"
+functionSystemAddress="{{ values.function_proxy.ip }}:{{ values.function_proxy.grpc_listen_port }}"
+driverMode = true  
+enableMTLS = "{{ values.fs.tls.enable }}"
+privateKeyPath="{{ values.fs.tls.base_path }}/{{ values.fs.tls.key_file }}"
+certificateFilePath="{{ values.fs.tls.base_path }}/{{ values.fs.tls.cert_file }}"
+verifyFilePath="{{ values.fs.tls.base_path }}/{{ values.fs.tls.ca_file }}"
+encryptPrivateKeyPasswd=""
+primaryKeyStoreFile=""
+standbyKeyStoreFile=""
+enableDsEncrypt =  "{{ 'true' if values.ds.curve.enable else 'false' }}"
+
+[frontend]
+bin_path = "{{ values.frontend.bin_path }}"
+
+[frontend.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib:{{ values.yr_package_path }}/runtime/service/go/bin"
+GO_RUNTIME_BIN="{{ values.yr_package_path }}/runtime/service/go/bin"
+POD_NAME="frontend-process"
+FUNCTION_LIB_PATH="{{ values.yr_package_path }}/faas/faasfrontend/faasfrontend.so"
+INIT_ARGS_FILE_PATH="{{ values.deploy_path }}/frontend_init_args.json"
+ENABLE_SERVER_MODE="true"
+INIT_HANDLER="faasfrontend.InitHandler"
+CALL_HANDLER="faasfrontend.CallHandler"
+CHECKPOINT_HANDLER="faasfrontend.CheckpointHandler"
+RECOVER_HANDLER="faasfrontend.RecoverHandler"
+SHUTDOWN_HANDLER="faasfrontend.ShutdownHandler"
+SIGNAL_HANDLER="faasfrontend.SignalHandler"
+YR_FUNCTION_LIB_PATH="{{ values.yr_package_path }}/faas/faasfrontend/"
+GLOG_log_dir="{{ values.fs.log.path }}"
+YR_LOG_LEVEL="{{ values.fs.log.level }}"
+POD_IP="{{ values.frontend.ip }}"
+NODE_IP="{{ values.frontend.ip }}"
+DATASYSTEM_ADDR="{{ values.ds_worker.ip }}:{{ values.ds_worker.port }}"
+INSTANCE_ID="driver-frontend-${NODE_ID}"
+FAAS_LOG_PATH="{{ values.fs.log.path }}"
+
+[frontend.health_check]
+enable = true
+timeout = 60
+
+[frontend.args]
+jobId= "{{ values.node_id }}"
+runtimeId="frontend_libruntime"
+instanceId="driver-frontend-{{ values.node_id }}"
+functionName='0/0-system-faasfrontend/$latest'
+logLevel="{{ values.fs.log.level }}"
+logPath="{{ values.fs.log.path }}"
+functionSystemAddress="{{ values.function_proxy.ip }}:{{ values.function_proxy.grpc_listen_port }}"
+driverMode = true  
+enableMTLS = "{{ values.fs.tls.enable }}"
+privateKeyPath="{{ values.fs.tls.base_path }}/{{ values.fs.tls.key_file }}"
+certificateFilePath="{{ values.fs.tls.base_path }}/{{ values.fs.tls.cert_file }}"
+verifyFilePath="{{ values.fs.tls.base_path }}/{{ values.fs.tls.ca_file }}"
+encryptPrivateKeyPasswd=""
+primaryKeyStoreFile=""
+standbyKeyStoreFile=""
+enableDsEncrypt =  "{{ 'true' if values.ds.curve.enable else 'false' }}"
+
+[dashboard]
+bin_path = "{{ values.dashboard.bin_path }}"
+
+[dashboard.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
+LOG_CONFIG = '''{{ fs_log_config | tojson }}'''
+
+[dashboard.health_check]
+enable = true
+timeout = 60
+
+[dashboard.args]
+config_path = "{{ values.deploy_path }}/dashboard_config.json"
+
+[collector]
+bin_path = "{{ values.collector.bin_path }}"
+
+[collector.health_check]
+enable = true
+timeout = 60
+
+[collector.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/datasystem/lib:{{ values.yr_package_path }}/runtime/service/go/bin" # old cli scripts use datasystem/sdk/go/lib
+
+[collector.args]
+collect_id = "{{ values.node_id }}"
+datasystem_port = "{{ values.ds_worker.port }}"
+etcd_config_servers = "{{ etcd_cluster }}"
+ip = "{{ values.collector.ip }}"
+log_root = "{{ values.deploy_path }}/logs"
+manager_address = "{{ values.dashboard.ip }}:{{ values.dashboard.grpc_port }}"
+port = "{{ values.collector.port }}"
+etcd_config_ssl_enable="{{ 'true' if values.etcd.auth_type == 'TLS' else 'false' }}"
+etcd_config_auth_type="{{ values.etcd.auth_type }}"
+etcd_config_ca_file="{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.ca_file }}"
+etcd_config_cert_file="{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_cert_file }}"
+etcd_config_key_file="{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.client_key_file }}"
+function_system_ssl_enable="{{ values.fs.tls.enable }}"
+function_system_ca_file="{{ values.fs.tls.base_path }}/{{ values.fs.tls.ca_file }}"
+function_system_cert_file="{{ values.fs.tls.base_path }}/{{ values.fs.tls.cert_file }}"
+function_system_key_file="{{ values.fs.tls.base_path }}/{{ values.fs.tls.key_file }}"
+
+[meta_service]
+bin_path = "{{ values.meta_service.bin_path }}"
+
+[meta_service.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
+
+[meta_service.health_check]
+enable = true
+timeout = 60
+
+[meta_service.args]
+config_path="{{ values.deploy_path }}/metaservice_config.json"
+log_config_path="{{ values.deploy_path }}/metaservice_log.json"

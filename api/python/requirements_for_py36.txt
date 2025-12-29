@@ -2,3 +2,6 @@ cloudpickle==2.2.1
 msgpack==1.0.5
 protobuf==4.25.5
 dataclasses==0.8
+click==8.1.8
+tomli_w==1.2.0
+Jinja2==3.1.6

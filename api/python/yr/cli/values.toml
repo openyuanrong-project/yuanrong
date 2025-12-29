@@ -1,0 +1,139 @@
+[values]
+host_ip = "{{ ip }}"
+deploy_path = "{{ deploy_path }}"
+yr_package_path = "{{ yr_package_path }}"
+cpu_num = "{{ cpu_millicores }}" # in millicores
+memory_num = "{{ memory_num_mb }}" # in MB
+shared_memory_num = "{{ memory_num_mb // 3 }}" # in MB
+node_id = "{{ node_id }}"
+log_level = "INFO"
+pid = "{{ pid }}"
+
+[values.metrics]
+metrics_config = ""
+metrics_config_file = "{{ values.yr_package_path }}/functionsystem/config/metrics/metrics_config.json"
+
+[values.meta_store]
+enable = false
+address = ""
+mode = "local"
+
+[values.fs]
+schedule_plugins = '''["Label", "ResourceSelector", "Default", "Heterogeneous"]'''
+
+[values.fs.log]
+also_log_to_stderr = false
+async_log_buf_secs = 30
+async_log_max_queue_size = 51200
+async_log_thread_count = 1
+level = "{{ values.log_level }}"
+path = "{{ values.deploy_path }}/logs/function_system"
+rolling_max_files = 10
+rolling_max_size = 40
+rolling_retention_days = 30
+compress_enable = false
+
+[values.fs.tls]
+enable = false
+base_path = ""
+ca_file = "ca.crt"
+cert_file = "module.crt"
+key_file = "module.key"
+
+[values.ds.curve]
+enable = false
+base_path = ""
+cache_storage_auth_type = "Noauth" # Noauth, ZMQ, AK/SK
+cache_storage_auth_enable = false
+
+[values.etcd]
+bin_path = "{{ values.yr_package_path }}/third_party/etcd/etcd"
+enable_multi_master = false
+auth_type = "Noauth"
+table_prefix = ""
+
+[values.etcd.auth]
+base_path = ""
+ca_file = "ca.crt"
+cert_file = "server.crt"
+key_file = "server.key"
+client_cert_file = "client.crt"
+client_key_file = "client.key"
+
+[[values.etcd.address]]
+ip = "{{ values.host_ip }}"
+peer_port = "{{ 32380|check_port() }}"
+port = "{{ 32379|check_port() }}"
+
+[values.ds_master]
+bin_path = "{{ values.yr_package_path }}/datasystem/datasystem_worker"
+ip = "{{ values.host_ip }}"
+port = "{{ 12123|check_port() }}"
+
+[values.ds_worker]
+bin_path = "{{ values.yr_package_path }}/datasystem/datasystem_worker"
+ip = "{{ values.host_ip }}"
+port = "{{ 31501|check_port() }}"
+spill = false
+
+[values.function_master]
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_master"
+ip = "{{ values.host_ip }}"
+global_scheduler_port = "{{ 22770|check_port() }}"
+
+[values.function_proxy]
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_proxy"
+ip = "{{ values.host_ip }}"
+port = "{{ 22772|check_port() }}"
+grpc_listen_port = "{{ 22773|check_port() }}"
+
+[values.function_agent]
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_agent"
+ip = "{{ values.host_ip }}"
+port = "{{ 58866|check_port() }}"
+
+[values.frontend]
+bin_path = "{{ values.yr_package_path }}/runtime/service/go/bin/goruntime"
+ip = "{{ values.host_ip }}"
+port = "{{ 8888|check_port() }}"
+config_path = "{{ values.yr_package_path }}/faas/init_frontend_args.json"
+
+[values.function_scheduler]
+bin_path = "{{ values.yr_package_path }}/runtime/service/go/bin/goruntime"
+ip = "{{ values.host_ip }}"
+config_path = "{{ values.yr_package_path }}/faas/init_scheduler_args.json"
+
+[values.meta_service]
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/meta_service"
+ip = "{{ values.host_ip }}"
+port = "{{ 31182|check_port() }}" 
+clusters = ""
+config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/meta_service_config.json"
+log_config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/meta_service_log_config.json"
+
+[values.dashboard]
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/dashboard"
+ip = "{{ values.host_ip }}"
+port = "{{ 9080|check_port() }}"
+grpc_port = "{{ 9081|check_port() }}"
+config_path = "{{ values.yr_package_path }}/dashboard/dashboard_config.json"
+
+[values.dashboard.auth]
+enable = false
+cert_file = ""
+key_file = ""
+
+[values.dashboard.prometheus]
+address = ""
+
+[values.dashboard.prometheus.auth]
+enable = false
+base_path = ""
+ca_file = ""
+cert_file = ""
+key_file = ""
+
+[values.collector]
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/collector"
+ip = "{{ values.host_ip }}"
+port = "{{ 9082|check_port() }}"
