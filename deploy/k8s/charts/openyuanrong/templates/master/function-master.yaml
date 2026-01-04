@@ -25,6 +25,13 @@ spec:
             defaultMode: 0440
             name: function-agent
           name: function-agent
+        - configMap:
+            defaultMode: 0440
+            items:
+              - key: services.yaml
+                path: services.yaml
+            name: services-config
+          name: services
       initContainers:
         - name: agent-init-container
           image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.agentInit }}
@@ -209,6 +216,8 @@ spec:
               value: "{{ .Values.global.common.workerTaintExcludes }}"
             - name: SYSTEM_AUTH_MODE
               value: "{{ .Values.global.common.systemAuthMode }}"
+            - name: SERVICES_PATH
+              value: /home/sn/service-config/services.yaml
             - name: CLUSTER_ID
               value: {{ quote .Values.global.clusterId }}
             - name: CLUSTER_NAME
@@ -290,6 +299,9 @@ spec:
               mountPath: /opt/yuanrong/data
             - mountPath: /home/sn/scaler/template
               name: function-agent
+            - mountPath: /home/sn/service-config
+              name: services
+              readOnly: true
           livenessProbe:
             tcpSocket:
               port: {{ .Values.global.port.functionMasterPort }}
