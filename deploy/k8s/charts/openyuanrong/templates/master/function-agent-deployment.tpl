@@ -503,6 +503,24 @@ spec:
           value: {{ quote .Values.global.observer.gatewayPort }}
         - name: DECRYPT_ALGORITHM
           value: {{ quote .Values.global.common.decryptAlgorithm }}
+        - name: S3_ACCESS_KEY
+        {{ if .Values.global.obsManagement.s3AccessKey }}
+          value: {{ .Values.global.obsManagement.s3AccessKey }}
+        {{ else }}
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret-yuanrong
+              key: accesskey
+        {{ end }}
+        - name: S3_SECRET_KEY
+        {{ if .Values.global.obsManagement.s3SecretKey }}
+          value: {{ .Values.global.obsManagement.s3SecretKey }}
+        {{ else }}
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret-yuanrong
+              key: secretkey
+        {{ end }}
         - name: S3_ADDR
           value: {{ .Values.global.obsManagement.s3Endpoint | default "$(HOST_IP):30110" }}
         - name: S3_PROTOCOL
