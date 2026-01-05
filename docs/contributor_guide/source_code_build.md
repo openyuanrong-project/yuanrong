@@ -55,10 +55,10 @@ source /etc/profile.d/buildtools.sh
 
 openYuanrong 分为四个代码仓库：
 
-* [yuanrong](https://gitee.com/openeuler/yuanrong){target="_blank"}：运行时仓库，编译依赖 yuanrong-functionsystem 和 yuanrong-datasystem 仓库的发布包。
-* [yuanrong-functionsystem](https://gitee.com/openeuler/yuanrong-functionsystem){target="_blank"}：函数系统仓库，编译依赖 yuanrong-datasystem 仓库的发布包。
-* [yuanrong-datasystem](https://gitee.com/openeuler/yuanrong-datasystem){target="_blank"} ：数据系统仓库，可独立编译。
-* [ray-adapter](https://gitee.com/openeuler/ray-adapter){target="_blank"}：ray adapter 仓库，可独立编译。
+* [yuanrong](https://atomgit.com/openeuler/yuanrong){target="_blank"}：运行时和 dashboard 仓库，其中运行时编译依赖 yuanrong-functionsystem 和 yuanrong-datasystem 仓库的发布包。
+* [yuanrong-functionsystem](https://atomgit.com/openeuler/yuanrong-functionsystem){target="_blank"}：函数系统仓库，编译依赖 yuanrong-datasystem 仓库的发布包。
+* [yuanrong-datasystem](https://atomgit.com/openeuler/yuanrong-datasystem){target="_blank"} ：数据系统仓库，可独立编译。
+* [ray-adapter](https://atomgit.com/openeuler/ray-adapter){target="_blank"}：ray adapter 仓库，可独立编译。
 
 使用多语言函数编程接口，需要编译 yuanrong 仓库；单独使用数据系统接口，需要编译 yuanrong-datasystem 仓库；使用 ray adapter 接口，需要编译 ray-adapter 仓库。
 
@@ -68,7 +68,7 @@ openYuanrong 分为四个代码仓库：
 
 ```bash
 # 这里下载的是 yuanrong-datasystem 仓的 master 分支，按需替换为您 fork 的个人仓及分支。
-git clone -b master https://gitee.com/openeuler/yuanrong-datasystem.git
+git clone -b master https://atomgit.com/openeuler/yuanrong-datasystem.git
 ```
 
 执行如下脚本编译。
@@ -98,12 +98,12 @@ bash build.sh -X off
 
 ```shell
 cd /opt/openyuanrong
-git clone -b master https://gitee.com/openeuler/yuanrong-functionsystem.git
+git clone -b master https://atomgit.com/openeuler/yuanrong-functionsystem.git
 ```
 
 **Step2: 获取依赖**
 
-根据架构设计，函数系统的编译过程会依赖数据系统的SDK，因此需要将数据系统的编译产物或发布产物拷贝至函数系统的构建依赖中。函数系统的构建脚本将会在启动时根据[`vendor/VendorList.csv`文件](https://gitee.com/openeuler/yuanrong-functionsystem/blob/master/vendor/VendorList.csv)的配置自动下载或引入依赖，对于数据系统的编译依赖将默认通过本地文件的方式引入。即使用路径描述符`file://localhost/vendor/src/yr-datasystem.tar.gz`描述数据系统来源且不会校验依赖Hash值。
+根据架构设计，函数系统的编译过程会依赖数据系统的SDK，因此需要将数据系统的编译产物或发布产物拷贝至函数系统的构建依赖中。函数系统的构建脚本将会在启动时根据[vendor/VendorList.csv 文件](https://atomgit.com/openeuler/yuanrong-functionsystem/blob/master/vendor/VendorList.csv){target="_blank"}的配置自动下载或引入依赖，对于数据系统的编译依赖将默认通过本地文件的方式引入。即使用路径描述符`file://localhost/vendor/src/yr-datasystem.tar.gz`描述数据系统来源且不会校验依赖Hash值。
 
 假设数据系统的编译产物路径为`/opt/openyuanrong/yuanrong-datasystem/output/yr-datasystem-v0.0.0.tar.gz`，您可以通过以下命令将数据系统编译产物拷贝至`VendorList.csv`中配置的默认路径。
 
@@ -140,7 +140,7 @@ chmod +x run.sh
 
 函数系统的主要编译产物为多个二进制程序与公共的动态库，同时将搭配一些依赖和运行配置。因此您可以使用`pack`命令完成函数系统的构建产物打包。打包产物和打包内容将统一存放在`output`文件夹中。
 
-```
+```bash
 cd /opt/openyuanrong
 chmod +x run.sh
 ./run.sh pack
@@ -154,7 +154,7 @@ chmod +x run.sh
 
 产物目录与关键产物如下所示：
 
-```
+```bash
 tree output/
 ├── functionsystem
 │   ├── bin          # 函数系统编译产物
@@ -170,14 +170,16 @@ tree output/
 └── yr-functionsystem-v0.0.0.tar.gz # 函数系统打包产物
 ```
 
-### 编译 yuanrong
+### 编译运行时和 dashboard
 
 首先下载源码。创建一个代码目录，例如 `mkdir -p /opt/openyuanrong/`，在目录下执行如下命令。
 
 ```bash
 # 这里下载的是 yuanrong 仓 master 分支，按需替换为您 fork 的个人仓。
-git clone -b master https://gitee.com/openeuler/yuanrong.git
+git clone -b master https://atomgit.com/openeuler/yuanrong.git
 ```
+
+#### 编译运行时
 
 运行时的编译依赖数据系统和函数系统发布包：
 
@@ -188,8 +190,9 @@ git clone -b master https://gitee.com/openeuler/yuanrong.git
 ```bash
 # 通过 bash build.sh -h 了解更多编译选项
 cd /opt/openyuanrong/yuanrong
-bash build.sh -P
+bash build.sh
 ```
+
 如果出现依赖下载失败报错，可以尝试删除 /opt/openyuanrong/yuanrong/thirdparty/runtime_deps 目录后重新编译
 
 :::{Note}
@@ -198,11 +201,23 @@ bash build.sh -P
 
 :::
 
-编译产物生成在 `yuanrong-runtime/output` 目录下，包含如下三个文件：
+编译产物生成在 `yuanrong/output` 目录下，包含如下文件：
 
-* `openyuanrong-vx.x.x.tar.gz`：openYuanrong 全量包。
-* `openyuanrong-x.x.x-cp39-cp39-manylinux_2_17_x86_64.whl`：whl 安装包，包括命令行工具及 Python SDK。
 * `yr-runtime-vx.x.x.tar.gz`：运行时发布包。
+
+#### 编译 dashboard
+
+dashboard 为可选组件，需要时执行如下脚本编译。
+
+```bash
+# 通过 bash build.sh -h 了解更多编译选项
+cd /opt/openyuanrong/yuanrong/go
+bash build.sh
+```
+
+编译产物生成在 `yuanrong/output` 目录下，包含如下文件：
+
+* `yr-dashboard-vx.x.x.tar.gz`：dashboard 发布包。
 
 ### 编译 ray-adapter
 
@@ -210,7 +225,7 @@ bash build.sh -P
 
 ```bash
 # 这里下载的是 ray-adapter 仓 master 分支，按需替换为您 fork 的个人仓。
-git clone -b master https://gitee.com/openeuler/ray-adapter.git
+git clone -b master https://atomgit.com/openeuler/ray-adapter.git
 ```
 
 执行如下脚本编译。

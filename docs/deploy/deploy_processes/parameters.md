@@ -260,3 +260,12 @@
 | `--runtime_ds_connect_timeout`  | runtime 检测数据系统异常的超时时间，单位：秒（s）。 | ``1800``  | 可保持默认配置。 |
 | `--cache_storage_auth_enable` | 是否开启 function-proxy 与数据系统间的连接认证。 | ``false`` | 指定配置为 ``true``，取值：``true``、``false``。 |
 | `--cache_storage_auth_type` | function-proxy 与数据系统间的认证类型。 | ``Noauth`` | 可选的配置类型：``Noauth``、``ZMQ``、``AK/SK``，建议配置为 ``ZMQ``。 |
+| `--dashboard_ssl_enable` | dashboard 是否开启单向 TLS 认证。 | ``false`` | 指定配置为 ``true``，取值：``true``、``false``。 |
+| `--dashboard_ssl_base_path` | dashboard 证书目录。 | ``""``  | 配置绝对路径，根据实际路径配置。 |
+| `--dashboard_ssl_cert_file` | dashboard 服务端证书文件名。 | ``server.crt`` | 可保持默认配置。 |
+| `--dashboard_ssl_key_file` | dashboard 服务端证书私钥文件名。 | ``server.key`` | 可保持默认配置。 |
+| `--prometheus_ssl_enable` | prometheus 是否开启 TLS。 | ``false`` | 指定配置为 ``true``，取值：``true``、``false``。 |
+| `--prometheus_ssl_base_path` | prometheus 证书目录。 | ``""``  | 配置绝对路径，根据实际路径配置。 |
+| `--prometheus_ssl_root_file` | prometheus CA 证书文件名。 | ``ca.crt``  | 可保持默认配置。 |
+| `--prometheus_ssl_cert_file` | prometheus 客户端证书文件名。 | ``client.crt`` | 可保持默认配置。 |
+| `--prometheus_ssl_key_file` | prometheus 客户端证书私钥文件名。 | ``client.key`` | 可保持默认配置。 |
