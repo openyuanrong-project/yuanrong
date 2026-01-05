@@ -8,19 +8,19 @@
 pip install -r requirements_dev.txt
 ```
 
-在 `yuanrong-runtime` 仓执行如下命令构建 API 用于自动生成 API 文档。
+在 `yuanrong` 仓执行如下命令构建 API 用于自动生成 API 文档。
 
 ```bash
 bash build.sh
 ```
 
-在 `yuanrong-runtime/docs` 仓执行如下命令构建文档。
+在 `yuanrong/docs` 目录下执行如下命令构建文档。
 
 ```bash
 bash build.sh
 ```
 
-生成的文件在 `yuanrong-runtime` 同级的 `/output/docs` 目录下。重新构建请先删除 `yuanrong-runtime/docs/_build` 目录避免历史构建文件的影响。
+生成的文件在 `yuanrong/output/docs` 目录下。重新构建请先删除 `yuanrong/docs/_build` 目录避免历史构建文件的影响。
 
 ## 在本地浏览器中查看文档
 

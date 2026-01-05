@@ -16,14 +16,23 @@ ${Your_Workspace}
 │   ├── ca.crt
 │   ├── module.crt
 │   └── module.key
-└── curve // openYuanrong 数据系统 curve 证书目录
-    ├── worker.key
-    ├── worker.key_secret
+├── curve // openYuanrong 数据系统 curve 证书目录
+│   ├── worker.key
+│   ├── worker.key_secret
+│   ├── client.key
+│   ├── client.key_secret
+│   └── worker_authorized_clients
+│       ├── client.key
+│       └── worker.key
+├── dashboard // openYuanrong dashboard 组件单向认证证书目录
+│   ├── server.crt
+│   └── server.key
+└── prometheus // prometheus 证书目录
+    ├── ca.crt
+    ├── client.crt
     ├── client.key
-    ├── client.key_secret
-    └── worker_authorized_clients
-        ├── client.key
-        └── worker.key
+    ├── server.crt
+    └── server.key
 ```
 
 ## 环境准备
@@ -87,7 +96,7 @@ mkdir -m 700 -p ${WorkSpace}/etcd
 cd ${WorkSpace}/etcd
 openssl genrsa -out ca.key 2048
 
-# 证书CN 可根据实际配置修改，默认 etcd-ca。days 为证书有效期（天数），证书过期后需要重新生成。
+# 证书 CN 可根据实际配置修改，默认 etcd-ca。days 为证书有效期（天数），证书过期后需要重新生成。
 openssl req -x509 -new -nodes -key ca.key -subj "/CN=etcd-ca" -days 20000 -out ca.crt
 ```
 
@@ -120,7 +129,7 @@ EOF
 cd ${WorkSpace}/etcd
 openssl genrsa -out server.key 2048
 
-# 证书CN 可根据实际配置修改，这里默认 etcd-server。
+# 证书 CN 可根据实际配置修改，这里默认 etcd-server。
 openssl req -new -key server.key -subj "/CN=etcd-server" -out server.csr -config etcd.conf
 
 # days 为证书有效期（天数），证书过期后需要重新生成。
@@ -135,7 +144,7 @@ openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out s
 cd ${WorkSpace}/etcd
 openssl genrsa -out client.key 2048
 
-# 证书CN 可根据实际配置修改，这里默认 etcd-client。
+# 证书 CN 可根据实际配置修改，这里默认 etcd-client。
 openssl req -new -key client.key -subj "/CN=etcd-client" -out client.csr
 
 # days 为证书有效期（天数），证书过期后需要重新生成。
@@ -229,7 +238,7 @@ cp -ar ca.crt module.crt module.key ${WorkSpace}/cert/yr
 
 ### 生成 worker 及 client 公私钥
 
-我们将使用 ZeroMQ 的接口 `zmq_curve_keypair` 生成公私钥，详细接口介绍参考 [Zmq 接口文档](http://api.zeromq.org/4-0:zmq-curve-keypair){target="_blank"}。
+我们将使用 ZeroMQ 的接口 `zmq_curve_keypair` 生成公私钥，详细接口介绍参考[Zmq 接口文档](http://api.zeromq.org/4-0:zmq-curve-keypair){target="_blank"}。
 
 创建工作目录。
 
@@ -317,15 +326,157 @@ cp ${WorkSpace}/cert/curve/worker.key ${WorkSpace}/cert/curve/worker_authorized_
 cp ${WorkSpace}/cert/curve/client.key ${WorkSpace}/cert/curve/worker_authorized_clients/client.key
 ```
 
-## 部署 openYuanrong 时配置安全通信
+## 生成 dashboard 证书文件
 
-部署主节点参考命令如下，详细配置说明参考[部署参数表](security-params)中的安全配置。
+以下步骤将生成 dashboard 用于单向认证通信的服务端证书和服务端私钥共 2 个文件。
 
 ```shell
-yr start --master \
---ssl_base_path=${WorkSpace}/cert/yr --ssl_enable=true \
---curve_key_path=${WorkSpace}/cert/curve \
---runtime_ds_encrypt_enable=true --ds_component_auth_enable=true \
---etcd_auth_type=TLS --etcd_ssl_base_path=${WorkSpace}/cert/etcd \
---cache_storage_auth_type=ZMQ --cache_storage_auth_enable=true
+mkdir -p ${WorkSpace}/cert/dashboard
+cd ${WorkSpace}/cert/dashboard
+openssl req -x509 -newkey rsa:2048 -keyout server.key -out server.crt -nodes -subj "/C=CN/ST=zhejiang/L=hangzhou/O=ha/OU=Personal/CN=dashboard"
 ```
+
+## 生成 prometheus 证书等文件
+
+以下步骤将生成 prometheus 的 CA 证书、服务端证书、服务端私钥、客户端证书和客户端私钥共 5 个文件。
+
+### 创建配置文件
+
+执行以下命令创建配置文件, 其中 alt_names 配置项的值 `127.0.0.1` 替换为您运行 prometheus 的机器 IP。
+
+```shell
+mkdir -p ${WorkSpace}/prometheus
+cd ${WorkSpace}/prometheus
+rm -rf demoCA 2>/dev/null
+mkdir -p ./demoCA/newcerts/
+touch ./demoCA/index.txt
+touch ./demoCA/index.txt.attr
+echo 01 > ./demoCA/serial
+if [ ! -f  ./demoCA/v3.ext ];
+then
+cat >./demoCA/v3.ext << EOF
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+[ v3_ca ]
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid:always,issuer
+basicConstraints = critical,CA:true
+[ alt_names ]
+DNS.1 = prometheus
+DNS.2 = 127.0.0.1
+IP.1 = 127.0.0.1
+EOF
+fi
+```
+
+### 生成 prometheus CA 证书
+
+执行如下命令，生成 CA 证书文件 `ca.crt`。
+
+```shell
+cd ${WorkSpace}/prometheus
+openssl genrsa -out ca.key 2048
+
+# subj 可根据实际配置修改。
+openssl req -new -key ca.key -out ca.csr -subj "/C=CN/ST=zhejiang/L=hangzhou/O=ha/OU=Personal/CN=rootCA"
+
+# days 为证书有效期（天数），证书过期后需要重新生成。
+openssl x509 -req -days 10000 -extfile ./demoCA/v3.ext -extensions v3_ca -signkey ca.key -in ca.csr -out ca.crt
+```
+
+### 生成 prometheus 服务端私钥和证书
+
+依次执行命令生成服务端私钥 `server.key` 以及服务端证书 `server.crt` 文件。
+
+```shell
+cd ${WorkSpace}/prometheus
+openssl genrsa -out server.key 2048
+
+# subj 可根据实际配置修改
+openssl req -new -key server.key -out server.csr -subj "/C=CN/ST=zhejiang/L=hangzhou/O=ha/OU=Personal/CN=prometheus"
+openssl ca -extfile ./demoCA/v3.ext -days 10000 -extensions v3_req -in server.csr -out server.crt -cert ca.crt -keyfile ca.key -notext -batch
+```
+
+### 生成 prometheus 客户端私钥和证书
+
+依次执行命令生成客户端私钥 `client.key` 以及客户端证书 `client.crt` 文件。
+
+```shell
+cd ${WorkSpace}/prometheus
+openssl genrsa -out client.key 2048
+
+# 证书 CN 可根据实际配置修改，这里默认 prometheus-client。
+openssl req -new -key client.key -subj "/CN=prometheus-client" -out client.csr
+
+# days 为证书有效期（天数），证书过期后需要重新生成。
+openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 10000
+```
+
+### 保存 prometheus 证书文件
+
+至此已完成 prometheus 所需证书文件的生成，执行如下命令，保存这些文件到我们规划好的目录。
+
+```shell
+mkdir -p ${WorkSpace}/cert/prometheus
+cd ${WorkSpace}/prometheus
+cp -ar ca.crt client.crt client.key server.key server.crt ${WorkSpace}/cert/prometheus
+```
+
+### 安全通信 prometheus 的配置和启动
+
+**Step1: 基础配置**
+
+请先完成 prometheus 的基础配置，可参考[prometheus 配置和启动](observability-prometheus)。
+
+**Step2: 安全配置**
+
+在与 prometheus 程序同目录下，新增 `web-config.yml` 文件，文件内容如下：
+
+  ```bash
+  tls_server_config:
+  cert_file: ${WorkSpace}/cert/prometheus/server.crt
+  key_file: ${WorkSpace}/cert/prometheus/server.key
+  client_auth_type: "RequireAndVerifyClientCert"
+  client_ca_file: ${WorkSpace}/cert/prometheus/ca.crt
+  ```
+
+**Step3: 启动 prometheus**
+
+启动安全通信 prometheus 命令如下：
+
+  ```shell
+  nohup ./prometheus --web.config.file=./web-config.yml > ./prometheus.log 2>&1 & # prometheus 默认端口为 9090
+  ```
+
+## 部署 openYuanrong 时配置安全通信
+
+详细配置说明参考[部署参数表](security-params)中的安全配置。
+
+* 部署基础组件，主节点参考命令如下：
+
+    ```shell
+    yr start --master \
+    --ssl_base_path=${WorkSpace}/cert/yr --ssl_enable=true \
+    --curve_key_path=${WorkSpace}/cert/curve \
+    --runtime_ds_encrypt_enable=true --ds_component_auth_enable=true \
+    --etcd_auth_type=TLS --etcd_ssl_base_path=${WorkSpace}/cert/etcd \
+    --cache_storage_auth_type=ZMQ --cache_storage_auth_enable=true
+    ```
+
+* 部署基础组件和 dashboard 功能，主节点参考命令如下：
+
+    ```shell
+    yr start --master \
+    --ssl_base_path=${WorkSpace}/cert/yr --ssl_enable=true \
+    --curve_key_path=${WorkSpace}/cert/curve \
+    --runtime_ds_encrypt_enable=true --ds_component_auth_enable=true \
+    --etcd_auth_type=TLS --etcd_ssl_base_path=${WorkSpace}/cert/etcd \
+    --cache_storage_auth_type=ZMQ --cache_storage_auth_enable=true \
+    --enable_dashboard=true --enable_collector=true --enable_separated_redirect_runtime_std=true \
+    --prometheus_address=prometheus_ip:prometheus_port --enable_metrics=true --metrics_config_file={file_name}.json \
+    --prometheus_ssl_enable=true --prometheus_ssl_base_path=${WorkSpace}/cert/prometheus \
+    --dashboard_ssl_enable=true --dashboard_ssl_base_path=${WorkSpace}/cert/dashboard
+    ```
+  

@@ -6,7 +6,7 @@ openYuanrong 数据系统提供了 Python/C++ 语言接口，封装 heterogeneou
 - KV：基于共享内存实现免拷贝的 KV 数据读写，实现高性能数据缓存，支持通过对接外部组件提供数据可靠性语义。
 - object：基于 host 侧共享内存抽象数据对象，实现基于引用计数的生命周期管理，将共享内存封装为 buffer，提供指针直接读写。
 
-更多信息和示例，请参阅 openYuanrong 数据系统[代码仓库](https://gitee.com/openeuler/yuanrong-datasystem){target="_blank"}和[文档](https://pages.openeuler.openatom.cn/openyuanrong-datasystem/docs/zh-cn/latest/index.html){target="_blank"}。
+更多信息和示例，请参阅 openYuanrong 数据系统[代码仓库](https://atomgit.com/openeuler/yuanrong-datasystem){target="_blank"}和[文档](https://pages.openeuler.openatom.cn/openyuanrong-datasystem/docs/zh-cn/latest/index.html){target="_blank"}。
 
 ## 入门
 
