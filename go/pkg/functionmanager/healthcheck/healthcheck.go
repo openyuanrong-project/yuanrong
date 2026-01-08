@@ -80,7 +80,7 @@ func createRouter() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Recovery())
-	route.GET("/healthcheck", func(c *gin.Context) {
+	router.GET("/healthcheck", func(c *gin.Context) {
 		check(c.Writer, c.Request)
 	})
 	return router
