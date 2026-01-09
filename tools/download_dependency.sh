@@ -95,9 +95,9 @@ function compile_datasystem() {
     bash build.sh -X off
     cd output
     ds_filename=$(ls *.tar.gz)
-    tar -xf $ds_filename -C ${YR_DATASYSTEM_BIN_DIR}/output/
-    mkdir -p ${YR_FUNCTIONSYSTEM_BIN_DIR}/datasystem/output/
-    tar -xf $ds_filename -C ${YR_FUNCTIONSYSTEM_BIN_DIR}/datasystem/output/ --strip-components=1
+    tar -xf $ds_filename -C ${YR_DATASYSTEM_BIN_DIR}/output/ --strip-components=1
+    mkdir -p ${YR_FUNCTIONSYSTEM_BIN_DIR}/vendor/src
+    cp -a $ds_filename ${YR_FUNCTIONSYSTEM_BIN_DIR}/vendor/src/yr-datasystem.tar.gz
     cp -f ${ds_filename} $RUNTIME_OUTPUT_DIR/
 }
 
@@ -167,13 +167,13 @@ function download_cache() {
 if [ "$BUILD_ALL" == "true" ]; then
   cd $RUNTIME_SRC_DIR
   if [ ! -d ${YR_FUNCTIONSYSTEM_BIN_DIR} ]; then
-    git clone https://gitee.com/openeuler/yuanrong-functionsystem.git -b master functionsystem
+    git clone https://gitcode.com/openeuler/yuanrong-functionsystem.git -b master functionsystem
   fi
   if [ ! -d ${YR_DATASYSTEM_BIN_DIR} ]; then
-    git clone https://gitee.com/openeuler/yuanrong-datasystem.git -b master datasystem
+    git clone https://gitcode.com/openeuler/yuanrong-datasystem.git -b master datasystem
   fi
   if [ ! -d ${YR_FRONTEND_SRC_DIR} ]; then
-    git clone https://gitee.com/openeuler/yuanrong-frontend.git -b master ../frontend
+    git clone https://gitcode.com/openeuler/yuanrong-frontend.git -b master ../frontend
   fi
   mkdir -p $RUNTIME_OUTPUT_DIR
   compile_datasystem
