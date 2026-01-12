@@ -26,6 +26,7 @@
 | `--enable_metrics`              | 是否开启 metrics。                                | ``true``      | 选填，取值：``true``，``false``。 |
 | `--metrics_config`              | metrics 配置，预期是 json 字符串。                 | `""`      | 选填，格式参照 metrics_config_file。 |
 | `--metrics_config_file`         | metrics 配置文件，预期是绝对路径。                  | ``""``     | 选填。  |
+| `--runtime_metrics_file`                                |     runtime_metrics配置                       |   ``""``              | 选填。   |
 | `--pull_resource_interval`      | 设置拉取资源的周期（单位：ms）。                    | ``1000``      | 选填。 |
 | `--custom_resources`            | 数据面自定义资源设置，预期是 json 字符串。           | ``""``      | 选填。 |
 | `--etcd_addr_list`              | etcd 集群地址。                                    | 本机 IP   | 选填。传入格式如 ip1,ip2（端口根据 etcd_port,etcd_peer_port 参数确定）；或 ip1:port1,ip2:port2（peer 端口根据 etcd_peer_port 参数确定）；或 ip1:port1:peer_port1,ip2:port2:peer_port2。 |
