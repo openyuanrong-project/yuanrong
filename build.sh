@@ -18,7 +18,7 @@ set -e
 source /etc/profile.d/*.sh
 
 readonly USAGE="
-Usage: bash build.sh [-thdDcCrvPSbEm:j:G]
+Usage: bash build.sh [-thdDcCrvPSbEm:j:GU]
 
 Options:
     -t run test.
@@ -42,6 +42,7 @@ Options:
     -h usage.
     -j concurrency limit
     -G enable gloo collective operations (default: disabled)
+    -U enable UCC collective operations (default: disabled)
 "
 
 BASE_DIR=$(
@@ -67,6 +68,7 @@ BAZEL_OPTIONS_ENV=""
 SECBRELLA_CCE="OFF"
 PACKAGE_ALL="false"
 ENABLE_GLOO="false"
+ENABLE_UCC="false"
 LD_LIBRARY_PATH=/opt/buildtools/python3.7/lib:/opt/buildtools/python3.9/lib:/opt/buildtools/python3.11/lib:${LD_LIBRARY_PATH}
 BOOST_VERSION="1.87.0"
 export BUILD_ALL="false"
@@ -242,7 +244,7 @@ function check_sanitizers() {
   fi
 }
 
-while getopts 'athr:v:S:DcCgPET:p:B:m:j:gG' opt; do
+while getopts 'athr:v:S:DcCgPET:p:B:m:j:gGU' opt; do
     case "$opt" in
     a)
         BUILD_ALL="true"
@@ -322,6 +324,9 @@ while getopts 'athr:v:S:DcCgPET:p:B:m:j:gG' opt; do
         ;;
     G)
         ENABLE_GLOO="true"
+        ;;
+    U)
+        ENABLE_UCC="true"
         ;;
     *)
         log_error "invalid command: $opt"
