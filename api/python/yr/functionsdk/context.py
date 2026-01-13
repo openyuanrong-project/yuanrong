@@ -79,7 +79,7 @@ def init_context_invoke(stage: str, header: dict):
 
 
 class Context:
-    """Class Context"""
+    """Context information provided by the openyuanrong runtime."""
 
     def __init__(self, options: dict):
         self.__project_id = _ENV_STORAGE.env_project_id
@@ -109,38 +109,78 @@ class Context:
 
     # Gets the request ID associated with the request.
     def getRequestID(self):
-        """Method getRequestID"""
+        """
+        Get request ID.
+
+        Returns:
+            request ID.
+        """
         return self.__request_id
 
     def getProjectID(self):
-        """Method getProjectID"""
+        """
+        Get project ID.
+
+        Returns:
+            project ID.
+        """
         return self.__project_id
 
     def getTenantID(self):
-        """Method getTenantID"""
+        """
+        Get tenant ID.
+
+        Returns:
+            tenant ID.
+        """
         return self.__tenant_id
 
     def getPackage(self):
-        """Method getPackage"""
+        """
+        Get function package.
+
+        Returns:
+            function package.
+        """
         return self.__package
 
     # Gets name of the function
     def getFunctionName(self):
-        """Method getFunctionName"""
+        """
+        Get name of the function.
+
+        Returns:
+            function name.
+        """
         return self.__function_name
 
     def getAlias(self):
-        """Method getAlias"""
+        """
+        Get the alias of the function.
+
+        Returns:
+            the alias of the function.
+        """
         return self.__alias
 
     # Get version of the function
     def getVersion(self):
-        """Method getVersion"""
+        """
+        Get version of the function.
+
+        Returns:
+            version of the function.
+        """
         return self.__function_version
 
     # Get the memory size distributed the running function
     def getMemorySize(self):
-        """Method getMemorySize"""
+        """
+        Get the memory size distributed the running function.
+
+        Returns:
+            The memory resources occupied by the function.
+        """
         return self.__memory
 
     # Get the number of cpu distributed to the running function the cpu
@@ -149,111 +189,190 @@ class Context:
     # and increased by memory size distributed to function. the offset is
     # about Memory Size(M)/128 * 100
     def getCPUNumber(self):
-        """Method getCPUNumber"""
+        """
+        Get the number of cpu distributed to the running function the cpu number scale by millicores, 
+        one cpu cores equals 1000 millicores. In function stage runtime, every function have base of 200 millicores,
+        and increased by memory size distributed to function. The offset is about Memory Size(M)/128 * 100
+
+        Returns:
+            The CPU resources occupied by the function.
+        """
         return self.__cpu
 
     def getAccessKey(self):
-        """Method getAccessKey"""
+        """
+        Get the user's AccessKey (valid for 24 hours).
+        To use this method, you need to configure delegation permissions for the function.
+        The current function workflow has ceased maintenance of the getAccessKey interface in the Runtime SDK, 
+        and you will no longer be able to obtain the temporary AccessKey via this interface.
+
+        Returns:
+            user's delegated AccessKey.
+        """  
         return self.__access_key
 
     def setAccessKey(self, access_key):
-        """Method setAccessKey"""
+        """Method setAccessKey, not exposed"""
         self.__access_key = access_key
 
     def getSecretKey(self):
-        """Method getSecretKey"""
+        """
+        Get the user's SecretKey (valid for 24 hours).
+        To use this method, you need to configure delegation permissions for the function.
+        The current function workflow has ceased maintenance of the getSecretKey interface in the Runtime SDK, 
+        and you will no longer be able to obtain the temporary SecretKey via this interface.
+
+        Returns:
+            user's delegated SecretKey.
+        """  
         return self.__secret_key
 
     def setSecretKey(self, secret_key):
-        """Method SetSecretKey"""
+        """Method SetSecretKey, not exposed"""
         self.__secret_key = secret_key
 
     def getAuthToken(self):
-        """Method getToken"""
+        """
+        Get the user's delegated token (valid for 24 hours).
+        To use this method, you need to configure delegation for the function.
+
+        Returns:
+            user's delegated token.
+        """  
         return self.__auth_token
 
     def setAuthToken(self, auth_token):
-        """Method setToken"""
+        """Method setToken, not exposed"""
         self.__auth_token = auth_token
 
     def getSecurityAccessKey(self):
-        """Method getAccessKey"""
+        """
+        Get the user's delegated SecurityAccessKey (valid for 24 hours) with a cache duration of 10 minutes, 
+        meaning the same content is returned if retrieved again within 10 minutes. 
+        Using this method requires configuring delegation for the function.
+
+        Returns:
+            user's delegated SecurityAccessKey.
+        """  
         return self.__security_access_key
 
     def setSecurityAccessKey(self, security_access_key):
-        """Method setAccessKey"""
+        """Method setAccessKey, not exposed"""
         self.__security_access_key = security_access_key
 
     def getSecuritySecretKey(self):
-        """Method getSecretKey"""
+        """
+        Get the user's delegated SecuritySecretKey (valid for 24 hours) with a cache duration of 10 minutes, 
+        meaning the same content is returned if retrieved again within 10 minutes. 
+        Using this method requires configuring delegation for the function.
+
+        Returns:
+            user's delegated SecuritySecretKey.
+        """        
         return self.__security_secret_key
 
     def setSecuritySecretKey(self, security_secret_key):
-        """Method SetSecretKey"""
+        """Method SetSecretKey, not exposed"""
         self.__security_secret_key = security_secret_key
 
     def getSecurityToken(self):
-        """Method getSecurityToken"""
+        """
+        Get the user's delegated SecurityToken (valid for 24 hours), with a cache duration of 10 minutes, 
+        meaning the returned content is the same if retrieved again within 10 minutes. 
+        Using this method requires configuring delegation for the function.
+
+        Returns:
+            user's delegated SecurityToken.
+        """        
         return self.__security_token
 
     def setSecurityToken(self, security_token):
-        """Method getSecurityToken"""
+        """Method getSecurityToken, not exposed"""
         self.__security_token = security_token
 
     # Gets the user data,which saved in a map
     def getUserData(self, key, default=None):
-        """Method getUserData"""
+        """
+        Get the value passed in by the user through environment variables via the key.
+
+        Args:
+            key (string): The key of the environment configured by the user.
+            default (string): The default value when the user obtains an empty environment variable.
+
+        Returns:
+            The value corresponding to the key of the environment variable configured by the user.
+        """
         return self.__user_data.get(key, default)
 
     # Gets the time distributed to the running of the function, when exceed
     # the specified time, the running of the function would be stopped by force
     def getRunningTimeInSeconds(self):
-        """Method getRunningTimeInSeconds"""
+        """
+        Get the function timeout period, in seconds.
+
+        Returns:
+            function timeout period.
+        """
         return self.__timeout
 
     # Gets the time remaining for this execution in milliseconds
     # Returns time before task is killed
     def getRemainingTimeInMilliSeconds(self):
-        """Method getRemainingTimeInMilliSeconds"""
+        """
+        Get the remaining running time of the function, in milliseconds.
+
+        Returns:
+            remaining running time.
+        """
         now = int(time.time() * 1000)
         return self.__timeout + self.__start_time - now
 
     # Gets the logger for user to log out in standard output, The Logger
     # interface must be provided in SDK
     def getLogger(self):
-        """Method getLoggers"""
+        """
+        Get the logger for user to log out in standard output, 
+        The Logger interface must be provided in SDK
+
+        Returns:
+            logger.
+
+        Examples:
+            >>> log = context.getLogger()
+            >>> log.info("test")
+        """
         return self.__logger
 
     def set_state(self, state):
-        """Method set_state"""
+        """Method set_state, not exposed"""
         self.state = state
 
     def get_state(self):
-        """Method get_state"""
+        """Method get_state, not exposed"""
         return self.state
 
     def set_instance_id(self, instance_id):
-        """Method set_instance_id"""
+        """Method set_instance_id, not exposed"""
         self.instance_id = instance_id
 
     def get_instance_id(self):
-        """Method get_instance_id"""
+        """Method get_instance_id, not exposed"""
         return self.instance_id
 
     def get_invoke_id(self):
-        """Method get_invoke_id"""
+        """Method get_invoke_id, not exposed"""
         return self.invoke_id
 
     def get_trace_id(self):
-        """Method get_trace_id"""
+        """Method get_trace_id, not exposed"""
         return self.__request_id
 
     def set_trace_id(self, request_id):
-        """Method get_trace_id"""
+        """Method get_trace_id, not exposed"""
         self.__request_id = request_id
 
     def get_invoke_property(self):
-        """Method get_invoke_property"""
+        """Method get_invoke_property, not exposed"""
         return self.invoke_property
 
 

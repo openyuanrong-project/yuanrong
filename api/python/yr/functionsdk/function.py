@@ -57,7 +57,7 @@ _RUNTIME_MAX_RESP_BODY_SIZE = 6 * 1024 * 1024
 
 @dataclass
 class InvokeOptions:
-    """faas 调度参数。
+    """function service invoke options
 
     Examples:
         >>> from functionsdk import Function, InvokeOptions
@@ -65,7 +65,7 @@ class InvokeOptions:
         >>>
         >>> def my_handler(event, context)
         >>>     f = Function(context, "hello")
-        >>>     objRef = f.invoke(event)
+        >>>     objRef = f.options(opts).invoke(event)
         >>>     res = objRef.get()
         >>>     return {
         >>>        "statusCode": 200,
@@ -75,12 +75,49 @@ class InvokeOptions:
         >>>             "Content-Type": "application/json"
         >>>         }
     """
+    #: Specify CPU core resources. 
+    # Defaults to the same configuration as service.yaml, 
+    # unit is 1/1000 cpu core, value range [300,16000].
     cpu: int = 0
+
+    #: Specify memory resources. 
+    # Defaults to the same configuration as service.yaml, 
+    # unit is MB, value range [128,65536], default is 500.
     memory: int = 0
+
+    #: Instance concurrency. 
+    # The Value range is [1,1000]. 
+    # The priority of the parameter is higher than that of "concurrency" configured in custom_extensions. 
+    # You are advised to use this parameter for configuration.
     concurrency: int = 100
+
+    #: Specify user-defined resources, such as GPU.
     custom_resources: Dict[str, float] = field(default_factory=dict)
+
+    #: Pod labels are only used in Kubernetes environments. When creating a function instance, 
+    #: pod_labels can accept key-value pairs provided by the user and pass them to the function system.
+    #: After an ActorPattern function instance completes specialization (reaches the Running state), 
+    #: the Scaler will apply the passed-in labels to the POD.
+    #: When an ActorPattern function instance fails or is deleted, 
+    #: the Scaler will set the corresponding labels of the POD to empty (i.e., remove them).
+    #: Constraints:
+    #: The number of labels that can be stored in pod_labels shall not exceed 5.
+    #: Constraints for keys and values in pod_labels:
+    #: Key: Supports uppercase and lowercase letters, numbers, and hyphens. 
+    #: It must be 1–63 characters in length, cannot start or end with a hyphen, and an empty string is not allowed.
+    #: Value: Supports uppercase and lowercase letters, numbers, and hyphens. 
+    #: It must be 1–63 characters in length, cannot start or end with a hyphen, and an empty string is allowed.
+    #: Exceptions:
+    #: When the pod_labels passed in by the user do not meet the constraints, 
+    #: the corresponding exception and error message will be thrown.
     pod_labels: Dict[str, str] = field(default_factory=dict)
+
+    #: Labels that need to be applied to instances for instance affinity
     labels: List[str] = field(default_factory=list)
+
+    #: In cross-function invocation, when a function is called via a 
+    #: specified alias and the alias is a rule-based alias, 
+    #: this parameter is used to set the key-value pair parameters that the rule-based alias depends on.
     alias_params: Dict[str, str] = field(default_factory=dict)
 
 
@@ -101,7 +138,7 @@ class CallReq:
 
 
 class Function:
-    """function sdk"""
+    """Provide cross-function invocation capabilities."""
 
     def __init__(self, function_name: str, context_: Context = None) -> None:
         self.__function_name, self.__function_version = _check_function_name(function_name)
@@ -113,7 +150,8 @@ class Function:
 
     def options(self, invoke_options: InvokeOptions):
         """
-        Set user invoke options
+        Set user invoke options.
+
         Args:
             invoke_options: invoke options for users to set resources
         """
@@ -121,12 +159,14 @@ class Function:
         return self
 
     def invoke(self, payload: Union[str, dict] = None) -> ObjectRef:
-        """调用 faas 函数。
+        """
+        Invoke the function.
+
         Args:
-        payload Union[str, dict]: 被调用 faas 函数的参数
+            payload (Union[str, dict]): Parameters of the invoked function.
 
         Returns:
-            ObjectRef: 此次调用返回数据系统中的对象的 object_ref
+            ObjectRef: Object reference.
 
         Examples:
             >>> from functionsdk import Function, InvokeOptions
