@@ -978,3 +978,14 @@ def test_handle_resource_group(init_yr):
     results = [get_num.invoke(6) for i in range(1)]
     assert yr.get(results[0]) == 6
     yr.remove_resource_group("rgname1")
+ 
+ 
+@pytest.mark.smoke
+def test_task_invoke_with_return_small_and_big_obj(init_yr):
+    @yr.invoke(return_nums=2)
+    def func_returns():
+        return 1, b"1" * 1024 * 20000
+ 
+    obj_ref1, obj_ref2 = func_returns.invoke()
+    time.sleep(1)
+    assert yr.get([obj_ref1, obj_ref2]) == [1, b"1" * 1024 * 20000]

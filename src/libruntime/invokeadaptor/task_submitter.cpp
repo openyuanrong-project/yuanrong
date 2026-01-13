@@ -301,7 +301,7 @@ void TaskSubmitter::HandleSuccessInvokeNotify(const NotifyRequest &req, const st
             for (size_t j = curPos; j < spec->returnIds.size(); j++) {
                 if (spec->returnIds[j].id == smallObj.id()) {
                     curPos++;
-                    break;
+                    continue;
                 }
                 dsObjs.emplace_back(spec->returnIds[j].id);
                 curPos++;
