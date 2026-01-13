@@ -8,6 +8,7 @@
 
    installation
    deploy_processes/index
+   deploy_on_k8s/index
    build_and_deploy
    service_app_guide
 ```
@@ -18,9 +19,10 @@
 
 ## 部署 openYuanrong 集群
 
-openYuanrong 支持在 Linux 主机上以进程方式部署，也支持在 Kubernetes 上以容器方式部署（即将开源）。您可以在单台 Linux 主机或者单节点 Kubernetes 集群上部署 openYuanrong ，用于学习和开发。生产环境中，推荐通过集群方式部署多个节点，以带来更好的性能和可靠性保障，详细介绍参考：
+openYuanrong 支持在 Linux 主机上以进程方式部署，也支持在 Kubernetes 上以容器方式部署。您可以在单台 Linux 主机或者单节点 Kubernetes 集群上部署 openYuanrong ，用于学习和开发。生产环境中，推荐通过集群方式部署多个节点，以带来更好的性能和可靠性保障，详细介绍参考：
 
 * [在主机上部署](./deploy_processes/index.md)
+* [在Kubernetes环境上部署](./deploy_on_k8s/index.md)
 
 ## 部署 openYuanrong 应用
 
