@@ -13,9 +13,9 @@ helm repo add yr http://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/charts
 helm repo update
 ```
 
-## 配置 openYuanrong 的版本镜像仓库
+## 配置 openYuanrong 的镜像仓库
 
-openYuanrong 版本镜像存放在私有镜像仓库上，在终端执行 `vim /etc/docker/daemon.json` 命令，新增如下内容为 docker 添加openYuanrong 白名单镜像仓库地址。
+openYuanrong 版本镜像存放在私有镜像仓库上，在 K8s 各节点终端执行 `vim /etc/docker/daemon.json` 命令，新增如下内容为 docker 添加 openYuanrong 白名单镜像仓库地址。
 
 ```json
 {

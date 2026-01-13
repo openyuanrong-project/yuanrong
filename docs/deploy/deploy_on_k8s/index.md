@@ -16,7 +16,7 @@
 
 openYuanrong 集群由主节点 pod 和从节点 pod 组成。
 
-![](../../images/4bf29e7902e9a206c4a8af1bb48e4ec8_564x427.png)
+![](../../images/deploy_on_k8s_mode_1.png)
 
 部署参考[用户指南](./production/index.md)，包含配置项介绍、安全、集群运维等更多内容。
 
