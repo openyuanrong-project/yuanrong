@@ -17,7 +17,7 @@ openYuanrong 支持立即导出（immediatelyExport）和批量导出（batchExp
 
 - `name`：用户自定义的导出模式名称。
 - `enable`：导出模式是否开启。
-- `exporters`：该导出模式下，使用的导出器，可配置多个。当前仅支持：fileExporter（文件导出器）。
+- `exporters`：该导出模式下，使用的导出器，可配置多个。当前支持：fileExporter（文件导出器）、prometheusPushExporter（ prometheus 导出器）。
 
 ### 导出器
 
@@ -30,22 +30,32 @@ openYuanrong 支持立即导出（immediatelyExport）和批量导出（batchExp
 - `failureDataFileMaxCapacity`：导出失败时，指标存储文件最大容量。当文件大小超过该容量时，文件将被覆盖，默认值为 20MB。
 - `batchSize`：批量导出条数。当存储的指标数超过设置值时，触发导出，默认值为 512 条。仅当导出模式为 `batchExport` 时该配置生效。
 - `batchIntervalSec`：批量导出间隔。每间隔一定时间导出一次指标，默认值为 15 秒。仅当导出模式为 `batchExport` 时该配置生效。
-- `initConfig`: 导出器需要设置的初始化参数，详见以下表格说明。
+- `initConfig`: 导出器需要设置的初始化参数，openYuanrong 支持文件导出器（fileExporter）和 prometheus导出器（prometheusPushExporter）两种导出模式。详见以下表格说明。
+  - fileExporter 导出器初始化参数：
 
-fileExporter 导出器初始化参数：
+    | 初始化参数 | 说明 | 约束 |
+    | ---------- | -------------------- | -------------------- |
+    | fileDir     | 文件存放路径。 | 可选，为空时取日志存储路径。                                 |
+    | fileName    | 文件名称。     | 可选，为空时默认 `{nodeID}-{componentName}-metrics.data`。 |
+    | rolling     | 文件滚动配置，包含以下配置项： <br>`enable`：文件滚动开关，默认 `false`。<br>`maxFiles`：保留文件最大数量，默认值 `3`。<br>`maxSize`：文件最大容量，默认值 `100MB`。<br>`compress`：是否开启文件压缩，默认 `false`, 仅在开启滚动时生效。 | 可选，为空时不开启文件滚动。                                 |
+    | contentType | 指标内容形式，可选以下两种之一。 <br>`STANDARD`: 标准格式，保留所有信息。<br>`LABELS`: 标签模式，仅保留指标标签。| 可选，默认为标准模式。 |
 
-| 初始化参数 | 说明 | 约束 |
-| ---------- | -------------------- | -------------------- |
-| fileDir     | 文件存放路径。 | 可选，为空时取日志存储路径。                                 |
-| fileName    | 文件名称。     | 可选，为空时默认 `{nodeID}-{componentName}-metrics.data`。 |
-| rolling     | 文件滚动配置，包含以下配置项： <br>`enable`：文件滚动开关，默认 `false`。<br>`maxFiles`：保留文件最大数量，默认值 `3`。<br>`maxSize`：文件最大容量，默认值 `100MB`。<br>`compress`：是否开启文件压缩，默认 `false`, 仅在开启滚动时生效。 | 可选，为空时不开启文件滚动。                                 |
-| contentType | 指标内容形式，可选以下两种之一。 <br>`STANDARD`: 标准格式，保留所有信息。<br>`LABELS`: 标签模式，仅保留指标标签。| 可选，默认为标准模式。 |
+  - prometheusPushExporter 导出器初始化参数：
+  
+    | 初始化参数          | 说明                                  | 约束               |
+    |-------------------|------------------------------------ |------------------|
+    | ip                | prometheus push gateway 地址。         | 必填 例: `127.0.0.1` |
+    | port              | prometheus push gateway 端口。         | 必填 例: `9091`     |
+    | heartbeatUrl      | prometheus push gateway 心跳地址。       | 必填 例: `/healthy` |
+    | heartbeatInterval | prometheus push gateway 心跳间隔 单位（ms）。 | 必填  例:  `5000`     |
 
 (metrics-config-example)=
 
 ### 配置示例
 
-以下是一个`metrics config`配置示例：
+openYuanrong 支持文件（fileExporter）和 [prometheus](https://prometheus.io/){target="_blank"} （prometheusPushExporter）两种导出器。
+ 
+- 以下是一个文件导出器 `metrics config` 配置示例：
 
 ```json
 {
@@ -110,6 +120,42 @@ fileExporter 导出器初始化参数：
 
 示例中同时使用了立即上报和批量上报两种导出模式。
 
+- 以下是一个 prometheusPush 导出器 `metrics config` 配置示例：
+
+```json
+{
+  "backends": [
+    {
+      "batchExport": {
+        "name": "your name",
+        "enable": true,
+        "exporters": [
+          {
+            "prometheusPushExporter": {
+              "enable": true,
+              "enabledInstruments": ["yr_node_cpu_usage","yr_node_memory_usage","yr_etcd_alarm"],
+              "batchSize": 10,
+              "batchIntervalSec": 5,
+              "failureQueueMaxSize": 100,
+              "failureDataDir": "/home/sn/metrics/failure",
+              "failureDataFileMaxCapacity": 20,
+              "initConfig": {
+                "ip": "your prometheus pushgateway ip",
+                "port": 9091,
+                "heartbeatUrl": "/healthy",
+                "heartbeatInterval": 5000
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+示例中使用了批量上报导出模式。
+
 ## 获取导出的指标数据
 
 您可通过配置不同类型的导出器获取指标数据。
@@ -119,7 +165,7 @@ fileExporter 导出器初始化参数：
 文件导出器（fileExporter）的导出目录可通过配置传入，默认使用日志目录。文件名称格式如下:
 
 - 应用指标文件名形式：`yr_metrics_xxx.data` 。
-- 系统指标文件名形式：`{nodeName}-{moduleName}-metrics.data`，例如：pekphis355665-3445437-function_master-metrics.data。
+- 系统指标文件名形式：`{nodeName}-{moduleName}-metrics.data`，例如：`pekphis355665-3445437-function_master-metrics.data`。
 
 导出文件内容格式有 `STANDARD`、`LABELS` 两种。
 
@@ -142,11 +188,11 @@ fileExporter 导出器初始化参数：
     其中，文件内容字段含义如下：
 
     | 字段 | 说明 |
-    | ---------- | ---------- |
-    | name         | 指标名称。 |
-    | description  | 指标描述。 |
-    | type         | 指标类型。 |
-    | unit         | 指标单位。 |
-    | value        | 采集数值。 |
-    | timestamp_ms | 采集时刻。 |
-    | labels       | 标签属性。 |
+    | ---------- | ---- |
+    | name         | 指标名称 |
+    | description  | 指标描述 |
+    | type         | 指标类型 |
+    | unit         | 指标单位 |
+    | value        | 采集数值 |
+    | timestamp_ms | 采集时刻 |
+    | labels       | 标签属性 |
