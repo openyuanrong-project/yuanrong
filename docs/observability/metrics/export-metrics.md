@@ -4,7 +4,7 @@
 
 ## 配置指标导出
 
-监控在 openYuanrong 中默认是关闭状态。在 k8s 部署时，开启需要配置参数 `observer.metrics.enable` 为 `true`，并且在 `observer.metrics.metricsConfig` 中设置相应的导出器。在主机上部署时，开启需要在启动参数中增加 `--enable_metrics=true --metrics_config_file={file_name}.json`，配置文件的格式参考[配置示例](metrics-config-example)。
+监控在 openYuanrong 中默认是关闭状态。在 K8s 部署时，开启需要配置参数 `observer.metrics.enable` 为 `true`，并且在 `observer.metrics.metricsConfig` 中设置相应的导出器。在主机上部署时，开启需要在启动参数中增加 `--enable_metrics=true --metrics_config_file={file_name}.json`，配置文件的格式参考[配置示例](metrics-config-example)。
 
 ### 导出模式
 
@@ -17,9 +17,11 @@ openYuanrong 支持立即导出（immediatelyExport）和批量导出（batchExp
 
 - `name`：用户自定义的导出模式名称。
 - `enable`：导出模式是否开启。
-- `exporters`：该导出模式下，使用的导出器，可配置多个。当前支持：fileExporter（文件导出器）、prometheusPushExporter（ prometheus 导出器）。
+- `exporters`：该导出模式下，使用的导出器，可配置多个。
 
 ### 导出器
+
+openYuanrong 支持文件导出器（fileExporter）和 [Prometheus](https://prometheus.io/){target="_blank"} 导出器（prometheusPushExporter）两种。
 
 导出器包含以下配置：
 
@@ -30,7 +32,7 @@ openYuanrong 支持立即导出（immediatelyExport）和批量导出（batchExp
 - `failureDataFileMaxCapacity`：导出失败时，指标存储文件最大容量。当文件大小超过该容量时，文件将被覆盖，默认值为 20MB。
 - `batchSize`：批量导出条数。当存储的指标数超过设置值时，触发导出，默认值为 512 条。仅当导出模式为 `batchExport` 时该配置生效。
 - `batchIntervalSec`：批量导出间隔。每间隔一定时间导出一次指标，默认值为 15 秒。仅当导出模式为 `batchExport` 时该配置生效。
-- `initConfig`: 导出器需要设置的初始化参数，openYuanrong 支持文件导出器（fileExporter）和 prometheus导出器（prometheusPushExporter）两种导出模式。详见以下表格说明。
+- `initConfig`: 导出器需要设置的初始化参数，详见以下表格说明。
   - fileExporter 导出器初始化参数：
 
     | 初始化参数 | 说明 | 约束 |
@@ -53,9 +55,9 @@ openYuanrong 支持立即导出（immediatelyExport）和批量导出（batchExp
 
 ### 配置示例
 
-openYuanrong 支持文件（fileExporter）和 [prometheus](https://prometheus.io/){target="_blank"} （prometheusPushExporter）两种导出器。
+以下是指标配置文件示例。
  
-- 以下是一个文件导出器 `metrics config` 配置示例：
+- 配置立即上报和批量上报两种导出模式，使用文件导出器导出指标。
 
 ```json
 {
@@ -118,9 +120,7 @@ openYuanrong 支持文件（fileExporter）和 [prometheus](https://prometheus.i
 }
 ```
 
-示例中同时使用了立即上报和批量上报两种导出模式。
-
-- 以下是一个 prometheusPush 导出器 `metrics config` 配置示例：
+- 配置批量上导出模式，使用 prometheus 导出器导出指标。
 
 ```json
 {
@@ -153,8 +153,6 @@ openYuanrong 支持文件（fileExporter）和 [prometheus](https://prometheus.i
   ]
 }
 ```
-
-示例中使用了批量上报导出模式。
 
 ## 获取导出的指标数据
 

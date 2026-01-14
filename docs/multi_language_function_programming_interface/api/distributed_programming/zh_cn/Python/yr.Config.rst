@@ -89,6 +89,10 @@ yr.Config
          - 用于为运行时设置自定义环境变量。
        * - :ref:`master_addr_list <master_addr_list>`
          - 函数主节点地址列表。
+       * - :ref:`dedup_logs <dedup_logs_cn>`
+         - 对作业中的函数进程标准输出日志去重。
+       * - :ref:`log_to_driver <_log_to_driver_cn>`
+         - 配置作业中的函数进程标准输出到 Driver 端。
 
     **方法**：
 
@@ -141,4 +145,6 @@ yr.Config
     yr.Config.load_paths
     yr.Config.custom_envs
     yr.Config.master_addr_list
+    yr.Config.dedup_logs
+    yr.Config.log_to_driver
     yr.Config.__init__

@@ -22,7 +22,7 @@ openYuanrong 集群由主节点 pod 和从节点 pod 组成。
 
 ### 主节点 pod
 
-主节点 pod 用于管理集群，负责全局函数调度、请求转发等工作。包含的组件有 function master、FaaS manager、FaaS scheduler、frontend、meta service、IAM adaptor 及开源 MinIO、etcd。
+主节点 pod 用于管理集群，负责全局函数调度、请求转发等工作。包含的组件有 function master、function manager、function scheduler、frontend、meta service、IAM adaptor 及开源 MinIO、etcd。
 
 ### 从节点 pod
 
@@ -33,10 +33,10 @@ openYuanrong 集群由主节点 pod 和从节点 pod 组成。
 - **function master**
 
   负责拓扑管理、全局函数调度、函数实例生命周期管理及 function agent 组件的扩缩容。部署形式为 [Deployment](https://kubernetes.io/zh-cn/docs/concepts/workloads/controllers/deployment/){target="_blank"}，一主多备。
-- **FaaS manager**
+- **function manager**
 
   负责租约申请与回收，清理过期连接信息。它是一个 openYuanrong 系统函数。
-- **FaaS scheduler**
+- **function scheduler**
 
   负责函数服务的调度。它是一个 openYuanrong 系统函数。
 - **frontend**
