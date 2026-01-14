@@ -120,7 +120,7 @@ openYuanrong 支持文件导出器（fileExporter）和 [Prometheus](https://pro
   }
   ```
 
-- 配置批量上导出模式，使用 prometheus 导出器导出指标。
+- 配置批量上报导出模式，使用 Prometheus 导出器导出指标。
 
   ```json
   {
@@ -160,7 +160,7 @@ openYuanrong 支持文件导出器（fileExporter）和 [Prometheus](https://pro
 
 ### 文件导出器
 
-文件导出器（fileExporter）的导出目录可通过配置传入，默认使用日志目录。文件名称格式如下:
+文件导出器（fileExporter）的导出目录可通过配置传入，默认使用日志目录。文件名称格式如下：
 
 - 应用指标文件名形式：`yr_metrics_xxx.data` 。
 - 系统指标文件名形式：`{nodeName}-{moduleName}-metrics.data`，例如：`pekphis355665-3445437-function_master-metrics.data`。
