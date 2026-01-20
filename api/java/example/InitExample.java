@@ -16,9 +16,9 @@
 
 package example;
 
-import com.yuanrong.Config;
-import com.yuanrong.api.YR;
-import com.yuanrong.api.ClientInfo;
+import org.yuanrong.Config;
+import org.yuanrong.api.YR;
+import org.yuanrong.api.ClientInfo;
 
 public class InitExample {
     //! [init conf 样例代码]

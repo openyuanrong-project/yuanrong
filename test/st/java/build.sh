@@ -47,7 +47,7 @@ function install_sdk() {
     cd $SDK_DIR
     jarfile=$(find ./ -name "yr-api-sdk-*.jar" -print -quit)
     echo "[INFO] --java st-- Installing java sdk from ${SDK_DIR}/${jarfile}"
-    mvn -q install:install-file -Dfile=${jarfile} -DartifactId=yr-api-sdk -DgroupId=com.yuanrong \
+    mvn -q install:install-file -Dfile=${jarfile} -DartifactId=yr-api-sdk -DgroupId=org.yuanrong \
     -Dversion=v0.0.1 -Dpackaging=jar -DpomFile=./pom.xml
 }
 

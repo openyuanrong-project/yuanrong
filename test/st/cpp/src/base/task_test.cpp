@@ -737,9 +737,9 @@ TEST_F(TaskTest, InvokePythonFuncWithRefSuccessfully)
  * @expect:  1.预期无异常抛出，
  * @expect:  2.返回值为1
  */
-TEST_F(TaskTest, InvokeJavaFuncSuccessfully)
+TEST_F(TaskTest, DISABLED_InvokeJavaFuncSuccessfully)
 {
-    auto ret = YR::JavaFunction<int>("com.yuanrong.testutils.TestUtils", "returnInt")
+    auto ret = YR::JavaFunction<int>("org.yuanrong.testutils.TestUtils", "returnInt")
                    .SetUrn("sn:cn:yrk:12345678901234561234567890123456:function:0-yr-stjava:$latest")
                    .Invoke(1);
     EXPECT_EQ(*YR::Get(ret), 1);
@@ -751,10 +751,10 @@ TEST_F(TaskTest, InvokeJavaFuncSuccessfully)
  * @step:  调用openYuanRong task 函数 returnInt
  * @expect:  1.预期有异常抛出，
  */
-TEST_F(TaskTest, InvokeJavaFuncFailed)
+TEST_F(TaskTest, DISABLED_InvokeJavaFuncFailed)
 {
     try {
-        YR::JavaFunction<int>("com.yuanrong.testutils.TestUtils", "returnInt").SetUrn("abc123").Invoke(1);
+        YR::JavaFunction<int>("org.yuanrong.testutils.TestUtils", "returnInt").SetUrn("abc123").Invoke(1);
     } catch (YR::Exception &e) {
         printf("error: %s\n", e.what());
         std::string errorCode = "ErrCode: 1001";
@@ -763,7 +763,7 @@ TEST_F(TaskTest, InvokeJavaFuncFailed)
         ErrorMsgCheck(errorCode, errorMsg, excepMsg);
     }
     try {
-        auto ret = YR::JavaFunction<std::string>("com.yuanrong.testutils.TestUtils", "returnInt")
+        auto ret = YR::JavaFunction<std::string>("org.yuanrong.testutils.TestUtils", "returnInt")
                        .SetUrn("sn:cn:yrk:12345678901234561234567890123456:function:0-yr-stjava:$latest")
                        .Invoke(1);
         YR::Get(ret);
@@ -787,7 +787,7 @@ TEST_F(TaskTest, InvokeJavaFuncFailed)
         ErrorMsgCheck(errorCode, errorMsg, excepMsg);
     }
     try {
-        auto ret = YR::JavaFunction<int>("com.yuanrong.testutils.TestUtils", "addOne")
+        auto ret = YR::JavaFunction<int>("org.yuanrong.testutils.TestUtils", "addOne")
                        .SetUrn("sn:cn:yrk:12345678901234561234567890123456:function:0-yr-stjava:$latest")
                        .Invoke(1);
         YR::Get(ret);

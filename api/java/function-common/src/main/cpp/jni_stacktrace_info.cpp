@@ -21,7 +21,7 @@ namespace YR {
 namespace jni {
 void JNIStackTraceInfo::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/exception/handler/traceback/StackTraceInfo");
+    clz_ = LoadClass(env, "org/yuanrong/exception/handler/traceback/StackTraceInfo");
     init_ =
         GetJMethod(env, clz_, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;)V");
     getType_ = GetJMethod(env, clz_, "getType", "()Ljava/lang/String;");

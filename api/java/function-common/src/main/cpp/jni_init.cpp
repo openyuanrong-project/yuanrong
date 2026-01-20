@@ -32,7 +32,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
     // JNIApacheCommonsExceptionUtils depends on JNIString
     // Rest of them depends on JNIApacheCommonsExceptionUtils for any exception in JVM
     bool isOnCloud = true;
-    jclass tempLocalClassRef = env->FindClass("com/yuanrong/runtime/server/RuntimeServer");
+    jclass tempLocalClassRef = env->FindClass("org/yuanrong/runtime/server/RuntimeServer");
     if (tempLocalClassRef == nullptr) {
         isOnCloud = false;
         env->ExceptionClear();

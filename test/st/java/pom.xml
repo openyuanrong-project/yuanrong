@@ -3,7 +3,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <artifactId>java-st-test</artifactId>
-    <groupId>com.yuanrong</groupId>
+    <groupId>org.yuanrong</groupId>
     <version>1.0.0</version>
     <modelVersion>4.0.0</modelVersion>
 
@@ -14,7 +14,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.yuanrong</groupId>
+            <groupId>org.yuanrong</groupId>
             <artifactId>yr-api-sdk</artifactId>
             <version>v0.0.1</version>
         </dependency>

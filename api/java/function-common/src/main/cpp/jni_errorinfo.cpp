@@ -22,13 +22,13 @@ namespace YR {
 namespace jni {
 void JNIErrorInfo::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/errorcode/ErrorInfo");
+    clz_ = LoadClass(env, "org/yuanrong/errorcode/ErrorInfo");
     init_ = GetJMethod(env, clz_, "<init>",
-                       "(Lcom/yuanrong/errorcode/ErrorCode;Lcom/yuanrong/errorcode/ModuleCode;Ljava/lang/"
+                       "(Lorg/yuanrong/errorcode/ErrorCode;Lorg/yuanrong/errorcode/ModuleCode;Ljava/lang/"
                        "String;Ljava/util/List;)V");
     getMsg_ = GetJMethod(env, clz_, "getErrorMessage", "()Ljava/lang/String;");
-    getCode_ = GetJMethod(env, clz_, "getErrorCode", "()Lcom/yuanrong/errorcode/ErrorCode;");
-    getMCode_ = GetJMethod(env, clz_, "getModuleCode", "()Lcom/yuanrong/errorcode/ModuleCode;");
+    getCode_ = GetJMethod(env, clz_, "getErrorCode", "()Lorg/yuanrong/errorcode/ErrorCode;");
+    getMCode_ = GetJMethod(env, clz_, "getModuleCode", "()Lorg/yuanrong/errorcode/ModuleCode;");
     getStackTraceInfos_ = GetJMethod(env, clz_, "getStackTraceInfos", "()Ljava/util/List;");
 }
 

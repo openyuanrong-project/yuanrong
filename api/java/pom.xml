@@ -2,9 +2,9 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.yuanrong</groupId>
+    <groupId>org.yuanrong</groupId>
     <artifactId>yr-api-java</artifactId>
-    <version>1.0.0</version>
+    <version>v0.0.1</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -35,12 +35,12 @@
                 <version>${gson.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.yuanrong</groupId>
+                <groupId>org.yuanrong</groupId>
                 <artifactId>yr-api-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.yuanrong</groupId>
+                <groupId>org.yuanrong</groupId>
                 <artifactId>function-common</artifactId>
                 <version>${project.version}</version>
             </dependency>

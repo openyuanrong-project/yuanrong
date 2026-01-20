@@ -22,7 +22,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>yr-api-java</artifactId>
-        <groupId>com.yuanrong</groupId>
+        <groupId>org.yuanrong</groupId>
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
@@ -40,7 +40,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.yuanrong</groupId>
+            <groupId>org.yuanrong</groupId>
             <artifactId>function-common</artifactId>
         </dependency>
         <dependency>

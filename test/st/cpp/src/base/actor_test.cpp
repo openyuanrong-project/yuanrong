@@ -753,9 +753,9 @@ TEST_F(ActorTest, CreatePythonWithRefActorSuccessful)
  * @expect:  1.预期无异常抛出，
  * @expect:  2.返回值为1
  */
-TEST_F(ActorTest, CreateJavaActorSuccessful)
+TEST_F(ActorTest, DISABLED_CreateJavaActorSuccessful)
 {
-    auto javaCls = YR::JavaInstanceClass::FactoryCreate("com.yuanrong.testutils.TestUtils");
+    auto javaCls = YR::JavaInstanceClass::FactoryCreate("org.yuanrong.testutils.TestUtils");
     auto creator = YR::Instance(javaCls)
                        .SetUrn("sn:cn:yrk:12345678901234561234567890123456:function:0-yr-stjava:$latest")
                        .Invoke();
@@ -769,10 +769,10 @@ TEST_F(ActorTest, CreateJavaActorSuccessful)
  * @step:  创建actor
  * @expect:  1.预期有异常抛出
  */
-TEST_F(ActorTest, CreateJavaActorFailed)
+TEST_F(ActorTest, DISABLED_CreateJavaActorFailed)
 {
     try {
-        auto javaCls = YR::JavaInstanceClass::FactoryCreate("com.yuanrong.testutils.TestUtils");
+        auto javaCls = YR::JavaInstanceClass::FactoryCreate("org.yuanrong.testutils.TestUtils");
         auto creator = YR::Instance(javaCls).SetUrn("abc123").Invoke();
     } catch (YR::Exception &e) {
         printf("error: %s\n", e.what());

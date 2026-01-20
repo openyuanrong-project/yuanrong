@@ -18,7 +18,7 @@ syntax = "proto3";
 
 package libruntime;
 
-option java_package = "com.yuanrong.libruntime.generated";
+option java_package = "org.yuanrong.libruntime.generated";
 option go_package = "libruntime/clibruntime/generated";
 
 enum InvokeType {

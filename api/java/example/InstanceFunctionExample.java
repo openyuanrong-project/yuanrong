@@ -16,7 +16,7 @@
 
 package example;
 
-import com.yuanrong.Config;
+import org.yuanrong.Config;
 
 public class InstanceFunctionExample {
     public static void main(String[] args) throws Exception {

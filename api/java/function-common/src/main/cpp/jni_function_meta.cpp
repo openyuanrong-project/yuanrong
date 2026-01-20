@@ -19,15 +19,15 @@ namespace YR {
 namespace jni {
 void JNIFunctionMeta::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/libruntime/generated/Libruntime$FunctionMeta");
-    factoryClz_ = LoadClass(env, "com/yuanrong/instance/FunctionMetaFactory");
-    clzLanguageType_ = LoadClass(env, "com/yuanrong/libruntime/generated/Libruntime$LanguageType");
-    clzApiType_ = LoadClass(env, "com/yuanrong/libruntime/generated/Libruntime$ApiType");
+    clz_ = LoadClass(env, "org/yuanrong/libruntime/generated/Libruntime$FunctionMeta");
+    factoryClz_ = LoadClass(env, "org/yuanrong/instance/FunctionMetaFactory");
+    clzLanguageType_ = LoadClass(env, "org/yuanrong/libruntime/generated/Libruntime$LanguageType");
+    clzApiType_ = LoadClass(env, "org/yuanrong/libruntime/generated/Libruntime$ApiType");
     init_ = GetStaticMethodID(
         env, factoryClz_, "getFunctionMeta",
-        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lcom/yuanrong/"
-        "libruntime/generated/Libruntime$LanguageType;Lcom/yuanrong/libruntime/generated/Libruntime$ApiType;"
-        "Ljava/lang/String;)Lcom/yuanrong/libruntime/generated/Libruntime$FunctionMeta;");
+        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lorg/yuanrong/"
+        "libruntime/generated/Libruntime$LanguageType;Lorg/yuanrong/libruntime/generated/Libruntime$ApiType;"
+        "Ljava/lang/String;)Lorg/yuanrong/libruntime/generated/Libruntime$FunctionMeta;");
     getFuncName_ = GetJMethod(env, clz_, "getFunctionName", "()Ljava/lang/String;");
     getFunctionID_ = GetJMethod(env, clz_, "getFunctionID", "()Ljava/lang/String;");
     getSignature_ = GetJMethod(env, clz_, "getSignature", "()Ljava/lang/String;");
@@ -35,9 +35,9 @@ void JNIFunctionMeta::Init(JNIEnv *env)
     getAppName_ = GetJMethod(env, clz_, "getApplicationName", "()Ljava/lang/String;");
     getModuleName_ = GetJMethod(env, clz_, "getModuleName", "()Ljava/lang/String;");
     getLangaugeType_ =
-        GetJMethod(env, clz_, "getLanguage", "()Lcom/yuanrong/libruntime/generated/Libruntime$LanguageType;");
+        GetJMethod(env, clz_, "getLanguage", "()Lorg/yuanrong/libruntime/generated/Libruntime$LanguageType;");
     getApiType_ =
-        GetJMethod(env, clz_, "getApiType", "()Lcom/yuanrong/libruntime/generated/Libruntime$ApiType;");
+        GetJMethod(env, clz_, "getApiType", "()Lorg/yuanrong/libruntime/generated/Libruntime$ApiType;");
     getName_ = GetJMethod(env, clz_, "getName", "()Ljava/lang/String;");
     getNs_ = GetJMethod(env, clz_, "getNs", "()Ljava/lang/String;");
 }

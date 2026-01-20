@@ -16,11 +16,11 @@
 
 package example;
 
-import com.yuanrong.Config;
-import com.yuanrong.api.YR;
-import com.yuanrong.invokeOptions;
-import com.yuanrong.call.VoidFunctionHandler;
-import com.yuanrong.call.VoidInstanceFunctionHandler;
+import org.yuanrong.Config;
+import org.yuanrong.api.YR;
+import org.yuanrong.invokeOptions;
+import org.yuanrong.call.VoidFunctionHandler;
+import org.yuanrong.call.VoidInstanceFunctionHandler;
 
 
 public class VoidFunctionExample {

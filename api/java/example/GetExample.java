@@ -16,8 +16,8 @@
 
 package example;
 
-import com.yuanrong.api.YR;
-import com.yuanrong.runtime.client.ObjectRef;
+import org.yuanrong.api.YR;
+import org.yuanrong.runtime.client.ObjectRef;
 
 public class InitExample {
     //! [get example]

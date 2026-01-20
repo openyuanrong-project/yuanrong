@@ -16,10 +16,10 @@
 
 package example;
 
-import com.yuanrong.api.YR;
-import com.yuanrong.Group;
-import com.yuanrong.GroupOptions;
-import com.yuanrong.call.InstanceHandler;
+import org.yuanrong.api.YR;
+import org.yuanrong.Group;
+import org.yuanrong.GroupOptions;
+import org.yuanrong.call.InstanceHandler;
 
 public class GroupExample {
     public static void main(String[] args) throws Exception {

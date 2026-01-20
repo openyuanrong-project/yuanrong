@@ -1644,7 +1644,7 @@ def java_function(class_name: str, function_name: str, function_urn: str) -> Fun
     Examples:
         .. code:: java
 
-            package com.yuanrong.demo;
+            package org.yuanrong.demo;
 
             public class PlusOne{
                 public static int PlusOne(int x) {
@@ -1661,7 +1661,7 @@ def java_function(class_name: str, function_name: str, function_urn: str) -> Fun
             ...     "sn:cn:yrk:12345678901234561234567890123456:"
             ...     "function:0-yr-defaultservice-java:$latest"
             ... )
-            >>> java_add = yr.java_function("com.yuanrong.demo.PlusOne", "PlusOne", java_function_urn)
+            >>> java_add = yr.java_function("org.yuanrong.demo.PlusOne", "PlusOne", java_function_urn)
             >>> result = java_add.invoke(1)
             >>> print(yr.get(result))
 
@@ -1687,7 +1687,7 @@ def java_instance_class(class_name: str, function_urn: str) -> InstanceCreator:
     Examples:
         .. code:: java
 
-            package com.yuanrong.demo;
+            package org.yuanrong.demo;
 
             public class Counter {
                 private int count;
@@ -1718,7 +1718,7 @@ def java_instance_class(class_name: str, function_urn: str) -> InstanceCreator:
             ...     "function:0-yr-defaultservice-java:$latest"
             ... )
             >>>
-            >>> java_instance = yr.java_instance_class("com.yuanrong.demo.Counter", java_function_urn).invoke(1)
+            >>> java_instance = yr.java_instance_class("org.yuanrong.demo.Counter", java_function_urn).invoke(1)
             >>> res = java_instance.Add.invoke(5)
             >>> print(yr.get(res))
             >>>

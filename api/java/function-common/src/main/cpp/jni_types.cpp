@@ -96,7 +96,7 @@ RAIIJavaObject::~RAIIJavaObject()
 
 void JNILibruntimeException::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/exception/LibRuntimeException");
+    clz_ = LoadClass(env, "org/yuanrong/exception/LibRuntimeException");
 }
 
 void JNILibruntimeException::Recycle(JNIEnv *env) {}
@@ -110,7 +110,7 @@ void JNILibruntimeException::Throw(JNIEnv *env, const YR::Libruntime::ErrorCode 
                                    const YR::Libruntime::ModuleCode &moduleCode, const std::string &msg)
 {
     jmethodID constructorId = env->GetMethodID(
-        clz_, "<init>", "(Lcom/yuanrong/errorcode/ErrorCode;Lcom/yuanrong/errorcode/ModuleCode;Ljava/lang/String;)V");
+        clz_, "<init>", "(Lorg/yuanrong/errorcode/ErrorCode;Lorg/yuanrong/errorcode/ModuleCode;Ljava/lang/String;)V");
 
     jobject jerrorCode = JNIErrorCode::FromCc(env, errorCode);
     if (jerrorCode == nullptr) {
@@ -369,10 +369,10 @@ void JNIByteBuffer::Clear(JNIEnv *env, const jobject &byteBfr)
 
 void JNIInvokeType::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/libruntime/generated/Libruntime$InvokeType");
+    clz_ = LoadClass(env, "org/yuanrong/libruntime/generated/Libruntime$InvokeType");
     jmGetNumber_ = GetJMethod(env, clz_, "getNumber", "()I");
     jmForNumber_ =
-        GetStaticMethodID(env, clz_, "forNumber", "(I)Lcom/yuanrong/libruntime/generated/Libruntime$InvokeType;");
+        GetStaticMethodID(env, clz_, "forNumber", "(I)Lorg/yuanrong/libruntime/generated/Libruntime$InvokeType;");
 }
 
 void JNIInvokeType::Recycle(JNIEnv *env)
@@ -395,10 +395,10 @@ libruntime::InvokeType JNIInvokeType::FromJava(JNIEnv *env, const jobject obj)
 
 void JNILanguageType::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/libruntime/generated/Libruntime$LanguageType");
+    clz_ = LoadClass(env, "org/yuanrong/libruntime/generated/Libruntime$LanguageType");
     jmGetNumber_ = GetJMethod(env, clz_, "getNumber", "()I");
     jmForNumber_ =
-        GetStaticMethodID(env, clz_, "forNumber", "(I)Lcom/yuanrong/libruntime/generated/Libruntime$LanguageType;");
+        GetStaticMethodID(env, clz_, "forNumber", "(I)Lorg/yuanrong/libruntime/generated/Libruntime$LanguageType;");
 }
 
 void JNILanguageType::Recycle(JNIEnv *env)
@@ -421,10 +421,10 @@ libruntime::LanguageType JNILanguageType::FromJava(JNIEnv *env, const jobject ob
 
 void JNIApiType::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/libruntime/generated/Libruntime$ApiType");
+    clz_ = LoadClass(env, "org/yuanrong/libruntime/generated/Libruntime$ApiType");
     jmGetNumber_ = GetJMethod(env, clz_, "getNumber", "()I");
     jmForNumber_ =
-        GetStaticMethodID(env, clz_, "forNumber", "(I)Lcom/yuanrong/libruntime/generated/Libruntime$ApiType;");
+        GetStaticMethodID(env, clz_, "forNumber", "(I)Lorg/yuanrong/libruntime/generated/Libruntime$ApiType;");
 }
 
 void JNIApiType::Recycle(JNIEnv *env)
@@ -447,12 +447,12 @@ libruntime::ApiType JNIApiType::FromJava(JNIEnv *env, const jobject obj)
 
 void JNICodeLoader::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/codemanager/CodeLoader");
+    clz_ = LoadClass(env, "org/yuanrong/codemanager/CodeLoader");
     if (clz_ == nullptr) {
         // client don't need this package
         return;
     }
-    jmLoad_ = GetStaticMethodID(env, clz_, "Load", "(Ljava/util/List;)Lcom/yuanrong/errorcode/ErrorInfo;");
+    jmLoad_ = GetStaticMethodID(env, clz_, "Load", "(Ljava/util/List;)Lorg/yuanrong/errorcode/ErrorInfo;");
 }
 
 void JNICodeLoader::Recycle(JNIEnv *env)
@@ -477,21 +477,21 @@ YR::Libruntime::ErrorInfo JNICodeLoader::Load(JNIEnv *env, const std::vector<std
 
 void JNICodeExecutor::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/codemanager/CodeExecutor");
+    clz_ = LoadClass(env, "org/yuanrong/codemanager/CodeExecutor");
     if (clz_ == nullptr) {
         // client don't need this package
         return;
     }
     jmExecute_ = GetStaticMethodID(
         env, clz_, "execute",
-        "(Lcom/yuanrong/libruntime/generated/Libruntime$FunctionMeta;Lcom/yuanrong/libruntime/generated/"
-        "Libruntime$InvokeType;Ljava/util/List;)Lcom/yuanrong/executor/ReturnType;");
-    jmDumpInstance_ = GetStaticMethodID(env, clz_, "dumpInstance", "(Ljava/lang/String;)Lcom/yuanrong/errorcode/Pair;");
+        "(Lorg/yuanrong/libruntime/generated/Libruntime$FunctionMeta;Lorg/yuanrong/libruntime/generated/"
+        "Libruntime$InvokeType;Ljava/util/List;)Lorg/yuanrong/executor/ReturnType;");
+    jmDumpInstance_ = GetStaticMethodID(env, clz_, "dumpInstance", "(Ljava/lang/String;)Lorg/yuanrong/errorcode/Pair;");
 
     jmLoadInstance_ = GetStaticMethodID(env, clz_, "loadInstance", "([B[B)V");
 
-    jmShutdown_ = GetStaticMethodID(env, clz_, "shutdown", "(I)Lcom/yuanrong/errorcode/ErrorInfo;");
-    jmRecover_ = GetStaticMethodID(env, clz_, "recover", "()Lcom/yuanrong/errorcode/ErrorInfo;");
+    jmShutdown_ = GetStaticMethodID(env, clz_, "shutdown", "(I)Lorg/yuanrong/errorcode/ErrorInfo;");
+    jmRecover_ = GetStaticMethodID(env, clz_, "recover", "()Lorg/yuanrong/errorcode/ErrorInfo;");
 }
 
 void JNICodeExecutor::Recycle(JNIEnv *env)
@@ -688,7 +688,7 @@ YR::Libruntime::ErrorInfo JNICodeExecutor::Shutdown(JNIEnv *env, uint64_t graceP
 
 void JNILibRuntimeConfig::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/jni/LibRuntimeConfig");
+    clz_ = LoadClass(env, "org/yuanrong/jni/LibRuntimeConfig");
     jmIsDriver_ = GetJMethod(env, clz_, "isDriver", "()Z");
     jmIsInCluster_ = GetJMethod(env, clz_, "isInCluster", "()Z");
     jmIsEnableMetrics_ = GetJMethod(env, clz_, "isEnableMetrics", "()Z");
@@ -951,7 +951,7 @@ std::unordered_set<T> JNIUnorderedSet::FromJava(JNIEnv *env, const jobject &obj,
 
 void JNIInvokeArg::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/api/InvokeArg");
+    clz_ = LoadClass(env, "org/yuanrong/api/InvokeArg");
     init_ = GetJMethod(env, clz_, "<init>", "()V");
     getData_ = GetJMethod(env, clz_, "getData", "()[B");
     isObjectRef_ = GetJMethod(env, clz_, "isObjectRef", "()Z");
@@ -1116,7 +1116,7 @@ void JNIGroupOptions::Recycle(JNIEnv *env)
 
 void JNIGroupOptions::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/GroupOptions");
+    clz_ = LoadClass(env, "org/yuanrong/GroupOptions");
     init_ = GetJMethod(env, clz_, "<init>", "()V");
     getTimeout_ = GetJMethod(env, clz_, "getTimeout", "()I");
     getSameLifecycle_ = GetJMethod(env, clz_, "isSameLifecycle", "()Z");
@@ -1148,7 +1148,7 @@ bool JNIGroupOptions::GetSameLifecycle(JNIEnv *env, jobject o)
 
 void JNIInvokeOptions::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/InvokeOptions");
+    clz_ = LoadClass(env, "org/yuanrong/InvokeOptions");
     init_ = GetJMethod(env, clz_, "<init>", "()V");
     getCpu_ = GetJMethod(env, clz_, "getCpu", "()I");
     getMemory_ = GetJMethod(env, clz_, "getMemory", "()I");
@@ -1421,7 +1421,7 @@ bool JNIInvokeOptions::GetPreemptedAllowed(JNIEnv *env, jobject o)
 
 void JNIDataObject::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/instance/DataObject");
+    clz_ = LoadClass(env, "org/yuanrong/instance/DataObject");
     init_ = GetJMethod(env, clz_, "<init>", "(Ljava/lang/String;)V");
     getId_ = GetJMethod(env, clz_, "getId", "()Ljava/lang/String;");
 }
@@ -1491,7 +1491,7 @@ jobject JNIDataObject::FromCcPtrVectorToList(JNIEnv *env,
 
 void JNIErrorCode::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/errorcode/ErrorCode");
+    clz_ = LoadClass(env, "org/yuanrong/errorcode/ErrorCode");
     jfInitWithInt_ = GetJMethod(env, clz_, "<init>", "(I)V");
     jfGetValue_ = GetJMethod(env, clz_, "getValue", "()I");
 }
@@ -1563,13 +1563,13 @@ YR::Libruntime::ErrorCode JNIErrorCode::FromJava(JNIEnv *env, jobject o)
 
 void JNIModuleCode::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/errorcode/ModuleCode");
-    jfCORE_ = GetJStaticField(env, clz_, "CORE", "Lcom/yuanrong/errorcode/ModuleCode;");
-    jfRUNTIME_ = GetJStaticField(env, clz_, "RUNTIME", "Lcom/yuanrong/errorcode/ModuleCode;");
-    jfRUNTIME_CREATE_ = GetJStaticField(env, clz_, "RUNTIME_CREATE", "Lcom/yuanrong/errorcode/ModuleCode;");
-    jfRUNTIME_INVOKE_ = GetJStaticField(env, clz_, "RUNTIME_INVOKE", "Lcom/yuanrong/errorcode/ModuleCode;");
-    jfRUNTIME_KILL_ = GetJStaticField(env, clz_, "RUNTIME_KILL", "Lcom/yuanrong/errorcode/ModuleCode;");
-    jfDATASYSTEM_ = GetJStaticField(env, clz_, "DATASYSTEM", "Lcom/yuanrong/errorcode/ModuleCode;");
+    clz_ = LoadClass(env, "org/yuanrong/errorcode/ModuleCode");
+    jfCORE_ = GetJStaticField(env, clz_, "CORE", "Lorg/yuanrong/errorcode/ModuleCode;");
+    jfRUNTIME_ = GetJStaticField(env, clz_, "RUNTIME", "Lorg/yuanrong/errorcode/ModuleCode;");
+    jfRUNTIME_CREATE_ = GetJStaticField(env, clz_, "RUNTIME_CREATE", "Lorg/yuanrong/errorcode/ModuleCode;");
+    jfRUNTIME_INVOKE_ = GetJStaticField(env, clz_, "RUNTIME_INVOKE", "Lorg/yuanrong/errorcode/ModuleCode;");
+    jfRUNTIME_KILL_ = GetJStaticField(env, clz_, "RUNTIME_KILL", "Lorg/yuanrong/errorcode/ModuleCode;");
+    jfDATASYSTEM_ = GetJStaticField(env, clz_, "DATASYSTEM", "Lorg/yuanrong/errorcode/ModuleCode;");
 
     joCORE_ = GetJStaticObjectField(env, clz_, jfCORE_);
     joRUNTIME_ = GetJStaticObjectField(env, clz_, jfRUNTIME_);
@@ -1624,7 +1624,7 @@ YR::Libruntime::ModuleCode JNIModuleCode::FromJava(JNIEnv *env, jobject o)
 
 void JNILabelOperator::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/affinity/LabelOperator");
+    clz_ = LoadClass(env, "org/yuanrong/affinity/LabelOperator");
     getType_ = GetJMethod(env, clz_, "getOperateTypeValue", "()I");
     getKey_ = GetJMethod(env, clz_, "getKey", "()Ljava/lang/String;");
     getValues_ = GetJMethod(env, clz_, "getValues", "()Ljava/util/List;");
@@ -1672,7 +1672,7 @@ std::shared_ptr<YR::Libruntime::LabelOperator> JNILabelOperator::FromJava(JNIEnv
 
 void JNIAffinity::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/affinity/Affinity");
+    clz_ = LoadClass(env, "org/yuanrong/affinity/Affinity");
     getValue_ = GetJMethod(env, clz_, "getAffinityValue", "()I");
     getOperators_ = GetJMethod(env, clz_, "getLabelOperators", "()Ljava/util/List;");
     getAffinityScopeValue_ = GetJMethod(env, clz_, "getAffinityScopeValue", "()I");
@@ -1749,12 +1749,12 @@ void JNIAffinity::Recycle(JNIEnv *env)
 
 void JNIReturnType::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/executor/ReturnType");
+    clz_ = LoadClass(env, "org/yuanrong/executor/ReturnType");
     if (clz_ == nullptr) {
         // client don't need this package
         return;
     }
-    getErrorInfo_ = GetJMethod(env, clz_, "getErrorInfo", "()Lcom/yuanrong/errorcode/ErrorInfo;");
+    getErrorInfo_ = GetJMethod(env, clz_, "getErrorInfo", "()Lorg/yuanrong/errorcode/ErrorInfo;");
     getBytes_ = GetJMethod(env, clz_, "getBytes", "()[B");
 }
 
@@ -1784,9 +1784,9 @@ std::pair<YR::Libruntime::ErrorInfo, std::shared_ptr<YR::Libruntime::Buffer>> JN
 
 void JNIExistenceOpt::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/ExistenceOpt");
-    j_field_NONE_ = GetJStaticField(env, clz_, "NONE", "Lcom/yuanrong/ExistenceOpt;");
-    j_field_NX_ = GetJStaticField(env, clz_, "NX", "Lcom/yuanrong/ExistenceOpt;");
+    clz_ = LoadClass(env, "org/yuanrong/ExistenceOpt");
+    j_field_NONE_ = GetJStaticField(env, clz_, "NONE", "Lorg/yuanrong/ExistenceOpt;");
+    j_field_NX_ = GetJStaticField(env, clz_, "NX", "Lorg/yuanrong/ExistenceOpt;");
 
     j_object_field_NONE_ = GetJStaticObjectField(env, clz_, j_field_NONE_);
     j_object_field_NX_ = GetJStaticObjectField(env, clz_, j_field_NX_);
@@ -1820,10 +1820,10 @@ YR::Libruntime::ExistenceOpt JNIExistenceOpt::FromJava(JNIEnv *env, jobject obj)
 
 void JNIWriteMode::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/WriteMode");
-    j_field_NONE_L2_CACHE_ = GetJStaticField(env, clz_, "NONE_L2_CACHE", "Lcom/yuanrong/WriteMode;");
-    j_field_WRITE_THROUGH_L2_CACHE_ = GetJStaticField(env, clz_, "WRITE_THROUGH_L2_CACHE", "Lcom/yuanrong/WriteMode;");
-    j_field_WRITE_BACK_L2_CACHE_ = GetJStaticField(env, clz_, "WRITE_BACK_L2_CACHE", "Lcom/yuanrong/WriteMode;");
+    clz_ = LoadClass(env, "org/yuanrong/WriteMode");
+    j_field_NONE_L2_CACHE_ = GetJStaticField(env, clz_, "NONE_L2_CACHE", "Lorg/yuanrong/WriteMode;");
+    j_field_WRITE_THROUGH_L2_CACHE_ = GetJStaticField(env, clz_, "WRITE_THROUGH_L2_CACHE", "Lorg/yuanrong/WriteMode;");
+    j_field_WRITE_BACK_L2_CACHE_ = GetJStaticField(env, clz_, "WRITE_BACK_L2_CACHE", "Lorg/yuanrong/WriteMode;");
 
     j_object_field_NONE_L2_CACHE_ = GetJStaticObjectField(env, clz_, j_field_NONE_L2_CACHE_);
     j_object_field_WRITE_THROUGH_L2_CACHE_ = GetJStaticObjectField(env, clz_, j_field_WRITE_THROUGH_L2_CACHE_);
@@ -1863,9 +1863,9 @@ YR::Libruntime::WriteMode JNIWriteMode::FromJava(JNIEnv *env, jobject obj)
 
 void JNIConsistencyType::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/ConsistencyType");
-    j_field_PRAM_ = GetJStaticField(env, clz_, "PRAM", "Lcom/yuanrong/ConsistencyType;");
-    j_field_CAUSAL_ = GetJStaticField(env, clz_, "CAUSAL", "Lcom/yuanrong/ConsistencyType;");
+    clz_ = LoadClass(env, "org/yuanrong/ConsistencyType");
+    j_field_PRAM_ = GetJStaticField(env, clz_, "PRAM", "Lorg/yuanrong/ConsistencyType;");
+    j_field_CAUSAL_ = GetJStaticField(env, clz_, "CAUSAL", "Lorg/yuanrong/ConsistencyType;");
 
     j_object_field_PRAM_ = GetJStaticObjectField(env, clz_, j_field_PRAM_);
     j_object_field_CAUSAL_ = GetJStaticObjectField(env, clz_, j_field_CAUSAL_);
@@ -1899,9 +1899,9 @@ YR::Libruntime::ConsistencyType JNIConsistencyType::FromJava(JNIEnv *env, jobjec
 
 void JNICacheType::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/CacheType");
-    j_field_MEMORY_ = GetJStaticField(env, clz_, "MEMORY", "Lcom/yuanrong/CacheType;");
-    j_field_DISK_ = GetJStaticField(env, clz_, "DISK", "Lcom/yuanrong/CacheType;");
+    clz_ = LoadClass(env, "org/yuanrong/CacheType");
+    j_field_MEMORY_ = GetJStaticField(env, clz_, "MEMORY", "Lorg/yuanrong/CacheType;");
+    j_field_DISK_ = GetJStaticField(env, clz_, "DISK", "Lorg/yuanrong/CacheType;");
 
     j_object_field_MEMORY_ = GetJStaticObjectField(env, clz_, j_field_MEMORY_);
     j_object_field_DISK_ = GetJStaticObjectField(env, clz_, j_field_DISK_);
@@ -1935,11 +1935,11 @@ YR::Libruntime::CacheType JNICacheType::FromJava(JNIEnv *env, jobject obj)
 
 void JNISetParam::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/SetParam");
-    jGetExistence_ = GetJMethod(env, clz_, "getExistence", "()Lcom/yuanrong/ExistenceOpt;");
-    jGetWriteMode_ = GetJMethod(env, clz_, "getWriteMode", "()Lcom/yuanrong/WriteMode;");
+    clz_ = LoadClass(env, "org/yuanrong/SetParam");
+    jGetExistence_ = GetJMethod(env, clz_, "getExistence", "()Lorg/yuanrong/ExistenceOpt;");
+    jGetWriteMode_ = GetJMethod(env, clz_, "getWriteMode", "()Lorg/yuanrong/WriteMode;");
     jGetTtlSecond_ = GetJMethod(env, clz_, "getTtlSecond", "()I");
-    jGetCacheType_ = GetJMethod(env, clz_, "getCacheType", "()Lcom/yuanrong/CacheType;");
+    jGetCacheType_ = GetJMethod(env, clz_, "getCacheType", "()Lorg/yuanrong/CacheType;");
 }
 
 YR::Libruntime::SetParam JNISetParam::FromJava(JNIEnv *env, jobject o)
@@ -1983,11 +1983,11 @@ YR::Libruntime::CacheType JNISetParam::GetCacheType(JNIEnv *env, jobject o)
 
 void JNIMSetParam::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/MSetParam");
-    jGetExistence_ = GetJMethod(env, clz_, "getExistence", "()Lcom/yuanrong/ExistenceOpt;");
-    jGetWriteMode_ = GetJMethod(env, clz_, "getWriteMode", "()Lcom/yuanrong/WriteMode;");
+    clz_ = LoadClass(env, "org/yuanrong/MSetParam");
+    jGetExistence_ = GetJMethod(env, clz_, "getExistence", "()Lorg/yuanrong/ExistenceOpt;");
+    jGetWriteMode_ = GetJMethod(env, clz_, "getWriteMode", "()Lorg/yuanrong/WriteMode;");
     jGetTtlSecond_ = GetJMethod(env, clz_, "getTtlSecond", "()I");
-    jGetCacheType_ = GetJMethod(env, clz_, "getCacheType", "()Lcom/yuanrong/CacheType;");
+    jGetCacheType_ = GetJMethod(env, clz_, "getCacheType", "()Lorg/yuanrong/CacheType;");
 }
 
 YR::Libruntime::MSetParam JNIMSetParam::FromJava(JNIEnv *env, jobject o)
@@ -2031,9 +2031,9 @@ YR::Libruntime::CacheType JNIMSetParam::GetCacheType(JNIEnv *env, jobject o)
 
 void JNICreateParam::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/CreateParam");
-    jGetConsistencyType_ = GetJMethod(env, clz_, "getConsistencyType", "()Lcom/yuanrong/ConsistencyType;");
-    jGetCacheType_ = GetJMethod(env, clz_, "getCacheType", "()Lcom/yuanrong/CacheType;");
+    clz_ = LoadClass(env, "org/yuanrong/CreateParam");
+    jGetConsistencyType_ = GetJMethod(env, clz_, "getConsistencyType", "()Lorg/yuanrong/ConsistencyType;");
+    jGetCacheType_ = GetJMethod(env, clz_, "getCacheType", "()Lorg/yuanrong/CacheType;");
 }
 
 YR::Libruntime::CreateParam JNICreateParam::FromJava(JNIEnv *env, jobject o)
@@ -2067,7 +2067,7 @@ YR::Libruntime::CacheType JNICreateParam::GetCacheType(JNIEnv *env, jobject o)
 
 void JNIGetParam::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/GetParam");
+    clz_ = LoadClass(env, "org/yuanrong/GetParam");
     jGetOffset_ = GetJMethod(env, clz_, "getOffset", "()J");
     jGetSize_ = GetJMethod(env, clz_, "getSize", "()J");
 }
@@ -2090,7 +2090,7 @@ void JNIGetParam::Recycle(JNIEnv *env)
 
 void JNIGetParams::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/GetParams");
+    clz_ = LoadClass(env, "org/yuanrong/GetParams");
     jGetGetParams_ = GetJMethod(env, clz_, "getGetParams", "()Ljava/util/List;");
 }
 
@@ -2119,7 +2119,7 @@ std::vector<YR::Libruntime::GetParam> JNIGetParams::GetGetParamList(JNIEnv *env,
 
 void JNIInternalWaitResult::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/storage/InternalWaitResult");
+    clz_ = LoadClass(env, "org/yuanrong/storage/InternalWaitResult");
     init_ = GetJMethod(env, clz_, "<init>", "(Ljava/util/List;Ljava/util/List;Ljava/util/Map;)V");
     mClz_ = LoadClass(env, "java/util/HashMap");
     mInit_ = GetJMethod(env, mClz_, "<init>", "()V");
@@ -2164,7 +2164,7 @@ jobject JNIInternalWaitResult::FromCc(JNIEnv *env, const std::shared_ptr<YR::Int
 
 void JNIPair::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/errorcode/Pair");
+    clz_ = LoadClass(env, "org/yuanrong/errorcode/Pair");
     jmGetFirst_ = GetJMethod(env, clz_, "getFirst", "()Ljava/lang/Object;");
     jmGetSecond_ = GetJMethod(env, clz_, "getSecond", "()Ljava/lang/Object;");
 }
@@ -2200,7 +2200,7 @@ jobject JNIPair::GetSecond(JNIEnv *env, jobject jpair)
 
 void JNIYRAutoInitInfo::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/jni/YRAutoInitInfo");
+    clz_ = LoadClass(env, "org/yuanrong/jni/YRAutoInitInfo");
     init_ = GetJMethod(env, clz_, "<init>", "(Ljava/lang/String;Ljava/lang/String;Z)V");
     jmGetServerAddr = GetJMethod(env, clz_, "getServerAddr", "()Ljava/lang/String;");
     jmGetDsAddr = GetJMethod(env, clz_, "getDsAddr", "()Ljava/lang/String;");
@@ -2222,7 +2222,7 @@ jobject JNIYRAutoInitInfo::FromCc(JNIEnv *env, YR::Libruntime::ClusterAccessInfo
 
     jobject yrAutoInitInfo = env->NewObject(clz_, init_, jServerAddr, jDsAddr, info.inCluster);
     if (yrAutoInitInfo == nullptr) {
-        YRLOG_WARN("Failed to create Java object of com/yuanrong/jni/YRAutoInitInfo");
+        YRLOG_WARN("Failed to create Java object of org/yuanrong/jni/YRAutoInitInfo");
     }
 
     env->DeleteLocalRef(jServerAddr);
@@ -2241,7 +2241,7 @@ YR::Libruntime::ClusterAccessInfo JNIYRAutoInitInfo::FromJava(JNIEnv *env, jobje
 
 void JNIFunctionLog::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/libruntime/generated/Socket$FunctionLog");
+    clz_ = LoadClass(env, "org/yuanrong/libruntime/generated/Socket$FunctionLog");
     jmGetLevel_ = GetJMethod(env, clz_, "getLevel", "()Ljava/lang/String;");
     jmGetTimestamp_ = GetJMethod(env, clz_, "getTimestamp", "()Ljava/lang/String;");
     jmGetContent_ = GetJMethod(env, clz_, "getContent", "()Ljava/lang/String;");
@@ -2383,7 +2383,7 @@ int JNIFunctionLog::GetErrorCode(JNIEnv *env, jobject obj)
 
 void JNIProducerConfig::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/stream/ProducerConfig");
+    clz_ = LoadClass(env, "org/yuanrong/stream/ProducerConfig");
     jmGetDelayFlushTimeMs_ = GetJMethod(env, clz_, "getDelayFlushTimeMs", "()J");
     jmGetPageSizeByte_ = GetJMethod(env, clz_, "getPageSizeByte", "()J");
     jmGetMaxStreamSize_ = GetJMethod(env, clz_, "getMaxStreamSize", "()J");
@@ -2479,7 +2479,7 @@ std::unordered_map<std::string, std::string> JNIProducerConfig::GetExtendConfig(
 
 void JNINode::Init(JNIEnv *env)
 {
-    clz_ = LoadClass(env, "com/yuanrong/api/Node");
+    clz_ = LoadClass(env, "org/yuanrong/api/Node");
     init_ = GetJMethod(env, clz_, "<init>", "()V");
     jmInit_ = GetJMethod(env, clz_, "<init>", "(Ljava/lang/String;ZLjava/util/Map;Ljava/util/Map;)V");
 }

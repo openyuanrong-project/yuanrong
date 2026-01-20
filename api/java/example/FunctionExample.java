@@ -16,10 +16,10 @@
 
 package example;
 
-import com.yuanrong.Config;
-import com.yuanrong.api.YR;
-import com.yuanrong.exception.YRException;
-import com.yuanrong.runtime.client.ObjectRef;
+import org.yuanrong.Config;
+import org.yuanrong.api.YR;
+import org.yuanrong.exception.YRException;
+import org.yuanrong.runtime.client.ObjectRef;
 
 public class FunctionExample {
     //! [function 样例代码]

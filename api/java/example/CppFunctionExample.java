@@ -16,13 +16,13 @@
 
 package example;
 
-import com.yuanrong.Config;
-import com.yuanrong.api.YR;
-import com.yuanrong.exception.YRException;
-import com.yuanrong.function.CppFunction;
-import com.yuanrong.function.CppInstanceClass;
-import com.yuanrong.function.CppInstanceMethod;
-import com.yuanrong.runtime.client.ObjectRef;
+import org.yuanrong.Config;
+import org.yuanrong.api.YR;
+import org.yuanrong.exception.YRException;
+import org.yuanrong.function.CppFunction;
+import org.yuanrong.function.CppInstanceClass;
+import org.yuanrong.function.CppInstanceMethod;
+import org.yuanrong.runtime.client.ObjectRef;
 
 import java.util.Map;
 

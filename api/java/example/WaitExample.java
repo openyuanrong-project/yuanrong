@@ -16,7 +16,7 @@
 
 package example;
 
-import com.yuanrong.api.YR;
+import org.yuanrong.api.YR;
 
 public class WaitExample {
     public static void main(String[] args) throws Exception {

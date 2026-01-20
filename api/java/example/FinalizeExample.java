@@ -16,9 +16,9 @@
 
 package example;
 
-import com.yuanrong.api.YR;
-import com.yuanrong.exception.YRException;
-import com.yuanrong.runtime.client.ObjectRef;
+import org.yuanrong.api.YR;
+import org.yuanrong.exception.YRException;
+import org.yuanrong.runtime.client.ObjectRef;
 
 public class FinalizeExample {
     //! [Finalize class]

@@ -16,9 +16,9 @@
 
 package example;
 
-import com.yuanrong.Config;
-import com.yuanrong.api.ClientInfo;
-import com.yuanrong.api.YR;
+import org.yuanrong.Config;
+import org.yuanrong.api.ClientInfo;
+import org.yuanrong.api.YR;
 
 public class SetContextExample {
     public static class MyYRApp {
