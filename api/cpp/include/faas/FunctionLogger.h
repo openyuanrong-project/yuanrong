@@ -70,16 +70,10 @@ public:
      */
     void Error(std::string message, ...);
 
-    /*!
-     * @brief Set invoke ID to be displayed in log printing
-     * @param invokeID Unique invoke ID string for log output
-     */
+    // not exposed
     void SetInvokeID(std::string invokeID);
 
-    /*!
-     * @brief Set trace ID to be displayed in log printing
-     * @param traceID Unique trace ID string for log output
-     */
+    // not exposed
     void SetTraceID(std::string traceID);
 
 private:
