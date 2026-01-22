@@ -1,4 +1,4 @@
-Cpp SDK
+C++ SDK
 ===========
 
 .. cpp:class:: Runtime
