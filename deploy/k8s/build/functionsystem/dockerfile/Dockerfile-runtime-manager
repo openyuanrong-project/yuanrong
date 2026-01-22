@@ -105,7 +105,6 @@ RUN if [ -f ${HOME}/runtime/go/bin/goruntime ]; then \
 USER root
 
 # runtime-manager
-COPY --chown=sn:sn  "${FUNCTIONSYSTEM_OUTPUT_DIR}"/deploy/k8s/build/functionsystem/entrypoints/entrypoint-runtime-manager ${SNHOME}/bin/entrypoint-runtime-manager
 COPY --chown=sn:sn   ${FUNCTIONSYSTEM_OUTPUT_DIR}/deploy/k8s/build/functionsystem/entrypoints/health-check ${SNHOME}/bin
 COPY --chown=sn:sn   ${FUNCTIONSYSTEM_OUTPUT_DIR}/functionsystem/bin/runtime_manager ${SNHOME}/bin/runtime_manager
 
@@ -117,10 +116,15 @@ RUN setcap 'cap_dac_override,cap_sys_admin,cap_kill,cap_setgid,cap_setuid+ep' ${
     echo "sn    ALL=NOPASSWD:/bin/bash -c /usr/bin/dmesg -T | tail -100" >> /etc/sudoers && \
     chmod -R 550 ${SNHOME}/bin && \
     echo "/home/snuser/snlib" >> /etc/ld.so.conf.d/snlib.conf && \
-    echo "/home/snuser/runtime/go/bin" >> /etc/ld.so.conf.d/snlib.conf && sudo ldconfig
+    echo "/home/snuser/runtime/go/bin" >> /etc/ld.so.conf.d/snlib.conf && sudo ldconfig && \
+    mkdir -p /etc/yuanrong/cli && \
+    chown -R sn:sn /etc/yuanrong
 
 USER ${FUNCTION_AGENT_UID}
 
 EXPOSE 8080
 
-WORKDIR ${SNHOME}
+WORKDIR /etc/yuanrong/cli
+COPY --chown=sn:sn ${FUNCTIONSYSTEM_OUTPUT_DIR}/runtime/service/python/yr/cli/ /etc/yuanrong/cli/yr/cli/
+RUN pip3.9 install click==8.1.8 tomli_w==1.2.0 jinja2==3.1.6 -i https://mirrors.huaweicloud.com/repository/pypi/simple --trusted-host=mirrors.huaweicloud.com/pypi/simple --target /home/sn/.local/lib/python3.9/site-packages
+ENV PYTHONPATH=$PYTHONPATH:/home/sn/.local/lib/python3.9/site-packages

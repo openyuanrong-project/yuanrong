@@ -32,10 +32,14 @@ spec:
                 path: services.yaml
             name: services-config
           name: services
+        - name: config-volume
+          configMap:
+            defaultMode: 0440
+            name: components-toml-config
       initContainers:
         - name: agent-init-container
           image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.agentInit }}
-          command: ["/bin/sh", "-c", "chown 1002:1002 /opt/yuanrong/logs && chmod 777 /opt/yuanrong/logs"]
+          command: ["/bin/sh", "-c", "chown 1002:1002 /home/sn/log && chmod 777 /home/sn/log"]
           resources:
             limits:
               cpu: {{ .Values.global.resources.functionAgentInit.limits.cpu }}
@@ -45,7 +49,7 @@ spec:
               memory: {{ .Values.global.resources.functionAgentInit.requests.memory }}
           volumeMounts:
             - name: log-volume
-              mountPath: /opt/yuanrong/logs
+              mountPath: {{ .Values.global.log.functionSystem.path}}
               subPathExpr: $(RUNTIME_POD_NAME)
           env:
             - name: RUNTIME_POD_NAME
@@ -75,7 +79,16 @@ spec:
       containers:
         - name: service-container
           image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.common }}
-          command: ["/bin/sh", "-l", "/home/sn/function-master/bin/bootstrap"]
+          command:
+            - /bin/sh
+            - -c
+            - |
+                umask 0027
+                if [ -f /home/sn/bin/alias/control_plane_alias.sh ]; then
+                  bash /home/sn/bin/alias/control_plane_alias.sh "function_master"
+                fi
+                [ ! -d {{quote .Values.global.log.functionSystem.path}} ] && mkdir -p {{quote .Values.global.log.functionSystem.path}}
+                python3 -m yr.cli.main -v launch --env-subst RUNTIME_POD_IP,RUNTIME_HOST_IP,RUNTIME_POD_NAME function_master
           ports:
             - containerPort: {{ .Values.global.port.functionMasterPort }}
               protocol: TCP
@@ -85,205 +98,16 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.hostIP
-            - name: RUNTIME_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: spec.nodeName
             - name: RUNTIME_POD_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-            - name: RUNTIME_POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
             - name: RUNTIME_POD_IP
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
-            - name: RUNTIME_POD_UID
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.uid
-            - name: X_WISECLOUD_SITE
-              value: aaa.bbb
-            - name: X_WISECLOUD_TENANT_ID
-              value: aaa.bbb
-            - name: X_WISECLOUD_APPLICATION_ID
-              value: aaa.bbb
-            - name: X_WISECLOUD_SERVICE_ID
-              value: aaa.bbb
-            - name: X_WISECLOUD_ENVIRONMENT_ID
-              value: aaa.bbb
-            - name: RUNTIME_MICROSERVICE_NAME
-              value: aaa.bbb
-            - name: RUNTIME_MICROSERVICE_CLUSTER
-              value: cn-dev-master
-            - name: LANG
-              value: en_US.UTF-8
-            - name: RUNTIME_MICROSERVICE_ENVIRONMENT
-              value: aaa.bbb
-            - name: RUNTIME_MICROSERVICE_SERVICE_NAME
-              value: aaa.bbb
-            - name: RUNTIME_MICROSERVICE_BUSINESS
-              value: aaa.bbb
-            - name: RUNTIME_MICROSERVICE_REGION
-              value: cn-north-4
-            - name: RUNTIME_MICROSERVICE_AZ
-              value: cn-north-4g
-            - name: X_WISECLOUD_CLOUDMAP_ID
-              value: aaa.bbb
-            - name: NUWA_CLOUDMAP_NAMESPACENAME
-              value: aaa.bbb
-            - name: NUWA_CLOUDMAP_SERVERADDR
-              value:
-            - name: NUWA_CLOUDMAP_DUAL_SERVERADDR
-              value:
-            - name: TZ
-              value: Asia/Shanghai
-            - name: WISECLOUD_ACMS_ENDPOINT
-              value: 
-            - name: ENABLE_NUWA
-              value: "false"
-            - name: NUWA_RUNTIME_API_PATH
-              value: ""
-            - name: STS_ENABLE
-              value: "false"
-            - name: GLOBAL_SCHEDULER_PORT
-              value: "{{ .Values.global.port.functionMasterPort }}"
-            - name: SYSTEM_FUNCTION_RETRY_PERIOD
-              value: "{{ .Values.global.common.functionBootstrapRetryPeriod }}"
-            - name: META_STORE_ADDRESS
-              {{- if and (.Values.global.metaStore.enable) (ne .Values.global.metaStore.mode "passthrough") }}
-              value: "{{ .Values.global.metaStore.address }}"
-              {{- else }}
-              value: "{{ .Values.global.etcdManagement.detcd }}"
-              {{- end }}
-            - name: LOG_PATH
-              value: "/opt/yuanrong/logs"
-            - name: LOG_LEVEL
-              value: "DEBUG"
-            - name: LOG_ROLLING_MAXSIZE
-              value: "1000"
-            - name: LOG_ROLLING_MAXFILES
-              value: "3"
-            - name: LOG_ASYNC_LOGBUFSECS
-              value: "30"
-            - name: LOG_ASYNC_MAXQUEUESIZE
-              value: "51200"
-            - name: LOG_ASYNC_THREADCOUNT
-              value: "1"
-            - name: LOG_ALSOLOGTOSTDERR
-              value: "false"
-            - name: ENABLE_METRICS
-              value: "{{ .Values.global.observer.metrics.enable }}"
-            - name: METRICS_CONFIG_FILE
-              value: "{{ .Values.global.observer.metrics.metricsConfigFile }}"
-            - name: K8S_BASE_URL
-              value: "{{ .Values.global.kubernetes.kubeApiBaseUrl }}"
-            - name: RUNTIME_RECOVER_ENABLE
-              value: "false"
-            - name: SYSTEM_TIMEOUT
-              value: "{{ .Values.global.common.systemTimeout }}"
-            - name: ELECTION_MODE
-              value: "{{ .Values.global.common.electionMode }}"
-            - name: MAX_STORAGE_OPERATE_RETRY_TIMES
-              value: "60"
-            - name: SSL_ENABLE
-              value: "{{ .Values.global.mutualSSLConfig.sslEnable }}"
-            - name: DECRYPT_ALGORITHM
-              value: "{{ .Values.global.common.decryptAlgorithm }}"
-            - name: DS_HEALTH_CHECK_PATH
-              value: "/home/sn/datasystem/health"
-            - name: DS_HEALTH_CHECK_INTERVAL
-              value: "1000"
-            - name: MAX_DS_HEALTH_CHECK_TIMES
-              value: "12"
-            - name: K8S_NAMESPACE
-              value: "default"
-            - name: LOG_COMPRESS_ENABLE
-              value: "true"
-            - name: ENABLE_PRINT_RESOURCE_VIEW
-              value: "{{ .Values.global.common.enablePrintResourceView }}"
-            - name: ENABLE_HORIZONTAL_SCALE
-              value: "{{ .Values.global.common.enableHorizontalScale }}"
-            - name: WORKER_TAINT_EXCLUDES
-              value: "{{ .Values.global.common.workerTaintExcludes }}"
-            - name: SYSTEM_AUTH_MODE
-              value: "{{ .Values.global.common.systemAuthMode }}"
-            - name: SERVICES_PATH
-              value: /home/sn/service-config/services.yaml
-            - name: CLUSTER_ID
-              value: {{ quote .Values.global.clusterId }}
-            - name: CLUSTER_NAME
-              value: "cn-dev"
-            - name: MIGRATE_PREFIX
-              value: "{{ .Values.global.runtime.migratePrefix }}"
-            - name: TAINT_TOLERANCE_LIST
-              value: "{{ .Values.global.runtime.taintToleranceList }}"
-            - name: MIGRATE_ENABLE
-              value: "{{ .Values.global.runtime.migrateEnable }}"
-            - name: SYSTEM_UPGRADE_WATCH_ENABLE
-              value: "{{ .Values.global.systemUpgradeConfig.enable }}"
-            - name: AZ_ID
-              value: "{{ .Values.global.systemUpgradeConfig.azID }}"
-            - name: SYSTEM_UPGRADE_KEY
-              value: "{{ .Values.global.systemUpgradeConfig.systemUpgradeKey }}"
-            - name: SYSTEM_UPGRADE_ADDRESS
-              value: "{{ .Values.global.systemUpgradeConfig.systemUpgradeWatchAddress }}"
-            - name: ETCD_CLUSTER_ADDRESS
-              value: "{{ .Values.global.etcdManagement.detcd }}"
-            - name: GRACE_PERIOD_SECONDS
-              value: "{{ .Values.global.common.deletePodGracePeriodSeconds }}"
-            - name: ETCD_AUTH_TYPE
-              value: "{{ .Values.global.etcdManagement.authType }}"
-            - name: SCC_ENABLE
-              value: "{{ .Values.global.scc.enable }}"
-            - name: MAX_TOLERATE_META_STORE_FAILED_TIMES
-              value: "{{ .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}"
-            - name: META_HEALTH_CHECK_INTERVAL_MS
-              value: "{{ .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}"
-            - name: META_HEALTH_CHECK_TIMEOUTS
-              value: "{{ .Values.global.etcdManagement.metaStoreTimeoutMs }}"
-            - name: ETCD_TARGET_NAME_OVERRIDE
-              value: "aaa.bbb"
-            - name: FUNCTION_META_PATH
-              value: "/home/sn/function-metas"
-            - name: RESOURCE_PATH
-              value: "/home/sn/resource"
-            - name: POOL_CONFIG_PATH
-              value: "/home/sn/pools.json"
-            - name: AGENT_TEMPLATE_PATH
-              value: /home/sn/scaler/template/function-agent.json
-            - name: METRICS_CONFIG
-              value: '{{ quote .Values.global.observer.metrics.metricsConfig }}'
-            - name: LOG_PATTERN
-              value: '{
-                        "separator": " | ",
-                        "placeholders": [
-                          {"flags": "%Y-%m-%dT%H:%M:%S.%f"},
-                          {"flags": "%l"},
-                          {"flags": "%s:%#"},
-                          {"env": "POD_NAME"},
-                          {"env": "CLUSTER_ID"},
-                          {"flags": ""}
-                        ]
-                    }'
-            - name: STS_CONFIG
-              value: "{}"
-            - name: KUBE_CLIENT_RETRY_TIMES
-              value: {{ quote .Values.global.kubernetes.kubeClientRetryTime }}
-            - name: KUBE_API_RETRY_CYCLE
-              value: {{ quote .Values.global.kubernetes.kubeClientRetryCycMs }}
-            - name: HEALTH_MONITOR_MAX_FAILURE
-              value: {{ quote .Values.global.kubernetes.healthMonitorMaxFailure }}
-            - name: HEALTH_MONITOR_RETRY_INTERVAL
-              value: {{ quote .Values.global.kubernetes.healthMonitorRetryInterval }}
           resources:
             limits:
               cpu: {{ .Values.global.resources.functionMaster.limits.cpu }}
@@ -293,7 +117,7 @@ spec:
               memory: {{ .Values.global.resources.functionMaster.requests.memory }}
           volumeMounts:
             - name: log-volume
-              mountPath: /opt/yuanrong/logs
+              mountPath: {{ .Values.global.log.functionSystem.path}}
               subPathExpr: $(RUNTIME_POD_NAME)
             - name: data-volume
               mountPath: /opt/yuanrong/data
@@ -302,6 +126,9 @@ spec:
             - mountPath: /home/sn/service-config
               name: services
               readOnly: true
+            - name: config-volume
+              mountPath: /etc/yuanrong/config.toml
+              subPath: config.toml
           livenessProbe:
             tcpSocket:
               port: {{ .Values.global.port.functionMasterPort }}

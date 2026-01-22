@@ -61,10 +61,6 @@ spec:
           name: metrics-parent-dir
         - emptyDir: { }
           name: metrics-dir
-        - name: varlog
-          hostPath:
-            path: "{{ .Values.global.log.hostPath.componentLog }}"
-            type: DirectoryOrCreate
         - configMap:
             defaultMode: 0440
             items:
@@ -92,10 +88,14 @@ spec:
           hostPath:
             path: "{{ .Values.global.log.hostPath.componentLog }}"
             type: DirectoryOrCreate
+        - name: config-volume
+          configMap:
+            defaultMode: 0440
+            name: components-toml-config
       initContainers:
         - name: function-proxy-init
           image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.agentInit }}
-          command: [ "/bin/sh", "-c", "chown 1002:1002 /opt/yuanrong/logs && chmod 777 /opt/yuanrong/logs" ]
+          command: [ "/bin/sh", "-c", "chown 1002:1002 /home/sn/log && chmod 777 /home/sn/log" ]
           env:
             - name: RUNTIME_POD_NAME
               valueFrom:
@@ -111,7 +111,7 @@ spec:
               memory: {{ .Values.global.resources.functionAgentInit.requests.memory }}
           volumeMounts:
             - name: log-volume
-              mountPath: /opt/yuanrong/logs
+              mountPath: {{ .Values.global.log.functionSystem.path}}
               subPathExpr: $(RUNTIME_POD_NAME)
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
@@ -136,7 +136,13 @@ spec:
         - name: function-proxy
           image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.common }}
           imagePullPolicy: IfNotPresent
-          command: ["/bin/sh", "-l", "/home/sn/function-proxy/bin/bootstrap"]
+          command:
+            - /bin/sh
+            - -c
+            - |
+                umask 0027
+                [ ! -d {{quote .Values.global.log.functionSystem.path}} ] && mkdir -p {{quote .Values.global.log.functionSystem.path}}
+                python3 -m yr.cli.main -v launch --env-subst HOST_IP,NODE_ID function_proxy
           env:
             - name: NODE_ID
               valueFrom:
@@ -148,222 +154,11 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.hostIP
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: status.podIP
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: MEM_LIMIT
-              valueFrom:
-                resourceFieldRef:
-                  containerName: function-proxy
-                  resource: limits.memory
-            - name: FUNCTION_PROXY_PORT
-              value: "{{ .Values.global.port.functionProxyPort }}"
-            - name: FUNCTION_PROXY_GRPC_PORT
-              value: "{{ .Values.global.port.functionProxyGrpcPort }}"
-            - name: META_STORE_ADDRESS
-              {{- if .Values.global.metaStore.enable }}
-              value: "{{ .Values.global.metaStore.address }}"
-              {{- else }}
-              value: "{{ .Values.global.etcdManagement.detcd }}"
-              {{- end }}
-            - name: IAM_META_STORE_ADDRESS
-              {{- if .Values.global.metaStore.enable }}
-              value: "{{ .Values.global.metaStore.address }}"
-              {{- else }}
-              value: "{{ .Values.global.etcdManagement.metcd }}"
-              {{- end }}
-            - name: CLUSTER_ID
-              value: {{ quote .Values.global.clusterId }}
-            - name: DS_WORKER_PORT
-              value: "{{ .Values.global.port.worker }}"
-            - name: CACHE_STORAGE_AUTH_AK
-              value: {{ quote .Values.global.dataSystem.ak}}
-            - name: CACHE_STORAGE_AUTH_SK
-              value: {{ quote .Values.global.dataSystem.sk}}
-            - name: CACHE_STORAGE_AUTH_TYPE
-              value: {{ quote .Values.global.dataSystem.authType}}
-            - name: PROMETHEUS_PUSH_GATEWAY_IP
-              value: {{ quote .Values.global.observer.proGatewayIP }}
-            - name: PROMETHEUS_PUSH_GATEWAY_PORT
-              value: {{ quote .Values.global.observer.gatewayPort }}
-            - name: LOG_PATH
-              value: {{ .Values.global.log.functionSystem.path }}
-            - name: LOG_LEVEL
-              value: {{ .Values.global.log.functionSystem.level }}
-            - name: LOG_PATTERN
-              value: {{ quote .Values.global.log.functionSystem.pattern }}
-            - name: LOG_COMPRESS_ENABLE
-              value: {{ quote .Values.global.log.functionSystem.compress }}
-            - name: LOG_ROLLING_MAXSIZE
-              value: {{ quote .Values.global.log.functionSystem.rolling.maxSize }}
-            - name: LOG_ROLLING_MAXFILES
-              value: {{ quote .Values.global.log.functionSystem.rolling.maxfiles }}
-            - name: LOG_ASYNC_LOGBUFSECS
-              value: {{ quote .Values.global.log.functionSystem.async.logBufSecs }}
-            - name: LOG_ASYNC_MAXQUEUESIZE
-              value: "51200"
-            - name: LOG_ASYNC_THREADCOUNT
-              value: "1"
-            - name: LOG_ALSOLOGTOSTDERR
-              value: "false"
-            - name: RUNTIME_INSTANCE_DEBUG_ENABLE
-              value: "false"
-            - name: ENABLE_METRICS
-              value: {{ quote .Values.global.observer.metrics.enable }}
-            - name: METRICS_CONFIG
-              value: {{ quote .Values.global.observer.metrics.metricsConfig }}
-            - name: METRICS_CONFIG_FILE
-              value: {{ quote .Values.global.observer.metrics.metricsConfigFile }}
-            - name: ENABLE_TRACE
-              value: {{ quote .Values.global.observer.trace.enable }}
-            - name: TRACE_CONFIG
-              value: {{ quote .Values.global.observer.trace.traceConfig }}
-            - name: MEM_THRESHOLD_PERCENTAGE
-              value: "90"
-            - name: HOME
-              value: /home/sn
-            - name: ResourcePath
-              value: /home/sn/resource
-            - name: RUNTIME_HEARTBEAT_ENABLE
-              value: "true"
-            - name: RUNTIME_MAX_HEARTBEAT_TIMEOUT_TIMES
-              value: {{ quote .Values.global.runtime.runtimeMaxHeartbeatTimeoutTimes }}
-            - name: RUNTIME_HEARTBEAT_TIMEOUT_MS
-              value: {{ quote .Values.global.runtime.runtimeHeartbeatTimeoutMS }}
-            - name: DRIVER_ENABLE
-              value: {{ quote .Values.global.common.driverEnable }}
-            - name: STATE_STORAGE_TYPE
-              value: {{ quote .Values.global.common.stateStorageType }}
-            - name: ELECTION_MODE
-              value: {{ quote .Values.global.common.electionMode }}
-            - name: MAX_GRPC_SIZE
-              value: {{ quote .Values.global.common.maxGrpcSize }}
-            - name: SERVICES_PATH
-              value: /home/sn/service-config/services.yaml
-            - name: ENABLE_IAM
-              value: "{{ .Values.global.iam.enable }}"
-            - name: ENABLE_SERVER_MODE
-              value: "{{ .Values.global.runtime.serverModeEnable }}"
-            - name: ENABLE_PRINT_RESOURCE_VIEW
-              value: {{ quote .Values.global.common.enablePrintResourceView }}
-            - name: SYSTEM_TIMEOUT
-              value: {{ quote .Values.global.common.systemTimeout }}
-            - name: RUNTIME_SHUTDOWN_TIMEOUT_SECONDS
-              value: {{ quote .Values.global.runtime.runtimeShutdownTimeoutSeconds }}
-            - name: DECRYPT_ALGORITHM
-              value: {{ quote .Values.global.common.decryptAlgorithm }}
-            - name: CACHE_STORAGE_AUTH_ENABLE
-              value: {{ quote .Values.global.dataSystem.authEnabled }}
-            - name: MIN_INSTANCE_CPU_SIZE
-              value: {{ quote .Values.global.runtime.minInstanceCpuSize }}
-            - name: MIN_INSTANCE_MEMORY_SIZE
-              value: {{ quote .Values.global.runtime.minInstanceMemorySize }}
-            - name: MAX_INSTANCE_CPU_SIZE
-              value: {{ quote .Values.global.runtime.maxInstanceCpuSize }}
-            - name: MAX_INSTANCE_MEMORY_SIZE
-              value: {{ quote .Values.global.runtime.maxInstanceMemorySize }}
-            - name: SSL_ROOT_FILE
-              value: "ca.crt"
-            - name: SSL_CERT_FILE
-              value: "module.crt"
-            - name: SSL_KEY_FILE
-              value: "module.key"
-            - name: SSL_PWD_FILE
-              value: "cert_pwd"
-            - name: SCC_ENABLE
-              value: {{ quote .Values.global.scc.enable }}
-            - name: SCC_ALGORITHM
-              value: {{ quote .Values.global.scc.algorithm }}
-            - name: SCC_PRIMARY_FILE
-              value: "primary.ks"
-            - name: SCC_STANDBY_FILE
-              value: "standby.ks"
-            - name: ETCD_AUTH_TYPE
-              value: {{ quote .Values.global.etcdManagement.authType }}
-            - name: ETCD_ROOT_CA_FILE
-              value: "ca.crt"
-            - name: ETCD_CERT_FILE
-              value: "client.crt"
-            - name: ETCD_KEY_FILE
-              value: "client.key"
-            - name: ETCD_PWD_FILE
-              value: "passphrase"
-            - name: ETCD_TARGET_NAME_OVERRIDE
-              value: {{ quote .Values.global.etcdManagement.targetNameOverride }}
-            - name: MAX_TOLERATE_META_STORE_FAILED_TIMES
-              value: {{ quote .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}
-            - name: META_HEALTH_CHECK_INTERVAL_MS
-              value: {{ quote .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}
-            - name: META_HEALTH_CHECK_TIMEOUTS
-              value: {{ quote .Values.global.etcdManagement.metaStoreTimeoutMs }}
-            - name: INVOKE_LIMITATION_ENABLE
-              value: {{ quote .Values.global.rateLimit.invokeRateLimit.enable }}
-            - name: LOW_MEMORY_THRESHOLD
-              value: {{ quote .Values.global.rateLimit.invokeRateLimit.lowThreshold }}
-            - name: HIGH_MEMORY_THRESHOLD
-              value: {{ quote .Values.global.rateLimit.invokeRateLimit.highThreshold }}
-            - name: MESSAGE_SIZE_THRESHOLD
-              value: {{ quote .Values.global.rateLimit.invokeRateLimit.msgSize }}
-            - name: IAM_BASE_PATH
-              value: "http://iam-adaptor.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.global.port.iamAdapterHttpPort }}"
-            - name: IAM_POLICY_CONFIG_PATH
-              value: /home/sn/iam-config/iam-policy-config.json
-            - name: IAM_CREDENTIAL_TYPE
-              value: {{ quote .Values.global.iam.credentialType }}
-            - name: REDIS_CONF_PATH
-              value: /home/sn/conf/conf.json
-            - name: RUNTIME_DS_AUTH_ENABLE
-              value: {{ quote .Values.global.runtime.dataSystem.authEnable }}
-            - name: RUNTIME_DS_ENCRYPT_ENABLE
-              value: {{ quote .Values.global.runtime.dataSystem.encryptEnable }}
-            - name: STS_CONFIG
-              value: "{}"
-            - name: CACHE_STORAGE_INFO_PREFIX
-              value: {{ quote .Values.global.dataSystem.cacheStorageInfoPrefix }}
-            - name: ENABLE_PRINT_PERF
-              value: "false"
-            - name: K8S_BASE_URL
-              value: {{ quote .Values.global.kubernetes.kubeApiBaseUrl }}
-            - name: K8S_NAMESPACE
-              value: {{ quote .Values.global.namespace }}
-            - name: MAX_PRIORITY
-              value: {{ quote .Values.global.common.prioritySchedule.maxPriority }}
-            - name: ENABLE_PREEMPTION
-              value: {{ quote .Values.global.common.prioritySchedule.enablePreemption }}
-            - name: SYSTEM_AUTH_MODE
-              value: {{ quote .Values.global.common.systemAuthMode }}
-            - name: SCC_BASE_PATH
-              value: /home/sn/resource/scc
-            - name: SCC_LOG_PATH
-              value: /home/sn/log
-            - name: FUNCTION_META_PATH
-              value: /home/sn/function-metas
-            - name: RESOURCE_PATH
-              value: /home/sn/resource
-            - name: ETCD_SSL_BASE_PATH
-              value: /home/sn/resource/etcd
-            - name: CURVE_KEY_PATH
-              value: /home/sn/curve
-            - name: ENABLE_META_STORE
-              value: {{ quote .Values.global.metaStore.enable }}
-            - name: META_STORE_MODE
-              value: {{ quote .Values.global.metaStore.mode }}
-            - name: ETCD_CLUSTER_ADDRESS
-              value: {{ quote .Values.global.etcdManagement.detcd }}
-            - name: SCHEDULE_PLUGINS
-              value: {{ quote .Values.global.common.schedulePlugins.local }}
           ports:
             - containerPort: {{ .Values.global.port.functionProxyPort }}
               hostPort: {{ .Values.global.port.functionProxyPort }}
@@ -394,7 +189,7 @@ spec:
           terminationMessagePolicy: File
           volumeMounts:
             - mountPath: {{ .Values.global.log.functionSystem.path }}
-              name: varlog
+              name: log-volume
               {{- if .Values.global.log.hostPath.enable }}
               subPathExpr: $(POD_NAME)
               {{- end}}
@@ -423,3 +218,6 @@ spec:
             - mountPath: /home/sn/service-config
               name: services
               readOnly: true
+            - name: config-volume
+              mountPath: /etc/yuanrong/config.toml
+              subPath: config.toml

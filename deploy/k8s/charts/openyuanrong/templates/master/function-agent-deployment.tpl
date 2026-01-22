@@ -133,7 +133,20 @@ spec:
       containers:
       - name: runtime-manager
         command:
-          - /home/sn/bin/entrypoint-runtime-manager
+            - /bin/sh
+            - -c
+            - |
+                if [ whoami != "${USER_NAME}" ]; then
+                    if [ -w /etc/passwd ]; then
+                      echo "${USER_NAME}:x:$(id -u):$(id -g):${USER_NAME} user:${HOME}:/sbin/nologin" >> /etc/passwd
+                    fi
+                fi
+                umask 0027
+                if [ -f "${SNHOME}"/bin/alias/runtime_manager_alias.sh ]; then
+                    source "${SNHOME}"/bin/alias/runtime_manager_alias.sh
+                fi
+                [ ! -d {{ quote .Values.global.log.functionSystem.path}} ] && mkdir -p {{ quote .Values.global.log.functionSystem.path}}
+                python3 -m yr.cli.main -v launch --inherit-env --env-subst NODE_ID,POD_IP,HOST_IP,CPU4COMP,MEM4COMP runtime_manager
         {{- if and .Values.global.pool.accelerator (ne .Values.global.pool.accelerator "nvidia-gpu") (ne .Values.global.pool.accelerator "amd-gpu") }}
         envFrom:
         - configMapRef:
@@ -165,178 +178,10 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.uid
-          - name: RUNTIME_MGR_PORT
-            value: {{ quote .Values.global.port.runtimeMgrPort }}
-          - name: ENABLE_INHERIT_ENV
-            value: "false"
-          - name: FUNCTION_AGENT_PORT
-            value: {{ quote .Values.global.port.functionAgentPort }}
-          - name: RUNTIME_INIT_PORT
-            value: {{ quote .Values.global.port.runtimeInitPort }}
-          - name: DS_WORKER_PORT
-            value: {{ quote .Values.global.port.worker }}
-          - name: FUNCTION_PROXY_GRPC_PORT
-            value: {{ quote .Values.global.port.functionProxyGrpcPort }}
-          - name: RUNTIME_PORT_NUM
-            value: {{ quote .Values.global.port.runtimePortNum }}
-          - name: METRICS_COLLECTOR_TYPE
-            value: {{ .Values.global.runtime.metricsCollectorType }}
-          - name: DISK_USAGE_MONITOR_NOTIFY_FAILURE_ENABLE
-            value: {{ quote .Values.global.runtime.diskUsageMonitor.notifyFailureEnable }}
-          - name: DISK_USAGE_MONITOR_PATH
-            value: {{ quote .Values.global.runtime.diskUsageMonitor.path }}
-          - name: DISK_USAGE_LIMIT
-            value: {{ quote .Values.global.runtime.diskUsageMonitor.limit }}
-          - name: SNUSER_LIB_PATH
-            value: {{ quote .Values.global.runtime.snuserLibPath }}
-          - name: VIRTUAL_ENV_IDLE_TIME_LIMIT
-            value: {{ quote .Values.global.runtime.virtualEnvIdleTimeLimit }}
-          - name: REQUEST_ACK_ACC_MAX_SEC
-            value: {{ quote .Values.global.runtime.requestAckAccMaxSec}}
-          - name: SNUSER_DIR_DISK_USAGE_LIMIT
-            value: {{ quote .Values.global.runtime.diskUsageMonitor.snuserDirSizeLimit }}
-          - name: TMP_DIR_DISK_USAGE_LIMIT
-            value: {{ quote .Values.global.runtime.diskUsageMonitor.tmpDirSizeLimit }}
-          - name: DISK_USAGE_MONITOR_DURATION
-            value: {{ quote .Values.global.runtime.diskUsageMonitor.duration }}
           - name: CPU4COMP
             value: {{ quote .Values.global.pool.requestCpu }}
           - name: MEM4COMP
             value: {{ quote .Values.global.pool.requestMemory }}
-          - name: INIT_LABELS
-            value: ""
-          - name: LOG_PATH
-            value: {{ .Values.global.log.functionSystem.path }}
-          - name: LOG_LEVEL
-            value: {{ .Values.global.log.functionSystem.level }}
-          - name: LOG_PATTERN
-            value: {{ quote .Values.global.log.functionSystem.pattern }}
-          - name: LOG_COMPRESS_ENABLE
-            value: {{ quote .Values.global.log.functionSystem.compress }}
-          - name: LOG_ROLLING_MAXSIZE
-            value: {{ quote .Values.global.log.functionSystem.rolling.maxSize }}
-          - name: LOG_ROLLING_MAXFILES
-            value: {{ quote .Values.global.log.functionSystem.rolling.maxfiles }}
-          - name: LOG_ASYNC_LOGBUFSECS
-            value: "10"
-          - name: LOG_ASYNC_MAXQUEUESIZE
-            value: "1024"
-          - name: LOG_ASYNC_THREADCOUNT
-            value: "1"
-          - name: LOG_ALSOLOGTOSTDERR
-            value: "false"
-          - name: ENABLE_METRICS
-            value: {{ quote .Values.global.observer.metrics.enable }}
-          - name: METRICS_CONFIG
-            value: {{ quote .Values.global.observer.metrics.metricsConfig }}
-          - name: METRICS_CONFIG_FILE
-            value: {{ quote .Values.global.observer.metrics.metricsConfigFile }}
-          - name: RUNTIME_METRICS_CONFIG
-            value: {{ quote .Values.global.observer.metrics.runtimeMetricsConfig }}
-          - name: RUNTIME_METRICS_CONFIG_FILE
-            value: {{ quote .Values.global.observer.metrics.runtimeMetricsConfigFile }}
-          - name: ENABLE_TRACE
-            value: {{ quote .Values.global.observer.trace.enable }}
-          - name: TRACE_CONFIG
-            value: {{ quote .Values.global.observer.trace.traceConfig }}
-          - name: RUNTIME_TRACE_CONFIG
-            value: {{ quote .Values.global.observer.trace.runtimeTraceConfig }}
-          - name: RUNTIME_LOG_DIR
-            value: {{ .Values.global.log.runtime.path }}
-          - name: RUNTIME_LOG_LEVEL
-            value: {{ .Values.global.log.runtime.level }}
-          - name: PROMETHEUS_PUSH_GATEWAY_IP
-            value: {{ quote .Values.global.observer.proGatewayIP }}
-          - name: PROMETHEUS_PUSH_GATEWAY_PORT
-            value: {{ quote .Values.global.observer.gatewayPort }}
-          - name: JAVA_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.java8 }}
-          - name: JAVA11_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.java11 }}
-          - name: PYTHON36_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.python36 }}
-          - name: PYTHON37_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.python37 }}
-          - name: PYTHON38_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.python38 }}
-          - name: PYTHON39_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.python39 }}
-          - name: PYTHON310_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.python310 }}
-          - name: PYTHON311_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.python311 }}
-          - name: CPP_PRESTART_COUNT
-            value: {{ quote .Values.global.runtime.prestartCount.cpp }}
-          - name: JVM_CUSTOM_ARGS
-            value: {{ quote .Values.global.runtime.jvmCustomArgs }}
-          - name: JAVA8_DEFAULT_ARGS
-            value: {{ quote .Values.global.runtime.defaultArgs.java8 }}
-          - name: JAVA11_DEFAULT_ARGS
-            value: {{ quote .Values.global.runtime.defaultArgs.java11 }}
-          - name: JAVA17_DEFAULT_ARGS
-            value: {{ quote .Values.global.runtime.defaultArgs.java17 }}
-          - name: JAVA21_DEFAULT_ARGS
-            value: {{ quote .Values.global.runtime.defaultArgs.java21 }}
-          - name: SYSTEM_TIMEOUT
-            value: {{ quote .Values.global.common.systemTimeout }}
-          - name: CLUSTER_ID
-            value: {{ quote .Values.global.clusterId }}
-          - name: RUNTIME_GID
-            value: "1003"
-          - name: RUNTIME_UID
-            value: "1003"
-          - name: ENABLE_DS_CLIENT
-            value: "0"
-          - name: NPU_COLLECTION_MODE
-            value: {{ quote .Values.global.runtime.npuCollectionMode }}
-          - name: GPU_COLLECTION_ENABLE
-            value: {{ quote .Values.global.runtime.gpuCollectionEnable }}
-          - name: IS_PROTOMSG_TO_RUNTIME
-            value: {{ quote .Values.global.runtime.isProtoMsgToRuntime }}
-          - name: MASSIF_ENABLE
-            value: {{ quote .Values.global.runtime.massifEnable }}
-          - name: RESOURCE_PATH
-            value: /home/sn/resource
-          - name: RUNTIME_HOME_DIR
-            value: /home/snuser
-          - name: RESOURCE_LABEL_PATH
-            value: /home/sn/podInfo/labels
-          - name: NPU_DEVICE_INFO_PATH
-            value: /home/sn/config/topology-info.json
-          - name: RUNTIME_DS_CONNECT_TIMEOUT
-            value: {{ quote .Values.global.runtime.runtimeDsConnectTimeout }}
-          {{- if .Values.global.log.runtime.expiration.enable }}
-          - name: LOG_EXPIRATION_ENABLE
-            value: {{ quote .Values.global.log.runtime.expiration.enable }}
-          - name: LOG_EXPIRATION_CLEANUP_INTERVAL
-            value: {{ quote .Values.global.log.runtime.expiration.cleanupInterval }}
-          - name: LOG_EXPIRATION_TIME_THRESHOLD
-            value: {{ quote .Values.global.log.runtime.expiration.timeThreshold }}
-          - name: LOG_EXPIRATION_MAX_FILE_COUNT
-            value: {{ quote .Values.global.log.runtime.expiration.maxFileCount }}
-          - name: LOG_REUSE_ENABLE
-            value: {{ quote .Values.global.log.runtime.expiration.logReuseEnable }}
-          {{- end }}
-          - name: USER_LOG_EXPORT_MODE
-            value: {{ quote .Values.global.log.runtime.userLogExportMode }}
-          - name: RUNTIME_DIRECT_CONNECTION_ENABLE
-            value: "false"
-          - name: ENABLE_CLEAN_STREAM_PRODUCER
-            value: {{ quote .Values.global.runtime.cleanStreamProducerEnable }}
-          {{- if .Values.global.runtime.oomKill.enable }}
-          - name: OOM_KILL_ENABLE
-            value: {{ quote .Values.global.runtime.oomKill.enable }}
-          - name: MEMORY_DETECTION_INTERVAL
-            value: {{ quote .Values.global.runtime.oomKill.memoryDetectionInterval }}
-          - name: OOM_CONSECUTIVE_DETECTION_COUNT
-            value: {{ quote .Values.global.runtime.oomKill.consecutiveDetectionCount }}
-          - name: OOM_KILL_CONTROL_LIMIT
-            value: {{ quote .Values.global.runtime.oomKill.controlLimit }}
-          {{- end }}
-          - name: KILL_PROCESS_TIMEOUT_SECONDS
-            value: {{ quote .Values.global.runtime.killProcessTimeoutSeconds }}
-          - name: RUNTIME_INSTANCE_DEBUG_ENABLE
-            value: "false"
         image: "{{ .Values.global.imageRegistry | trimSuffix "/" }}/{{ .Values.global.images.runtimeManager }}"
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -345,7 +190,7 @@ spec:
             command:
               - /bin/bash
               - -c
-              - /home/sn/bin/health-check $(RUNTIME_MGR_PORT) runtime-manager
+              - /home/sn/bin/health-check {{ quote .Values.global.port.runtimeMgrPort }} runtime-manager
           initialDelaySeconds: 1
           periodSeconds: 5
           successThreshold: 1
@@ -356,7 +201,7 @@ spec:
             command:
               - /bin/bash
               - -c
-              - /home/sn/bin/health-check $(RUNTIME_MGR_PORT) runtime-manager
+              - /home/sn/bin/health-check {{ quote .Values.global.port.runtimeMgrPort }} runtime-manager
           initialDelaySeconds: 1
           periodSeconds: 1
           successThreshold: 1
@@ -467,9 +312,22 @@ spec:
             name: datasystem-shm
           - mountPath: /home/sn/podInfo
             name: podinfo
+          - name: config-volume
+            mountPath: /etc/yuanrong/config.toml
+            subPath: config.toml
       - name: function-agent
         command:
-          - /home/sn/bin/entrypoint-function-agent
+          - /bin/sh
+          - -c
+          - |
+              if [ whoami != "${USER_NAME}" ]; then
+                if [ -w /etc/passwd ]; then
+                  echo "${USER_NAME}:x:$(id -u):$(id -g):${USER_NAME} user:${HOME}:/sbin/nologin" >> /etc/passwd
+                fi
+              fi
+              umask 0027
+              [ ! -d "{{ .Values.global.log.functionSystem.path }}" ] && mkdir -p "{{ .Values.global.log.functionSystem.path }}"
+              python3 -m yr.cli.main -v launch --inherit-env --env-subst POD_IP,NODE_ID,HOST_IP,POD_NAME,S3_ACCESS_KEY,S3_SECRET_KEY function_agent
         env:
         - name: POD_IP
           valueFrom:
@@ -491,19 +349,9 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
-        - name: FSPROXY_PORT
-          value: {{ quote .Values.global.port.functionProxyPort }}
-        - name: FUNCTION_AGENT_PORT
-          value: {{ quote .Values.global.port.functionAgentPort }}
-        - name: PROMETHEUS_PUSH_GATEWAY_IP
-          value: {{ quote .Values.global.observer.proGatewayIP }}
-        - name: PROMETHEUS_PUSH_GATEWAY_PORT
-          value: {{ quote .Values.global.observer.gatewayPort }}
-        - name: DECRYPT_ALGORITHM
-          value: {{ quote .Values.global.common.decryptAlgorithm }}
         - name: S3_ACCESS_KEY
         {{ if .Values.global.obsManagement.s3AccessKey }}
-          value: {{ .Values.global.obsManagement.s3AccessKey }}
+          value: {{ quote .Values.global.obsManagement.s3AccessKey }}
         {{ else }}
           valueFrom:
             secretKeyRef:
@@ -512,99 +360,13 @@ spec:
         {{ end }}
         - name: S3_SECRET_KEY
         {{ if .Values.global.obsManagement.s3SecretKey }}
-          value: {{ .Values.global.obsManagement.s3SecretKey }}
+          value: {{ quote .Values.global.obsManagement.s3SecretKey }}
         {{ else }}
           valueFrom:
             secretKeyRef:
               name: minio-secret-yuanrong
               key: secretkey
         {{ end }}
-        - name: S3_ADDR
-          value: {{ .Values.global.obsManagement.s3Endpoint | default "$(HOST_IP):30110" }}
-        - name: S3_PROTOCOL
-          value: {{ .Values.global.obsManagement.protocol }}
-        - name: S3_CREDENTIAL_TYPE
-          value: {{ .Values.global.obsManagement.credentialType }}
-        - name: LOG_PATH
-          value: {{ .Values.global.log.functionSystem.path }}
-        - name: LOG_LEVEL
-          value: {{ .Values.global.log.functionSystem.level }}
-        - name: LOG_PATTERN
-          value: {{ quote .Values.global.log.functionSystem.pattern }}
-        - name: LOG_COMPRESS_ENABLE
-          value: {{ quote .Values.global.log.functionSystem.compress }}
-        - name: LOG_ROLLING_MAXSIZE
-          value: {{ quote .Values.global.log.functionSystem.rolling.maxSize }}
-        - name: LOG_ROLLING_MAXFILES
-          value: {{ quote .Values.global.log.functionSystem.rolling.maxfiles }}
-        - name: LOG_ASYNC_LOGBUFSECS
-          value: {{ quote .Values.global.log.functionSystem.async.logBufSecs }}
-        - name: LOG_ASYNC_MAXQUEUESIZE
-          value: "51200"
-        - name: LOG_ASYNC_THREADCOUNT
-          value: "1"
-        - name: LOG_ALSOLOGTOSTDERR
-          value: "false"
-        - name: ENABLE_METRICS
-          value: {{ quote .Values.global.observer.metrics.enable }}
-        - name: METRICS_CONFIG
-          value: {{ quote .Values.global.observer.metrics.metricsConfig }}
-        - name: METRICS_CONFIG_FILE
-          value: {{ quote .Values.global.observer.metrics.metricsConfigFile }}
-        - name: SYSTEM_TIMEOUT
-          value: {{ quote .Values.global.common.systemTimeout }}
-        - name: STS_CONFIG
-          value: "{}"
-        - name: SSL_ENABLE
-          value: {{ quote .Values.global.mutualSSLConfig.sslEnable }}
-        - name: SSL_BASE_PATH
-          value: {{ quote .Values.global.mutualSSLConfig.sslBasePath }}
-        - name: SSL_ROOT_FILE
-          value: "ca.crt"
-        - name: SSL_CERT_FILE
-          value: "module.crt"
-        - name: SSL_KEY_FILE
-          value: "module.key"
-        - name: SSL_PWD_FILE
-          value: "cert_pwd"
-        - name: SSL_DECRYPT_TOOL
-          value: {{ quote .Values.global.mutualSSLConfig.sslDecryptTool }}
-        - name: S3_DOWNLOAD_MAXZIPSIZE
-          value: {{ quote .Values.global.common.zipFile.zipFileSizeMax }}
-        - name: S3_DOWNLOAD_MAXUNZIPSIZE
-          value: {{ quote .Values.global.common.zipFile.unzipFileSizeMax }}
-        - name: S3_DOWNLOAD_MAXFILECOUNT
-          value: {{ quote .Values.global.common.zipFile.fileCountsMax }}
-        - name: S3_DOWNLOAD_MAXDIRDEPTH
-          value: {{ quote .Values.global.common.zipFile.dirDepthMax }}
-        - name: ENABLE_IPV4_TENANT_ISOLATION
-          value: {{ quote .Values.global.tenantIsolation.ipv4.enable }}
-        - name: DEPLOY_DIR
-          value: {{ quote .Values.global.common.deployDir }}
-        - name: SCC_ENABLE
-          value: {{ quote .Values.global.scc.enable }}
-        - name: SCC_ALGORITHM
-          value: {{ quote .Values.global.scc.algorithm }}
-        - name: SCC_PRIMARY_FILE
-          value: "primary.ks"
-        - name: SCC_STANDBY_FILE
-          value: "standby.ks"
-        - name: ENABLE_SIGNATURE_VALIDATION
-          value: {{ quote .Values.global.common.zipFile.signatureValidationEnable }}
-        - name: CODE_AGING_TIME
-          value: {{ quote .Values.global.common.codeAgingTime }}
-        - name: SYSTEM_AUTH_MODE
-          value: {{ quote .Values.global.common.systemAuthMode }}
-        - name: CUSTOM_RESOURCES
-          value: ""
-        - name: RESOURCE_PATH
-          value: /home/sn/resource
-        - name: SCC_BASE_PATH
-          value: /home/sn/resource/scc
-        - name: SCC_LOG_PATH
-          value: /home/sn/log
-        - name: DELEGATE_ENV_VAR
-          value: '{"DISABLE_APIG_FORMAT":"true"}'
         image: "{{ .Values.global.imageRegistry | trimSuffix "/" }}/{{ .Values.global.images.functionAgent }}"
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -613,7 +375,7 @@ spec:
             command:
               - /bin/bash
               - -c
-              - /home/sn/bin/health-check $(FUNCTION_AGENT_PORT) function-agent
+              - /home/sn/bin/health-check {{ quote .Values.global.port.functionAgentPort }} function-agent
           initialDelaySeconds: 10
           periodSeconds: 5
           successThreshold: 1
@@ -624,7 +386,7 @@ spec:
             command:
               - /bin/bash
               - -c
-              - /home/sn/bin/health-check $(FUNCTION_AGENT_PORT) function-agent
+              - /home/sn/bin/health-check {{ quote .Values.global.port.functionAgentPort }} function-agent
           initialDelaySeconds: 3
           periodSeconds: 1
           successThreshold: 1
@@ -664,6 +426,9 @@ spec:
           {{- end}}
         - mountPath: /dcache
           name: pkg-dir
+        - name: config-volume
+          mountPath: /etc/yuanrong/config.toml
+          subPath: config.toml
         - mountPath: /opt/function/code
           name: pkg-dir1
         - mountPath: {{ .Values.global.observer.metrics.path.file }}
@@ -753,6 +518,10 @@ spec:
       {{- end }}
       - name: resource-volume
         emptyDir: {}
+      - name: config-volume
+        configMap:
+          defaultMode: 0440
+          name: components-toml-config
       - configMap:
           defaultMode: 0440
           items:
