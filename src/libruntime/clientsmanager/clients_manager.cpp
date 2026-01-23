@@ -155,7 +155,10 @@ ErrorInfo ClientsManager::ReleaseHttpClient(const std::string &ip, int port)
     httpClientsReferCounter[addr]--;
     if (httpClientsReferCounter[addr] == 0) {
         httpClientsReferCounter.erase(addr);
-        httpClients.erase(addr);
+        if (auto it = httpClients.find(addr); it != httpClients.end()) {
+            it->second->Stop();
+            httpClients.erase(addr);
+        }
     }
     return ErrorInfo();
 }

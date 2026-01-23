@@ -124,6 +124,7 @@ void GwClient::Clear()
     if (asyncDecreRef_.Push(objectIds, threadLocalTenantId)) {
         asyncDecreRef_.Stop();
     }
+    httpClient_->Stop();
 }
 
 void GwClient::Stop(void)

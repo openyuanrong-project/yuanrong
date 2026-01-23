@@ -153,7 +153,8 @@ void FSIntf::HandleCallRequest(const std::shared_ptr<CallMessageSpec> &req, Call
                                 req->Immutable().requestid(), fmt::underlying(resp.code()), resp.message());
                 }
             } else {
-                if (!status.WaitInitialized()) {
+                if (!status.WaitInitialized() && req->Immutable().createoptions().find("ENABLE_FORCE_INVOKE") ==
+                                                     req->Immutable().createoptions().end()) {
                     auto [code, msg] = status.GetErrorInfo();
                     resp.set_code(code);
                     resp.set_message(msg);

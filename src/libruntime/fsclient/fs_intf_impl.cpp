@@ -207,7 +207,8 @@ bool FSIntfImpl::NeedRepeat(const std::string requestId)
     auto [wr, expired] = UpdateRetryInterval(requestId);
     if (expired) {
         if (wr != nullptr && wr->callback != nullptr) {
-            YRLOG_ERROR("RPC request retry expired, request ID: {}, is ack received: {}", requestId, wr->ackReceived);
+            YRLOG_ERROR("RPC request retry expired, request ID: {}, is ack received: {}", requestId,
+                        wr->ackReceived.load());
             ErrorInfo err(ERR_REQUEST_BETWEEN_RUNTIME_BUS, "Response timeout, request ID is " + requestId);
             err.SetIsAckTimeout(true);
             StreamingMessage fake;
@@ -527,7 +528,8 @@ void FSIntfImpl::CallResultAsync(const std::shared_ptr<CallResultMessageSpec> re
     bool existObjInDs = req->existObjInDs;
     std::weak_ptr<FSIntfImpl> weakSelf(shared_from_this());
     std::weak_ptr<WiredRequest> weakWr(wr);
-    auto preWrite = [weakSelf, weakWr, reqId, existObjInDs](bool isDirect) {
+    auto flag = std::make_shared<std::once_flag>();
+    auto preWrite = [weakSelf, weakWr, reqId, existObjInDs, flag](bool isDirect) {
         if (isDirect && !existObjInDs) {
             return;
         }
@@ -536,7 +538,9 @@ void FSIntfImpl::CallResultAsync(const std::shared_ptr<CallResultMessageSpec> re
         if (self == nullptr || wr == nullptr) {
             return;
         }
-        (void)self->SaveWiredRequest(*reqId, wr);
+        std::call_once(*flag, [reqId, wr, self]() {
+            (void)self->SaveWiredRequest(*reqId, wr);
+        });
     };
     auto sendMsgHandler = [weakSelf, req, weakWr, reqId, preWrite, existObjInDs]() {
         auto self = weakSelf.lock();
@@ -973,6 +977,7 @@ void FSIntfImpl::RecvResponse(const std::string &, const std::shared_ptr<Streami
 
 void FSIntfImpl::ResendRequests(const std::string &dstInstanceID)
 {
+    std::vector<std::shared_ptr<WiredRequest>> resendWrs;
     {
         absl::MutexLock lock(&this->mu);
         for (auto &wr : wiredRequests) {
@@ -989,12 +994,15 @@ void FSIntfImpl::ResendRequests(const std::string &dstInstanceID)
 
             if (dstInstanceID != FUNCTION_PROXY && wr.second->dstInstanceID == dstInstanceID) {
                 YRLOG_DEBUG("direct call client {} disconnect, should resend with retry", dstInstanceID);
-                wr.second->ackReceived = false;
-                wr.second->ResendRequestWithRetry();
+                resendWrs.emplace_back(wr.second);
                 continue;
             }
-            wr.second->ResendRequest();
+            resendWrs.emplace_back(wr.second);
         }
+    }
+    for (auto &wr : resendWrs) {
+        wr->ackReceived = false;
+        wr->ResendRequestWithRetry();
     }
     YRLOG_INFO("current wired requests size: {}", wiredRequests.size());
     if (reSubscribeCb) {

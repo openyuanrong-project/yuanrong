@@ -478,7 +478,7 @@ struct WiredRequest : public std::enable_shared_from_this<WiredRequest> {
     std::function<void(StreamingMessage, ErrorInfo, std::function<void(bool)>)> callback;
     std::function<void(const NotifyRequest &, const ErrorInfo &)> notifyCallback;
     size_t retryCount;
-    bool ackReceived = false;  // true if create or invoke response has been received
+    std::atomic<bool> ackReceived = {false};  // true if create or invoke response has been received
     std::shared_ptr<YR::utility::Timer> timer_;
     std::shared_ptr<YR::utility::Timer> timerForTimeout;
     std::weak_ptr<TimerWorker> timerWorkerWeak;

@@ -46,15 +46,30 @@ ClientManager::ClientManager(const std::shared_ptr<LibruntimeConfig> &libruntime
 
 ClientManager::~ClientManager()
 {
-    this->work->reset();
-    ioc->stop();
-    for (auto client : clients) {
-        client->Stop();
+    Stop();
+}
+
+void ClientManager::Stop()
+{
+    if (stopped_) {
+        return;
     }
-    for (uint32_t i = 0; i < asyncRunners.size(); i++) {
-        if (this->asyncRunners[i]->get_id() != std::this_thread::get_id()) {
-            this->asyncRunners[i]->join();
+    stopped_ = true;
+    try {
+        this->work->reset();
+        ioc->stop();
+        for (auto client : clients) {
+            client->Stop();
         }
+        for (uint32_t i = 0; i < asyncRunners.size(); i++) {
+            if (this->asyncRunners[i]->get_id() != std::this_thread::get_id()) {
+                this->asyncRunners[i]->join();
+            }
+        }
+    } catch (const std::exception &e) {
+        YRLOG_ERROR("caught exception when stop client manager: {}", e.what());
+    } catch (...) {
+        YRLOG_ERROR("caught unknown exception when stop client manager");
     }
 }
 

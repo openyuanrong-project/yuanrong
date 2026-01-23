@@ -37,7 +37,7 @@ public:
                                      const std::unordered_map<std::string, std::string> &headers,
                                      const std::string &body, const std::shared_ptr<std::string> requestId,
                                      const HttpCallbackFunction &receiver) override;
-
+    void Stop();
 private:
     bool SubmitRequest(const http::verb &method, const std::string &target,
                        const std::unordered_map<std::string, std::string> &headers, const std::string &body,
@@ -56,6 +56,7 @@ private:
     bool enableMTLS;
     bool enableTLS_{false};
     uint32_t maxConnSize_;
+    bool stopped_{false};
 };
 }  // namespace Libruntime
 }  // namespace YR
