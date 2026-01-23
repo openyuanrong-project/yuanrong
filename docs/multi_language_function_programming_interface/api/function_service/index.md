@@ -29,7 +29,7 @@
 ## 函数开发 SDK
 
 - [Python SDK](./zh_cn/Python/python_sdk.rst)
-- [Cpp SDK](./zh_cn/Cpp/cpp_sdk.rst)
+- [C++ SDK](./zh_cn/Cpp/cpp_sdk.rst)
 - [Java SDK](./zh_cn/Java/java_sdk.md)
 
 ## 服务调用 REST API
