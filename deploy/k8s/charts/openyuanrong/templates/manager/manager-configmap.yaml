@@ -47,7 +47,7 @@ data:
         "minInsStartInterval": 15,
         "minInsCheckInterval": 15,
         "alarmLogConfig": {
-          "filepath": "/opt/yuanrong/logs/alarms",
+          "filepath": "/home/sn/log/alarms",
           "level": "Info",
           "tick": 0,
           "first": 0,

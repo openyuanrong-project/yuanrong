@@ -127,7 +127,7 @@ global:
       enable: true
     functionSystem:
       path: /home/sn/log
-      level: INFO
+      level: DEBUG
       pattern: ""
       compress: true
       rolling:
@@ -490,13 +490,13 @@ global:
   etcdManagement:
     useSecret: false
     secretName: "etcd-client-secret"
-    detcd: base-etcd.default.svc.cluster.local:2379
+    detcd: ds-core-etcd.default.svc.cluster.local:2379
     # auth type contains: Noauth PWD TLS STS
     authType: "Noauth"
     # The configuration value should be consistent with the DNS content of the Subject Alternate Names of the TLS certificate.
     targetNameOverride: ""
     # meta-etcd addr
-    metcd: base-etcd.default.svc.cluster.local:2379
+    metcd: ds-core-etcd.default.svc.cluster.local:2379
     # meta etcd parameters
     # maximum number of etcd healthy check failures that can be tolerated
     maxTolerateMetaStoreFailedTimes: 12
@@ -539,7 +539,7 @@ global:
     enable: true
     azID: 1
     systemUpgradeKey: "/hms-caas/edgems/upgrade-zones"
-    systemUpgradeWatchAddress: "base-etcd.default.svc.cluster.local:2379"
+    systemUpgradeWatchAddress: "ds-core-etcd.default.svc.cluster.local:2379"
 
   ##dataSystem config
   dataSystem:
@@ -566,6 +566,6 @@ global:
 
   # ETCD configuration for datasystem
   etcd:
-    etcdAddress: base-etcd.default.svc.cluster.local:2379
+    etcdAddress: ds-core-etcd.default.svc.cluster.local:2379
     enableComponentAuth: false
   cacheStorageInfoPrefix: ""

@@ -43,7 +43,7 @@ data:
           "secretKey": ""
         },
         "logConfig": {
-          "filepath": "/opt/yuanrong/logs",
+          "filepath": "/home/sn/log",
           "level": "INFO",
           "tick": 0,
           "first": 0,

@@ -27,7 +27,7 @@ spec:
           image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.agentInit }}
           securityContext:
             runAsUser: 0
-          command: ["/bin/sh", "-c", "chown 1002:1002 /opt/yuanrong/logs && chmod 777 /opt/yuanrong/logs"]
+          command: ["/bin/sh", "-c", "chown 1002:1002 /home/sn/log && chmod 777 /home/sn/log"]
           env:
             - name: POD_NAME
               valueFrom:
@@ -35,7 +35,7 @@ spec:
                   apiVersion: v1
                   fieldPath: metadata.name
           volumeMounts:
-            - mountPath: /opt/yuanrong/logs
+            - mountPath: {{ .Values.global.log.functionSystem.path}}
               name: varlog
               subPathExpr: $(POD_NAME)
       {{- end }}
@@ -72,7 +72,16 @@ spec:
       containers:
       - name: meta-service
         command:
-          - /home/sn/meta-service/bin/entrypoint-meta-service
+          - /bin/sh
+          - -c
+          - |
+              if [ "$(whoami)X" != "${USER_NAME}X" ]; then
+                if [ -w /etc/passwd ]; then
+                  echo "${USER_NAME:-sn}:x:$(id -u):$(id -g):${USER_NAME:-sn} user:${HOME}:/sbin/nologin" >> /etc/passwd
+                fi
+              fi
+              umask 0027
+              python3 -m yr.cli.main -v launch --inherit-env meta_service
         imagePullPolicy: IfNotPresent
         image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.common }}
         livenessProbe:
@@ -117,8 +126,6 @@ spec:
             cpu: {{ .Values.global.resources.metaService.requests.cpu }}
             memory: {{ .Values.global.resources.metaService.requests.memory }}
         env:
-          - name: GIN_MODE
-            value: release
           - name: POD_IP
             valueFrom:
               fieldRef:
@@ -129,22 +136,19 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.name
-          - name: SCC_ENABLE
-            value: {{ quote .Values.global.scc.enable }}
-          - name: SCC_ALGORITHM
-            value: {{ quote .Values.global.scc.algorithm }}
-          - name: ETCD_AUTH_TYPE
-            value: {{ quote .Values.global.etcdManagement.authType }}
         securityContext:
           capabilities: {}
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
+        - name: config-volume
+          mountPath: /etc/yuanrong/config.toml
+          subPath: config.toml
         - mountPath: /etc/localtime
           name: local-time
         - mountPath: /home/yuanrong/config
           name: meta-service-configmap
-        - mountPath: /home/sn/log
+        - mountPath: {{ .Values.global.log.functionSystem.path}}
           name: varlog
           {{- if .Values.global.log.hostPath.enable }}
           subPathExpr: $(POD_NAME)
@@ -174,6 +178,10 @@ spec:
       priorityClassName: system-cluster-critical
       terminationGracePeriodSeconds: 30
       volumes:
+      - name: config-volume
+        configMap:
+            defaultMode: 0440
+            name: components-toml-config
       - name: local-time
         hostPath:
           path: /etc/localtime
