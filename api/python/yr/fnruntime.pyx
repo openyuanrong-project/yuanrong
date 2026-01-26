@@ -2526,9 +2526,6 @@ cdef class Fnruntime:
             c_libruntime.get().SetTenantIdWithPriority()
             ret = c_libruntime.get().GetInstance(cname, cns, ctimeout)
         if not ret.second.OK():
-            if ret.second.Code() == CErrorCode.ERR_INSTANCE_NOT_FOUND or ret.second.Code() == CErrorCode.ERR_INSTANCE_EXITED:
-                with nogil:
-                    c_libruntime.get().Kill(cinstanceID, sigNo)
             if ret.second.IsTimeout():
                 raise TimeoutError(ret.second.Msg().decode())
             raise ValueError(
