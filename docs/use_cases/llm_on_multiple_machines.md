@@ -28,7 +28,7 @@ openYuanrong 提供了分布式多级缓存 (HBM/DRAM/SSD) 和高性能 D2D(devi
 
 3. 下载使用 openYuanrong 开发的 [模型部署脚本](https://atomgit.com/openeuler/yuanrong/tree/master/docs/sample_code/llm_on_multiple_machines){target="_blank"}(包含目录内的所有文件)，存放在 `/workspace/tools/deploy` 目录下。
 
-4. 下载 [vLLM Ascend 补丁](https://atomgit.com/openeuler/yuanrong-datasystem/blob/master/tests/kvconnector/patch/0001-implement-yr-datasystem-connector-and-support-multimoda.patch){target="_blank"}，存放在 `/workspace/tools/patch` 目录下。
+4. 下载 [vLLM Ascend 补丁](https://atomgit.com/openeuler/yuanrong-datasystem/blob/master/tests/kvconnector/patch/v0.10.0rc1/0001-implement-yr-datasystem-connector-and-support-multimoda.patch){target="_blank"}，存放在 `/workspace/tools/patch` 目录下。
 
 ## 在容器中部署 openYuanrong
 
