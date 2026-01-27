@@ -443,6 +443,11 @@ ErrorInfo Libruntime::InvokeByInstanceId(const YR::Libruntime::FunctionMeta &fun
     auto spec = std::make_shared<InvokeSpec>(runtimeContext->GetJobId(), funcMeta, returnObjs, std::move(invokeArgs),
                                              libruntime::InvokeType::InvokeFunction, std::move(traceId),
                                              std::move(requestId), instanceId, opts);
+    if (opts.forceInvoke) {
+        auto invokeOptions = spec->requestInvoke->Mutable().mutable_invokeoptions();
+        auto customTag = invokeOptions->mutable_customtag();
+        customTag->insert({"ENABLE_FORCE_INVOKE", ""});
+    }
     err = PreProcessArgs(spec);
     if (err.Code() != ErrorCode::ERR_OK) {
         YRLOG_ERROR("pre process failed, req id: {}, code: {}, message: {}", spec->requestId,

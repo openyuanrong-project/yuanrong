@@ -654,6 +654,9 @@ static InvokeOptions BuildInvokeOptions(CInvokeOptions *cInvokeOpts)
     if (cInvokeOpts->trafficLimited != 0) {
         invokeOpts.trafficLimited = true;
     }
+    if (cInvokeOpts->forceInvoke != 0) {
+        invokeOpts.forceInvoke = true;
+    }
     for (int i = 0; i < cInvokeOpts->size_invokeLabels; i++) {
         invokeOpts.invokeLabels.emplace(cInvokeOpts->invokeLabels[i].key, cInvokeOpts->invokeLabels[i].value);
     }

@@ -240,6 +240,7 @@ type InvokeOptions struct {
 	Timeout              int
 	AcquireTimeout       int
 	TrafficLimited       bool
+	ForceInvoke          bool
 }
 
 // InstanceAllocation holds the allocation of instance

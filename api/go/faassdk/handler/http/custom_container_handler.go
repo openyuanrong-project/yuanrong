@@ -1026,6 +1026,7 @@ func prepareInvokeArg(request types.InvokeRequest, disableAPIGFormat bool) ([]ap
 			constants.CffRequestIDHeaderKey: request.TraceID,
 			"Content-Type":                  "application/json",
 		},
+		Timeout: request.Timeout,
 	}
 	data, err := json.Marshal(callRequest)
 	if err != nil {

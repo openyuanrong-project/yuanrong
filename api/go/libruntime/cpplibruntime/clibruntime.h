@@ -247,6 +247,7 @@ typedef struct tagCInvokeOptions {
     int size_invokeLabels;
     CInstanceSession *instanceSession;
     int64_t scheduleTimeoutMs;
+    char forceInvoke;
 } CInvokeOptions;
 
 typedef struct tagCErrorObject {

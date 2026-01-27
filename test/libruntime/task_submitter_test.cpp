@@ -826,5 +826,20 @@ TEST_F(TaskSubmitterTest, UpdateFaasInvokeSendTimeTest)
     taskSubmitter->UpdateFaasInvokeSendTime("reqId");
     ASSERT_TRUE(taskSubmitter->faasInvokeDataMap_["reqId"]->sendTime > currentTime);
 }
+
+TEST_F(TaskSubmitterTest, HandleFailInvokeIsDelayScaleDownTest)
+{
+    NotifyRequest req;
+    req.set_code(common::ErrorCode::ERR_PARAM_INVALID);
+    ASSERT_TRUE(TaskSubmitter->HandleFailInvokeIsDelayScaleDown(req, ErrorInfo()));
+    req.set_code(common::ErrorCode::ERR_INSTANCE_NOT_FOUND);
+    ASSERT_FALSE(TaskSubmitter->HandleFailInvokeIsDelayScaleDown(req, ErrorInfo()));
+    req.set_code(common::ErrorCode::ERR_INSTANCE_EXITED);
+    ASSERT_FALSE(TaskSubmitter->HandleFailInvokeIsDelayScaleDown(req, ErrorInfo()));
+    req.set_code(common::ErrorCode::ERR_INSTANCE_EVICTED);
+    ASSERT_FALSE(TaskSubmitter->HandleFailInvokeIsDelayScaleDown(req, ErrorInfo()));
+    req.set_code(common::ErrorCode::ERR_USER_FUNCTION_EXCEPTION);
+    ASSERT_FALSE(TaskSubmitter->HandleFailInvokeIsDelayScaleDown(req, ErrorInfo()));
+}
 }  // namespace test
 }  // namespace YR
