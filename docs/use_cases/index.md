@@ -8,6 +8,7 @@
 
    llm_on_multiple_machines
    accelerate_llm_instance_scaling
+   microservice-serverless
 ```
 
 openYuanrong 可作为 AI 智算的基础设施，用于开发 AI 推理、强化学习等应用，也可作为通用计算的基础设施，开发大数据分析、HPC（高性能计算）等应用。
