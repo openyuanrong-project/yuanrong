@@ -32,7 +32,7 @@ openYuanrong兼容主流 Java 微服务框架，支持微服务作为openYuanron
     cd openyuanrong
     WORKSPACE=$(pwd)
 
-    cd ${WORKSPACE}/data_system/sdk/
+    cd ${WORKSPACE}/datasystem/sdk/
     mvn install:install-file -Dfile=datasystem-${VERSION}_${ARCH}.jar -DartifactId=datasystem -DgroupId=org.yuanrong.datasystem -Dversion=${VERSION} -Dpackaging=jar
 
     cd ${WORKSPACE}/runtime/sdk/java/
@@ -271,7 +271,7 @@ mvn clean package
     "s3CodePath": {
         "bucketId": "this-bucket",
         "objectId": "microservice-demo.zip",
-        "bucketUrl": "http://x.x.x.x:9000/"
+        "bucketUrl": "http://x.x.x.x:30110/"
     },
     "codePath": "",
     "schedulePolicies": [

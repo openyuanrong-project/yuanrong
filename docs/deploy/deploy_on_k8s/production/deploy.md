@@ -109,7 +109,7 @@ cd openyuanrong
 - 其他：修改单个组件的镜像版本示例。
 
   ```shell
-  helm install openyuanrong--set global.imageRegistry="swr.cn-southwest-2.myhuaweicloud.com/yuanrong-dev/" \
+  helm install openyuanrong --set global.imageRegistry="swr.cn-southwest-2.myhuaweicloud.com/yuanrong-dev/" \
     --set global.etcd.etcdAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
     --set global.systemUpgradeConfig.systemUpgradeWatchAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
     --set global.etcdManagement.detcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \

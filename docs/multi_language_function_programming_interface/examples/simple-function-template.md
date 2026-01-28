@@ -1365,7 +1365,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
           "s3CodePath": {
             "bucketId": "mys3/demo-bucket",
             "objectId": "demo.zip",
-            "bucketUrl": "http://{Your MinIO Address:9000}"
+            "bucketUrl": "http://{Your MinIO Address:30110}"
           }  
      }
     ```
