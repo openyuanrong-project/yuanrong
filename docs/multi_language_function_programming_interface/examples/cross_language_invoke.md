@@ -12,6 +12,12 @@
 
 参考[在主机上部署](../../deploy/deploy_processes/index.md)完成 openYuanrong 部署。
 
+:::{Note}
+
+部署时确保配置 `--enable_meta_service=true` 参数，启动 meta service 组件用于注册函数。
+
+:::
+
 (cross-language-python-invoke-cpp)=
 
 ## Python 程序中调用 C++ 无状态和有状态函数
