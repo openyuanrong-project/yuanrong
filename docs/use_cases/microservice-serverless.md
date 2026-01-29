@@ -1,31 +1,31 @@
-# 迁移 Springboot 容器微服务到openYuanrong
+# 迁移 SpringBoot 容器微服务到 openYuanrong
 
-openYuanrong兼容主流 Java 微服务框架，支持微服务作为openYuanrong 函数统一部署运行，享受 Serverless 带来的弹性、免运维等优势。
+openYuanrong 兼容主流 Java 微服务框架，支持微服务作为 openYuanrong 函数统一部署运行，享受 Serverless 带来的弹性、免运维等优势。
 
 ## 方案介绍
 
-在一个 SpringBooot 微服务工程中，引入openYuanrong提供的适配器 SDK 作为依赖并修改部分构建配置，打包部署为openYuanrong 函数服务，实现代码接近零改动迁移至openYuanrong平台。
+在一个 SpringBoot 微服务工程中，引入 openYuanrong 提供的适配器 SDK 作为依赖并修改部分构建配置，打包部署为openYuanrong 函数服务，实现代码接近零改动迁移至 openYuanrong 平台。
 
 ## 准备工作
 
-1. 部署openYuanrong集群（[在 Kubernetes 上部署](../deploy/deploy_on_k8s/index.md)）并在 k8s 集群主节点使用 kubectl 工具获取openYuanrong服务端点
+1. [在 K8s 上部署 openYuanrong 集群](../deploy/deploy_on_k8s/index.md)并在 K8s 集群主节点使用 kubectl 工具获取 openYuanrong 服务端点。
 
-    meta service 服务，它负责函数及资源池的管理等功能
+    meta service 服务，它负责函数及资源池的管理等功能。
 
     ```bash
     echo "http://$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}'):$(kubectl get svc meta-service -o jsonpath='{.spec.ports[0].nodePort}')"
     ```
 
-    frontend 服务，它负责接入流量，承担函数调用等功能
+    frontend 服务，它负责接入流量，承担函数调用等功能。
 
     ```bash
     echo "http://$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}'):$(kubectl get svc faas-frontend-lb -o jsonpath='{.spec.ports[0].nodePort}')"
     ```
 
-2. 安装 MinIO 客户端（[安装及配置](../reference/development-tools.md)），用于上传代码包到openYuanrong集群中的 MinIO 服务。
-3. 安装openYuanrong微服务 Adapter SDK
+2. 安装 [MinIO Client](tools-minio-client)，用于上传代码包到 openYuanrong 集群中的 MinIO 服务。
+3. 安装 openYuanrong 微服务 Adapter SDK
 
-    [下载openYuanrong发布包](../reference/releases.md) openyuanrong-*.tar.gz 并依次执行如下命令：
+    [下载 openYuanrong 发布包](../reference/releases.md) openyuanrong-*.tar.gz 并依次执行如下命令：
 
     ```bash
     tar -xzf openyuanrong-*.tar.gz
@@ -44,9 +44,9 @@ openYuanrong兼容主流 Java 微服务框架，支持微服务作为openYuanron
 
 ## 实现流程
 
-### 创建 SpringBooot 微服务工程
+### 创建 SpringBoot 微服务工程
 
-创建一个 SpringBooot 微服务工程，或基于您已有 Springboot 工程参考修改，目录结构如下，包含 pom.xml，zip_file.xml，Application.java 及 MyController.java 四个文件。
+创建一个 SpringBoot 微服务工程，或基于您已有 SpringBoot 工程参考修改，目录结构如下，包含 pom.xml，zip_file.xml，Application.java 及 MyController.java 四个文件。
 
 - pom.xml：maven 配置文件，增加openYuanrong microservice-function-yuanrong 依赖和 build plugin 配置。
 - zip_file.xml：代码打包配置。
@@ -246,7 +246,7 @@ mvn clean package
 
 ### 部署微服务
 
-参考“准备工作” 安装 MinIO 步骤中的常用命令，上传 microservice-demo.zip 到openYuanrong集群中的 Minio 服务。
+参考“准备工作” 安装 MinIO Client 步骤中的常用命令，上传 microservice-demo.zip 到 openYuanrong 集群中的 Minio 服务。
 
 在 `microservice-demo` 目录下新建 create_func.json 文件，内容如下（**根据实际情况替换 s3CodePath 中的字段**），作为注册函数服务的请求参数，参数含义详见[API 说明](../multi_language_function_programming_interface/api/function_service/register_function.md)
 
@@ -286,7 +286,7 @@ mvn clean package
 }
 ```
 
-使用 curl 工具注册微服务为 函数服务
+使用 curl 工具注册微服务为函数服务。
 
 ```shell
 META_SERVICE_ENDPOINT=<“准备工作”步骤中获取的 meta service 服务端点>
@@ -303,7 +303,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/functions -H 'Content-Typ
 
 #### 准备资源池
 
-运行微服务前，需要先在openYuanrong集群中初始化一个和服务资源（cpu、memory 等）配置（见前一步骤创建的 create_func.json 文件）匹配的资源池。
+运行微服务前，需要先在 openYuanrong 集群中初始化一个和服务资源（cpu、memory 等）配置（见前一步骤创建的 create_func.json 文件）匹配的资源池。
 
 在 `microservice-demo` 目录下新建 create_pool.json 文件，内容如下，作为创建资源池的请求参数，参数含义详见 [API 说明](../deploy/deploy_on_k8s/api/create_pod_pool.md)
 
@@ -337,7 +337,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/functions -H 'Content-Typ
 }
 ```
 
-使用 curl 工具创建资源池
+使用 curl 工具创建资源池。
 
 ```shell
 META_SERVICE_ENDPOINT=<“准备工作”步骤中获取的 meta service 服务端点>
@@ -370,7 +370,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
 }
 ```
 
-使用 curl 工具调用微服务
+使用 curl 工具调用微服务。
 
 ```shell
 FUNCTION_VERSION_URN=<“部署微服务”步骤记录的 functionVersionUrn>

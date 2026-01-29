@@ -2,6 +2,8 @@
 
 本节介绍如何在 Linux 环境中安装一些常用的开发工具。
 
+(tools-minio-client)=
+
 ## MinIO Client(mc)
 
 [Minio Client](https://minio.org.cn/docs/minio/linux/reference/minio-mc.html){target="_blank"} 简称 mc, 是 minio 服务器的客户端。

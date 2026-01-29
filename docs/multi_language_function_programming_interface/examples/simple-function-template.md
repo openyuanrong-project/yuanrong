@@ -1257,8 +1257,7 @@
 
 ### 在 K8s 集群中运行函数服务
 
-如果在部署时已经创建资源池，可跳过这个步骤。
-创建 create_pool.json 文件，内容如下:
+K8s 中运行函数服务需要先创建资源池，如果您在部署 openYuanrong 时已经创建，可跳过这个步骤。首先创建 create_pool.json 文件，内容如下:
 
 ```json
 {
@@ -1305,7 +1304,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
 :::::{tab-set}
 ::::{tab-item} Python
 
-1. 准备示列代码
+1. 准备示例代码
 
     新建如下内容文件 demo.py。
 
