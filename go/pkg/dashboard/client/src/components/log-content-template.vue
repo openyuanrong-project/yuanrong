@@ -20,9 +20,7 @@
       <div class="font-size20 no-block">
         Log: {{ filename }}
       </div>
-      <a :href="DownloadLogPath + filename">
-        <tiny-button class="no-border" :icon="IconDownload" />
-      </a>
+      <tiny-button @click="DownloadLogHandler(filename)" class="no-border" :icon="IconDownload" />
     </template>
     <template v-slot:card-content>
       <div class="label">Start Line:</div>
@@ -58,9 +56,10 @@
 import { ref, onMounted } from 'vue';
 import { TinyInput, TinyButton } from '@opentiny/vue';
 import { iconDownload, iconSearch } from '@opentiny/vue-icon';
-import { DownloadLogPath, GetLogByFilenameAPI } from '@/api/api';
+import { GetLogByFilenameAPI } from '@/api/api';
 import CommonCard from '@/components/common-card.vue';
 import { WarningNotify } from '@/components/warning-notify';
+import { DownloadLogHandler } from "@/utils/downloadLogHandler";
 import { LogSWR } from '@/utils/swr';
 
 const NUM_ERROR = 'The line should be greater than 0';
