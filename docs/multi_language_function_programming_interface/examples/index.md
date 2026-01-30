@@ -10,6 +10,7 @@
    faas-invoke-stateless-function
    affinity
    use_NPU_resource
+   faas-access-redis
    streaming-mapreduce
    monte-carlo-pi
    reinforcement-learning-maze
