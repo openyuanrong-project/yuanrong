@@ -25,9 +25,7 @@
                    @search="filesFilter" is-enter-search></tiny-search>
       <div class="margin-left20" v-for="file in files" :key="file">
         <tiny-link :href="curHash + '/' + file">{{ file }}</tiny-link>
-        <a :href="DownloadLogPath + file">
-          <tiny-button class="no-border" :icon="IconDownload" size="small" />
-        </a>
+        <tiny-button @click="DownloadLogHandler(file)" class="no-border" :icon="IconDownload" size="small" />
       </div>
     </template>
   </common-card>
@@ -37,10 +35,11 @@
 import { ref, onMounted } from 'vue';
 import { TinyButton, TinyLink, TinySearch } from '@opentiny/vue';
 import { iconDownload } from '@opentiny/vue-icon';
-import { DownloadLogPath, ListLogsAPI } from '@/api/api';
+import { ListLogsAPI } from '@/api/api';
 import BreadcrumbComponent from '@/components/breadcrumb-component.vue';
 import CommonCard from '@/components/common-card.vue';
 import { WarningNotify } from '@/components/warning-notify';
+import { DownloadLogHandler } from "@/utils/downloadLogHandler";
 
 const curHash = window.location.hash;
 const IconDownload = iconDownload();
