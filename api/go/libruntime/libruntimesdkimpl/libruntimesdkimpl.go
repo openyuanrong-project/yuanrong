@@ -196,6 +196,16 @@ func (l *libruntimeSDKImpl) GetAsync(objectID string, cb api.GetAsyncCallback) {
 	clibruntime.GetAsync(objectID, cb)
 }
 
+// GetEvent -
+func (l *libruntimeSDKImpl) GetEvent(objectID string, cb api.GetEventCallback) {
+	clibruntime.GetEvent(objectID, cb)
+}
+
+// DeleteGetEventCallback -
+func (l *libruntimeSDKImpl) DeleteGetEventCallback(objectID string) {
+	clibruntime.DeleteGetEventCallback(objectID)
+}
+
 // UpdateSchdulerInfo -
 func (l *libruntimeSDKImpl) UpdateSchdulerInfo(schedulerName string, schedulerId string, option string) {
 	clibruntime.UpdateSchdulerInfo(schedulerName, schedulerId, option)

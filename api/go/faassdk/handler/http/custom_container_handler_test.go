@@ -238,6 +238,14 @@ func (f *fakeSDKClient) GetAsync(objectID string, cb api.GetAsyncCallback) {
 	cb([]byte("success"), nil)
 }
 
+func (f *fakeSDKClient) GetEvent(objectID string, cb api.GetEventCallback) {
+	cb([]byte("success"), nil)
+}
+
+func (f *fakeSDKClient) DeleteGetEvent(objectID string) {
+
+}
+
 func (f *fakeSDKClient) GetFormatLogger() api.FormatLogger {
 	//TODO implement me
 	panic("implement me")

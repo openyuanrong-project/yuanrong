@@ -301,6 +301,21 @@ func TestLibruntimeSDKImpl(t *testing.T) {
 				},
 			)
 			convey.Convey(
+				"GetEvent success", func() {
+					convey.So(func() {
+						f := func(result []byte, err error) {}
+						libruntimeAPI.GetEvent("objectID", f)
+					}, convey.ShouldNotPanic)
+				},
+			)
+			convey.Convey(
+				"DeleteGetEventCallback success", func() {
+					convey.So(func() {
+						libruntimeAPI.DeleteGetEventCallback("objectID")
+					}, convey.ShouldNotPanic)
+				},
+			)
+			convey.Convey(
 				"GetFormatLogger success", func() {
 					fl := libruntimeAPI.GetFormatLogger()
 					convey.So(fl, convey.ShouldNotBeNil)

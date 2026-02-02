@@ -76,6 +76,8 @@ void GoGetAsyncCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *u
 
 void GoWaitAsyncCallback(char *cObjectID, CErrorInfo *cErr, void *userData) {}
 
+void GoGetEventCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *userData) {}
+
 CErrorInfo ErrorInfoToCError(const ErrorInfo &err)
 {
     CErrorInfo cErr{};
@@ -162,6 +164,11 @@ void CGetAsync(char *objectId, void *userData)
 }
 
 void CWaitAsync(char *objectId, void *userData)
+{
+    return;
+}
+
+void CGetEvent(char *objectId, void *userData)
 {
     return;
 }

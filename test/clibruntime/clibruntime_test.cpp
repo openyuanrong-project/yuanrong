@@ -99,6 +99,8 @@ void GoGetAsyncCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *u
 
 void GoWaitAsyncCallback(char *cObjectID, CErrorInfo *cErr, void *userData) {}
 
+void GoGetEventCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *userData) {}
+
 void freeCStrings(char **cStrings, size_t cStringsLen)
 {
     for (size_t i = 0; i < cStringsLen; i++) {

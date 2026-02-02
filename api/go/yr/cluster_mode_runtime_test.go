@@ -262,6 +262,34 @@ func TestGetAsync(t *testing.T) {
 	)
 }
 
+func TestGetEvent(t *testing.T) {
+	convey.Convey(
+		"Test GetEvent", t, func() {
+			convey.Convey(
+				"GetEvent success", func() {
+					convey.So(func() {
+						clusterRt.GetEvent("", nil)
+					}, convey.ShouldNotPanic)
+				},
+			)
+		},
+	)
+}
+
+func TestDeleteGetEventCallback(t *testing.T) {
+	convey.Convey(
+		"Test DeleteGetEventCallback", t, func() {
+			convey.Convey(
+				"DeleteGetEventCallback success", func() {
+					convey.So(func() {
+						clusterRt.DeleteGetEventCallback("")
+					}, convey.ShouldNotPanic)
+				},
+			)
+		},
+	)
+}
+
 func TestGetFormatLogger(t *testing.T) {
 	convey.Convey(
 		"Test GetFormatLogger", t, func() {
