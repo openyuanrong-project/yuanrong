@@ -21,16 +21,16 @@ import (
 	"encoding/json"
 	"time"
 
-	"frontend/pkg/common/faas_common/alarm"
-	"frontend/pkg/common/faas_common/crypto"
-	"frontend/pkg/common/faas_common/etcd3"
-	"frontend/pkg/common/faas_common/localauth"
-	"frontend/pkg/common/faas_common/logger/config"
-	"frontend/pkg/common/faas_common/redisclient"
-	"frontend/pkg/common/faas_common/sts/raw"
-	"frontend/pkg/common/faas_common/tls"
-	"frontend/pkg/common/faas_common/types"
-	wisecloudTypes "frontend/pkg/common/faas_common/wisecloudtool/types"
+	"yuanrong.org/kernel/pkg/common/faas_common/alarm"
+	"yuanrong.org/kernel/pkg/common/faas_common/crypto"
+	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
+	"yuanrong.org/kernel/pkg/common/faas_common/localauth"
+	"yuanrong.org/kernel/pkg/common/faas_common/logger/config"
+	"yuanrong.org/kernel/pkg/common/faas_common/redisclient"
+	"yuanrong.org/kernel/pkg/common/faas_common/sts/raw"
+	"yuanrong.org/kernel/pkg/common/faas_common/tls"
+	"yuanrong.org/kernel/pkg/common/faas_common/types"
+	wisecloudTypes "yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/types"
 )
 
 // FunctionRequestInfo function response info

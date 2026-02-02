@@ -83,6 +83,7 @@ do
     mkdir -p "${MODULE_NAME}"
     SO_PATH="${TAR_OUT_DIR}/${MODULE_NAME}/${MODULE_NAME}.so"
     BIN_PATH="${TAR_OUT_DIR}/${MODULE_NAME}/${MODULE_NAME}"
+    cd "${PROJECT_DIR}"
     if [ "${MODULE_NAME}" = "faasscheduler" ]; then
         CC='gcc -fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2'
         go build -buildmode=pie -ldflags "-linkmode=external ${FLAGS}" \
@@ -92,7 +93,7 @@ do
         go build -tags "${BUILD_TAG_FUNCTION}" -buildmode=plugin -ldflags "${FLAGS}" \
         -o ${SO_PATH} "${PROJECT_DIR}/cmd/faas/${MODULE_NAME}/function_main.go"
         chmod -R 500 ${SO_PATH}
-        cd "${MODULE_NAME}"
+        cd "${TAR_OUT_DIR}/${MODULE_NAME}"
         zip -r "${MODULE_NAME}.zip" *
         continue
     fi
@@ -102,7 +103,7 @@ do
         go build -tags "${BUILD_TAG_FUNCTION}" -buildmode=plugin -ldflags "${FLAGS}" \
         -o ${SO_PATH} "${PROJECT_DIR}/cmd/faas/${MODULE_NAME}/main.go"
         chmod -R 500 ${SO_PATH}
-        cd "${MODULE_NAME}"
+        cd "${TAR_OUT_DIR}/${MODULE_NAME}"
         zip -r "${MODULE_NAME}.zip" *
         continue
     fi

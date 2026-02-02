@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 
 	"yuanrong.org/kernel/runtime/libruntime/api"
 
@@ -54,8 +54,6 @@ type Configuration struct {
 	DataSystemEtcd               etcd3.EtcdConfig                 `json:"dataSystemEtcd" valid:"optional"`
 	SchedulerNum                 int                              `json:"schedulerNum" valid:"optional"`
 	DockerRootPath               string                           `json:"dockerRootPath"`
-	RawStsConfig                 raw.StsConfig                    `json:"rawStsConfig,omitempty"`
-	SystemAuthConfig             raw.Auth                         `json:"systemAuthConfig,omitempty" valid:"optional"`
 	ClusterID                    string                           `json:"clusterID" valid:"optional"`
 	ClusterName                  string                           `json:"clusterName" valid:"optional"`
 	DiskMonitorEnable            bool                             `json:"diskMonitorEnable"`

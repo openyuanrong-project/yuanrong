@@ -32,7 +32,7 @@ import (
 	. "github.com/agiledragon/gomonkey/v2"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 
 	"yuanrong.org/kernel/runtime/libruntime/api"
 
@@ -178,15 +178,19 @@ func TestPrepareCreateOptions(t *testing.T) {
 		FuncSecretName: "yyrk123-testFunc-latest-1257561201",
 	}
 	config.GlobalConfig.HostAliases = []v1.HostAlias{
-		v1.HostAlias{IP: "10.29.111.111", Hostnames: []string{"host1"}},
-		v1.HostAlias{IP: "10.29.111.112", Hostnames: []string{"host2"}},
-		v1.HostAlias{IP: "10.29.111.113", Hostnames: []string{"host3"}},
+		{IP: "10.29.111.111", Hostnames: []string{"host1"}},
+		{IP: "10.29.111.112", Hostnames: []string{"host2"}},
+		{IP: "10.29.111.113", Hostnames: []string{"host3"}},
 	}
 	config.GlobalConfig.FunctionConfig = []types.FunctionDefaultConfig{
-		types.FunctionDefaultConfig{ConfigName: "configName-0",
-			Mount: v1.VolumeMount{Name: "agc-config-file", MountPath: "/opt/config/afc-config-file"}},
-		types.FunctionDefaultConfig{ConfigName: "configName-1",
-			Mount: v1.VolumeMount{Name: "agc-config-file1", MountPath: "/opt/config/afc-config-file1"}},
+		{
+			ConfigName: "configName-0",
+			Mount:      v1.VolumeMount{Name: "agc-config-file", MountPath: "/opt/config/afc-config-file"},
+		},
+		{
+			ConfigName: "configName-1",
+			Mount:      v1.VolumeMount{Name: "agc-config-file1", MountPath: "/opt/config/afc-config-file1"},
+		},
 	}
 	config.GlobalConfig.ClusterID = "0"
 	insType := types.InstanceType("scaled")
@@ -246,7 +250,6 @@ func TestPrepareCreateOptions(t *testing.T) {
 		convey.So(createOpt[commonconstant.DelegateContainerKey], convey.ShouldEqual,
 			`{"image":"","imagePullPolicy":"Always","env":[{"name":"INVOKE_TYPE","value":"faas"},{"name":"x-system-tenantId"},{"name":"x-system-functionName"},{"name":"x-system-functionVersion"},{"name":"x-system-region","value":"12324234"},{"name":"x-system-clusterID"},{"name":"x-system-NODE_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.hostIP"}}},{"name":"x-system-podName","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}},{"name":"POD_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.podIP"}}},{"name":"HOST_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.hostIP"}}},{"name":"PodName","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}},{"name":"POD_ID","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.uid"}}},{"name":"POD_NAME","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}}],"command":null,"args":null,"uid":123,"gid":0,"volumeMounts":[{"name":"agc-config-file","mountPath":"/opt/config/afc-config-file"},{"name":"agc-config-file1","mountPath":"/opt/config/afc-config-file1"}],"runtime_graceful_shutdown":{"maxShutdownTimeout":0},"lifecycle":{},"serviceAccountName":"default"}`)
 		os.Setenv("CUSTOM_CONTAINER_IMAGE_PULL_POLICY", "")
-
 	})
 }
 
@@ -407,7 +410,8 @@ func Test_setCreateOptionForNuwaRuntimeInfo(t *testing.T) {
 		args args
 		want map[string]string
 	}{
-		{"case1 map is nil",
+		{
+			"case1 map is nil",
 			args{
 				funcSpec:        &types.FunctionSpecification{},
 				nuwaRuntimeInfo: &wisecloudTypes.NuwaRuntimeInfo{},
@@ -430,7 +434,8 @@ func Test_setCreateOptionForNuwaRuntimeInfo(t *testing.T) {
 				},
 				createOpt: map[string]string{},
 			},
-			map[string]string{"DELEGATE_NUWA_RUNTIME_INFO": `{"wisecloudRuntimeId":"runtimeId","wisecloudSite":"site","wisecloudTenantId":"tenant","wisecloudApplicationId":"application","wisecloudServiceId":"serviceid","wisecloudEnvironmentId":"environment","envLabel":"label"}`}},
+			map[string]string{"DELEGATE_NUWA_RUNTIME_INFO": `{"wisecloudRuntimeId":"runtimeId","wisecloudSite":"site","wisecloudTenantId":"tenant","wisecloudApplicationId":"application","wisecloudServiceId":"serviceid","wisecloudEnvironmentId":"environment","envLabel":"label"}`},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -463,17 +468,20 @@ func Test_setCreateOptionForMountVolume(t *testing.T) {
 						UserID:  1004,
 						GroupID: 1004,
 					},
-					FuncMounts: []commonTypes.FuncMount{commonTypes.FuncMount{
+					FuncMounts: []commonTypes.FuncMount{{
 						MountType:      "ecs",
 						MountResource:  "eb4ebf7a-db82-4602-82ce-7e1e57a8ef46",
 						MountSharePath: "1.1.1.1:/sharerdata",
 						LocalMountPath: "/home/",
 						Status:         "active",
 					}},
-				}}},
+				},
+			}},
 			createOpt: map[string]string{"test": "test"},
-		}, map[string]string{"test": "test",
-			"DELEGATE_MOUNT": `{"mount_user":{"user_id":1004,"user_group_id":1004},"func_mounts":[{"mount_type":"ecs","mount_resource":"eb4ebf7a-db82-4602-82ce-7e1e57a8ef46","mount_share_path":"1.1.1.1:/sharerdata","local_mount_path":"/home/","status":"active"}]}`}},
+		}, map[string]string{
+			"test":           "test",
+			"DELEGATE_MOUNT": `{"mount_user":{"user_id":1004,"user_group_id":1004},"func_mounts":[{"mount_type":"ecs","mount_resource":"eb4ebf7a-db82-4602-82ce-7e1e57a8ef46","mount_share_path":"1.1.1.1:/sharerdata","local_mount_path":"/home/","status":"active"}]}`,
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -590,7 +598,6 @@ func TestSetCreateOptionForContainerSideCar(t *testing.T) {
 			createOpt := map[string]string{}
 			err := setCreateOptionForFileBeat(funcSpec, createOpt)
 			convey.So(err, convey.ShouldNotBeNil)
-
 		})
 		convey.Convey("json Marshal config error", func() {
 			patch := ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
@@ -607,7 +614,6 @@ func TestSetCreateOptionForContainerSideCar(t *testing.T) {
 			createOpt := map[string]string{}
 			err := setCreateOptionForFileBeat(funcSpec, createOpt)
 			convey.So(err, convey.ShouldNotBeNil)
-
 		})
 		convey.Convey("success", func() {
 			funcSpec := &types.FunctionSpecification{
@@ -790,8 +796,10 @@ func Test_setCreateOptionForLabel(t *testing.T) {
 			createOpt: nil,
 		}, true},
 		{"case2 succeeded to set createOption for label", args{
-			funcSpec: &types.FunctionSpecification{FuncMetaData: commonTypes.FuncMetaData{FuncName: "test",
-				TenantID: "tenantID", Service: "serviceID", Version: "$latest"}},
+			funcSpec: &types.FunctionSpecification{FuncMetaData: commonTypes.FuncMetaData{
+				FuncName: "test",
+				TenantID: "tenantID", Service: "serviceID", Version: "$latest",
+			}},
 			createOpt:    map[string]string{},
 			resSpec:      &resspeckey.ResourceSpecification{CPU: 500, Memory: 500},
 			instanceType: types.InstanceTypeReserved,
@@ -818,7 +826,7 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 	}
 
 	config.GlobalConfig.XpuNodeLabels = []types.XpuNodeLabel{
-		types.XpuNodeLabel{
+		{
 			XpuType:      "huawei.com/ascend-1980",
 			InstanceType: "376T",
 			NodeLabelKey: "node.kubernetes.io/instance-type",
@@ -827,7 +835,7 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 				"physical.kat2ne.48xlarge.8.ei.pod101.ondemand",
 			},
 		},
-		types.XpuNodeLabel{
+		{
 			XpuType:      "huawei.com/ascend-1980",
 			InstanceType: "",
 			NodeLabelKey: "node.kubernetes.io/instance-type",
@@ -836,7 +844,7 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 				"physical.kat2ne.48xlarge.8.ei.pod101.ondemand",
 			},
 		},
-		types.XpuNodeLabel{
+		{
 			XpuType:      "huawei.com/ascend-1980",
 			InstanceType: "280T",
 			NodeLabelKey: "node.kubernetes.io/instance-type",
@@ -921,8 +929,10 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := make(map[string]string)
 			e := setCreateOptionForAscendNPU(getMockFuncSpec(tt.customResource, tt.customResourcesSpec),
-				&resspeckey.ResourceSpecification{CPU: 500, Memory: 500,
-					CustomResources: map[string]int64{"huawei.com/ascend-1980": 8}}, m)
+				&resspeckey.ResourceSpecification{
+					CPU: 500, Memory: 500,
+					CustomResources: map[string]int64{"huawei.com/ascend-1980": 8},
+				}, m)
 			if e != nil {
 				t.Errorf("setCreateOptionForAscendNPU failed, err: %v", e)
 			}
@@ -956,7 +966,6 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 			fmt.Printf("actual NodeAffinity: %s, expect NodeAffinity: %s", actualNodeAffinity, tt.delegateNodeAffinity)
 		})
 	}
-
 }
 
 func Test_PrepareCreateArguments(t *testing.T) {
@@ -1324,7 +1333,6 @@ func TestInitCustomContainerEnvForNpu(t *testing.T) {
 				t.Errorf("failed, actual customEnv is %s, expect customEnv is %s", actualCustomEnvValue, expectCustomEnvValue)
 			}
 		})
-
 	}
 }
 
@@ -1416,7 +1424,6 @@ func TestGenerateSnErrorFromKernelError(t *testing.T) {
 			kernelErr := errors.New("code:3003,message: ")
 			snError := generateSnErrorFromKernelError(kernelErr)
 			convey.So(snError.Code(), convey.ShouldEqual, statuscode.InternalErrorCode)
-
 		})
 		convey.Convey("errorCode error", func() {
 			initRsp := &types.ExecutorInitResponse{}
@@ -1424,7 +1431,6 @@ func TestGenerateSnErrorFromKernelError(t *testing.T) {
 			kernelErr := errors.New(fmt.Sprintf("code:3003,message: %s", string(data)))
 			snError := generateSnErrorFromKernelError(kernelErr)
 			convey.So(snError.Code(), convey.ShouldEqual, statuscode.InternalErrorCode)
-
 		})
 		convey.Convey("message MarshalJSON error", func() {
 			initRsp := &types.ExecutorInitResponse{
@@ -1470,7 +1476,8 @@ func Test_setCreateOptionForPodInitLabel(t *testing.T) {
 		podInitLabels map[string]string
 		tenantId      string
 	}{
-		{"case1 map is nil",
+		{
+			"case1 map is nil",
 			args{
 				funcSpec: &types.FunctionSpecification{},
 			},
@@ -1487,11 +1494,16 @@ func Test_setCreateOptionForPodInitLabel(t *testing.T) {
 			},
 			"",
 		},
-		{"case2 succeeded to set createOption for label",
+		{
+			"case2 succeeded to set createOption for label",
 			args{
-				funcSpec: &types.FunctionSpecification{FuncMetaData: commonTypes.FuncMetaData{FuncName: "test",
-					TenantID: "tenantID", Service: "serviceID", Version: "$latest"},
-					FuncKey: "12345678901234561234567890123456/test/$latest"},
+				funcSpec: &types.FunctionSpecification{
+					FuncMetaData: commonTypes.FuncMetaData{
+						FuncName: "test",
+						TenantID: "tenantID", Service: "serviceID", Version: "$latest",
+					},
+					FuncKey: "12345678901234561234567890123456/test/$latest",
+				},
 				resSpec:      &resspeckey.ResourceSpecification{CPU: 500, Memory: 500},
 				instanceType: types.InstanceTypeReserved,
 			},
@@ -1677,29 +1689,6 @@ func TestCreateInvokeOptions(t *testing.T) {
 	assert.NotNil(t, opt)
 }
 
-func Test_getStsServerConfig(t *testing.T) {
-	convey.Convey("test getStsServerConfig", t, func() {
-		convey.Convey("baseline", func() {
-			funcSpec := &types.FunctionSpecification{
-				StsMetaData: commonTypes.StsMetaData{
-					EnableSts:    true,
-					ServiceName:  "a",
-					MicroService: "b",
-				},
-			}
-			config.GlobalConfig.RawStsConfig.ServerConfig.Domain = "12345"
-			config.GlobalConfig.RawStsConfig.StsDomainForRuntime = ""
-			serverConfig := getStsServerConfig(funcSpec)
-			convey.So(serverConfig.Domain, convey.ShouldEqual, "12345")
-			convey.So(serverConfig.Path, convey.ShouldEqual, "/opt/huawei/certs/a/b/b.ini")
-			config.GlobalConfig.RawStsConfig.StsDomainForRuntime = "67890"
-			serverConfig = getStsServerConfig(funcSpec)
-			convey.So(serverConfig.Domain, convey.ShouldEqual, "67890")
-			convey.So(serverConfig.Path, convey.ShouldEqual, "/opt/huawei/certs/a/b/b.ini")
-		})
-	})
-}
-
 func TestCreatePATService(t *testing.T) {
 	convey.Convey("TestCreatePATService", t, func() {
 		funcSpec := &types.FunctionSpecification{}
@@ -1724,7 +1713,8 @@ func TestCreatePATService(t *testing.T) {
 			SetGlobalSdkClient(sdk)
 			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-					invokeOpt api.InvokeOptions) (string, error) {
+					invokeOpt api.InvokeOptions,
+				) (string, error) {
 					return "", errors.New("invoke error")
 				})
 			natConfig, err := createPATService("", funcSpec, managerInfo, extMetaData, vpcConfig)
@@ -1740,7 +1730,8 @@ func TestCreatePATService(t *testing.T) {
 			SetGlobalSdkClient(sdk)
 			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-					invokeOpts api.InvokeOptions) (string, error) {
+					invokeOpts api.InvokeOptions,
+				) (string, error) {
 					return "test-obj-id", nil
 				})
 			patches.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
@@ -1761,7 +1752,8 @@ func TestCreatePATService(t *testing.T) {
 			SetGlobalSdkClient(sdk)
 			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-					invokeOpts api.InvokeOptions) (string, error) {
+					invokeOpts api.InvokeOptions,
+				) (string, error) {
 					return "test-obj-id", nil
 				})
 			patches.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
@@ -1803,7 +1795,8 @@ func TestHandlePullTriggerCreate(t *testing.T) {
 
 		patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpt api.InvokeOptions) (string, error) {
+				invokeOpt api.InvokeOptions,
+			) (string, error) {
 				return "mock-obj-id", nil
 			})
 
@@ -1828,7 +1821,8 @@ func TestHandlePullTriggerCreate(t *testing.T) {
 
 		patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpt api.InvokeOptions) (string, error) {
+				invokeOpt api.InvokeOptions,
+			) (string, error) {
 				getAsyncCalled = true
 				return "", errors.New("invoke error")
 			})
@@ -1847,7 +1841,8 @@ func TestHandlePullTriggerCreate(t *testing.T) {
 
 		patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpt api.InvokeOptions) (string, error) {
+				invokeOpt api.InvokeOptions,
+			) (string, error) {
 				return "mock-obj-id", nil
 			})
 
@@ -1936,7 +1931,8 @@ func TestHandlePullTriggerDelete(t *testing.T) {
 
 			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-					invokeOpt api.InvokeOptions) (string, error) {
+					invokeOpt api.InvokeOptions,
+				) (string, error) {
 					if tt.invokeErr != nil {
 						return "", tt.invokeErr
 					}

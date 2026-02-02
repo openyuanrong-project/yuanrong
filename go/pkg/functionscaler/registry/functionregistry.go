@@ -23,14 +23,12 @@ import (
 	"strings"
 	"sync"
 
-	"go.etcd.io/etcd/client/v3"
-
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	commonTypes "yuanrong.org/kernel/pkg/common/faas_common/types"
 	commonUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
-	"yuanrong.org/kernel/pkg/functionscaler/config"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
 	"yuanrong.org/kernel/pkg/functionscaler/utils"
 )
@@ -92,6 +90,7 @@ func (fr *FunctionRegistry) getFuncSpec(funcKey string) *types.FunctionSpecifica
 	fr.RUnlock()
 	return funcSpec
 }
+
 func (fr *FunctionRegistry) fetchSilentFuncSpec(funcKey string) *types.FunctionSpecification {
 	tenantID, funcName, funcVersion := commonUtils.ParseFuncKey(funcKey)
 	silentEtcdKey := fmt.Sprintf(constant.SilentFuncKey, tenantID, funcName, funcVersion)
@@ -164,7 +163,8 @@ func (fr *FunctionRegistry) watcherHandler(event *etcd3.Event) {
 
 // buildFuncSpec without lock should lock outside
 func (fr *FunctionRegistry) buildFuncSpec(etcdKey string, etcdValue []byte,
-	funcKey string) *types.FunctionSpecification {
+	funcKey string,
+) *types.FunctionSpecification {
 	funcMetaInfo := GetFuncMetaInfoFromEtcdValue(etcdValue)
 	if funcMetaInfo == nil {
 		log.GetLogger().Errorf("ignoring invalid etcd value of key %s", etcdKey)
@@ -177,7 +177,8 @@ func (fr *FunctionRegistry) buildFuncSpec(etcdKey string, etcdValue []byte,
 }
 
 func createOrUpdateFuncSpec(oldFuncSpec *types.FunctionSpecification, funcKey string,
-	funcMetaInfo *commonTypes.FunctionMetaInfo) *types.FunctionSpecification {
+	funcMetaInfo *commonTypes.FunctionMetaInfo,
+) *types.FunctionSpecification {
 	commonUtils.SetFuncMetaDynamicConfEnable(funcMetaInfo)
 	var funcSpec *types.FunctionSpecification
 	if oldFuncSpec == nil {
@@ -187,7 +188,7 @@ func createOrUpdateFuncSpec(oldFuncSpec *types.FunctionSpecification, funcKey st
 			CancelFunc: cancelFunc,
 			FuncKey:    funcKey,
 			FuncMetaSignature: commonUtils.GetFuncMetaSignature(funcMetaInfo,
-				config.GlobalConfig.RawStsConfig.StsEnable),
+				false),
 			FuncMetaData:     funcMetaInfo.FuncMetaData,
 			S3MetaData:       funcMetaInfo.S3MetaData,
 			CodeMetaData:     funcMetaInfo.CodeMetaData,
@@ -200,7 +201,7 @@ func createOrUpdateFuncSpec(oldFuncSpec *types.FunctionSpecification, funcKey st
 	} else {
 		funcSpec = oldFuncSpec
 		funcSpec.FuncMetaSignature = commonUtils.GetFuncMetaSignature(funcMetaInfo,
-			config.GlobalConfig.RawStsConfig.StsEnable)
+			false)
 		funcSpec.FuncMetaData = funcMetaInfo.FuncMetaData
 		funcSpec.S3MetaData = funcMetaInfo.S3MetaData
 		funcSpec.CodeMetaData = funcMetaInfo.CodeMetaData

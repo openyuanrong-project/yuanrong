@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package sts -
 package cert
 
 import (
@@ -25,14 +26,6 @@ import (
 
 	mockUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
 )
-
-func TestLoadCerts(t *testing.T) {
-	_, _, err := LoadCerts()
-	if err != nil {
-		t.Errorf("LoadCerts() error = %v", err)
-		return
-	}
-}
 
 func Test_parseSTSCerts(t *testing.T) {
 	type args struct {

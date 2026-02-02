@@ -38,12 +38,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-
 	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/k8sclient"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	"yuanrong.org/kernel/pkg/functionmanager/types"
 	"yuanrong.org/kernel/pkg/functionmanager/utils"
+	"yuanrong.org/kernel/runtime/libruntime/api"
 )
 
 var patGVR = schema.GroupVersionResource{

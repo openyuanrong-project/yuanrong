@@ -267,7 +267,7 @@ struct OwnerSchedulerInfo {
     int maxRetryTimes = 3; // 单个scheduler实例重试3次
     int currentRetryTimeSpent = 0;
     int maxRetryTimeSpent = 5000; // Owner节点总重试时间最大5s
-}
+};
 }  // namespace Libruntime
 }  // namespace YR
 

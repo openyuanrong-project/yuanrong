@@ -163,6 +163,7 @@ func (m *Manager) RecoverData() {
 	log.GetLogger().Infof("recovered remoteClientList: %v", m.remoteClientList)
 	m.clientMutex.Unlock()
 }
+
 func newLeaseTimer(timeout time.Duration) *leaseTimer {
 	timer := time.NewTimer(timeout)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -189,7 +190,8 @@ func startLeaseTimeOutWatcher(ctx context.Context, fm *Manager, timer *time.Time
 
 // HandlerRequest -
 func (m *Manager) HandlerRequest(requestOp RequestOperation, requestData []byte,
-	traceID string) *commonType.CallHandlerResponse {
+	traceID string,
+) *commonType.CallHandlerResponse {
 	switch requestOp {
 	case requestOpCreate:
 		return m.handleRequestOpCreate(requestData, traceID)
@@ -254,7 +256,8 @@ func (m *Manager) handleRequestOpCreate(requestData []byte, traceID string) *com
 }
 
 func (m *Manager) getRunningPatPodWithRetry(ctx context.Context, patRequest commonType.PATServiceRequest,
-	logger api.FormatLogger) ([]commonType.NATConfigure, error) {
+	logger api.FormatLogger,
+) ([]commonType.NATConfigure, error) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
@@ -276,7 +279,8 @@ func (m *Manager) getRunningPatPodWithRetry(ctx context.Context, patRequest comm
 }
 
 func (m *Manager) getRunningPatPod(ctx context.Context,
-	patRequest commonType.PATServiceRequest) ([]commonType.NATConfigure, error) {
+	patRequest commonType.PATServiceRequest,
+) ([]commonType.NATConfigure, error) {
 	var runningPatPods []commonType.NATConfigure
 	obj, err := m.patLister.ByNamespace(patRequest.Namespace).
 		Get(utils.GetPatName(patRequest.SubnetID, patRequest.SecurityGroups))
@@ -313,7 +317,8 @@ func (m *Manager) getRunningPatPod(ctx context.Context,
 }
 
 func (m *Manager) createPat(ctx context.Context,
-	patRequest commonType.PATServiceRequest) (*unstructured.Unstructured, error) {
+	patRequest commonType.PATServiceRequest,
+) (*unstructured.Unstructured, error) {
 	pat := &types.Pat{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pat",

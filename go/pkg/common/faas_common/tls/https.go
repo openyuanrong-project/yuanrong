@@ -178,7 +178,7 @@ func loadHTTPSConfig(config InternalHTTPSConfig) error {
 		CACertFile:              loadCerts(config.SSLBasePath, config.RootCAFile),
 		CertFile:                loadCerts(config.SSLBasePath, config.ModuleCertFile),
 		SecretKeyFile:           loadCerts(config.SSLBasePath, config.ModuleKeyFile),
-		PwdFilePath:             loadCerts(config.SSLBasePath, config.PwdFile),
+		PwdFilePath:             "",
 		KeyPassPhase:            "",
 		SecretName:              config.SecretName,
 		DecryptTool:             config.SSLDecryptTool,
@@ -198,15 +198,6 @@ func loadHTTPSConfig(config InternalHTTPSConfig) error {
 		return errors.New("invalid TLS ciphers")
 	}
 	httpsConfigs.CipherSuite = cipherSuites
-
-	keyPassPhase, err := ioutil.ReadFile(httpsConfigs.PwdFilePath)
-	if err != nil {
-		log.GetLogger().Errorf("failed to read file cert_pwd: %s", err.Error())
-		return err
-	}
-	httpsConfigs.KeyPassPhase = string(keyPassPhase)
-	utils.ClearByteMemory(keyPassPhase)
-
 	return nil
 }
 
@@ -335,12 +326,6 @@ func loadCertAndKeyBytes(certFilePath, keyFilePath, passPhase string, decryptToo
 		log.GetLogger().Errorf("failed to read key file %s: %s", keyFilePath, err.Error())
 		return nil, nil, err
 	}
-	keyContent, err = containPassPhase(keyContent, passPhase, decryptTool, isHTTPS)
-	if err != nil {
-		log.GetLogger().Errorf("failed to decode keyContent, error is %s", err.Error())
-		return nil, nil, err
-	}
-
 	return certContent, keyContent, nil
 
 }

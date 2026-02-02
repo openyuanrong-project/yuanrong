@@ -20,6 +20,7 @@ package scaler
 import (
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/instanceconfig"
@@ -37,9 +38,7 @@ const (
 	defaultScaleUpInitTime = 100
 )
 
-var (
-	scaleUpInitTime = time.Duration(defaultScaleUpInitTime) * time.Millisecond
-)
+var scaleUpInitTime = time.Duration(defaultScaleUpInitTime) * time.Millisecond
 
 // AutoScaler will scales instance automatically based on calculation upon instance metrics
 type AutoScaler struct {
@@ -77,7 +76,8 @@ type AutoScaler struct {
 
 // NewAutoScaler will create a AutoScaler
 func NewAutoScaler(funcKeyWithRes string, metricsCollector metrics.Collector, checkReqNumFunc CheckReqNumFunc,
-	scaleUpHandler ScaleUpHandler, scaleDownHandler ScaleDownHandler) InstanceScaler {
+	scaleUpHandler ScaleUpHandler, scaleDownHandler ScaleDownHandler,
+) InstanceScaler {
 	scaleUpWindow := time.Duration(config.GlobalConfig.AutoScaleConfig.SLAQuota) * time.Millisecond
 	if scaleUpWindow < minSLATime {
 		scaleUpWindow = minSLATime
