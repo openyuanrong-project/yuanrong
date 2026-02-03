@@ -71,6 +71,7 @@ type LibruntimeAPI interface {
 	GetFormatLogger() FormatLogger
 
 	CreateClient(config ConnectArguments) (KvClient, error)
+	ReleaseGRefs(remoteClientID string) error
 	GetCredential() Credential
 	UpdateSchdulerInfo(schedulerName string, schedulerId string, option string)
 	IsHealth() bool

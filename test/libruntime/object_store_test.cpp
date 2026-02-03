@@ -147,6 +147,12 @@ TEST_F(ObjectStoreTest, QueryGlobalReferenceTest)
     ASSERT_EQ(res.at(0), 1);
 }
 
+TEST_F(ObjectStoreTest, ReleaseGRefsTest)
+{
+    auto err = objectStore_->ReleaseGRefs("remoteID");
+    ASSERT_EQ(err.Code(), ErrorCode::ERR_OK);
+}
+
 TEST_F(ObjectStoreTest, GenerateKeyTest)
 {
     std::string key;

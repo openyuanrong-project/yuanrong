@@ -17,8 +17,9 @@
 package utils
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 	"yuanrong.org/kernel/runtime/libruntime/api"
 )
 
@@ -119,6 +120,9 @@ func TestFakeLibruntimeSdkClient(t *testing.T) {
 	assert.Equal(t, nil, bb)
 
 	_, err = fakeLibruntimeSdkClient.CreateClient(api.ConnectArguments{})
+	assert.Equal(t, nil, err)
+
+	err = fakeLibruntimeSdkClient.ReleaseGRefs("")
 	assert.Equal(t, nil, err)
 
 	credential := fakeLibruntimeSdkClient.GetCredential()

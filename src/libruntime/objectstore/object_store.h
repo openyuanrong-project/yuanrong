@@ -87,6 +87,7 @@ public:
         return std::make_pair(ErrorInfo(), std::vector<std::string>());
     }
     virtual std::vector<int> QueryGlobalReference(const std::vector<std::string> &objectIds) = 0;
+    virtual ErrorInfo ReleaseGRefs(const std::string &remoteId) = 0;
     virtual ErrorInfo GenerateKey(std::string &key, const std::string &prefix, bool isPut) = 0;
     virtual ErrorInfo GetPrefix(const std::string &key, std::string &prefix) = 0;
     virtual void SetTenantId(const std::string &tenantId) = 0;

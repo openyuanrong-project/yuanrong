@@ -108,6 +108,7 @@ public:
     std::pair<ErrorInfo, std::vector<std::string>> DecreGlobalReference(const std::vector<std::string> &objectIds,
                                                                         const std::string &remoteId);
     std::vector<int> QueryGlobalReference(const std::vector<std::string> &objectIds);
+    ErrorInfo ReleaseGRefs(const std::string &remoteId);
     ErrorInfo GenerateKey(std::string &key, const std::string &prefix, bool isPut = true);
     ErrorInfo GenerateReturnObjectIds(const std::string &requestId,
                                       std::vector<YR::Libruntime::DataObject> &returnObjs);

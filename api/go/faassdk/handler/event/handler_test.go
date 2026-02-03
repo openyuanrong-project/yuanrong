@@ -263,6 +263,11 @@ func (m mockLibruntimeClient) GetFormatLogger() api.FormatLogger {
 	panic("implement me")
 }
 
+func (m mockLibruntimeClient) ReleaseGRefs(remoteClientID string) error {
+	// TODO implement me
+	panic("implement me")
+}
+
 func (m mockLibruntimeClient) GetCredential() api.Credential {
 	return api.Credential{}
 }

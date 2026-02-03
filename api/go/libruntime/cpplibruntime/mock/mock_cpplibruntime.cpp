@@ -230,6 +230,11 @@ CErrorInfo CDecreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRem
     return ErrorInfoToCError(ErrorInfo());
 }
 
+CErrorInfo CReleaseGRefs(char *cRemoreId)
+{
+    return ErrorInfoToCError(ErrorInfo());
+}
+
 CErrorInfo CKVWrite(char *key, CBuffer data, CSetParam param)
 {
     return ErrorInfoToCError(ErrorInfo());

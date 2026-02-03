@@ -148,6 +148,7 @@ public:
         STDERR_AND_THROW_EXCEPTION(ERR_INNER_SYSTEM_ERROR, RUNTIME,
                                    "QueryGlobalReference method is not supported when inCluster is false");
     }
+    ErrorInfo ReleaseGRefs(const std::string &remoteId) override;
     ErrorInfo GenerateKey(std::string &key, const std::string &prefix, bool isPut) override;
     ErrorInfo GetPrefix(const std::string &key, std::string &prefix) override;
     ErrorInfo Write(const std::string &key, std::shared_ptr<Buffer> value, SetParam setParam) override;

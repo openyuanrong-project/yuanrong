@@ -192,6 +192,12 @@ func (l *libruntimeSDKImpl) GDecreaseRefRaw(objectIDs []string, remoteClientID .
 	return clibruntime.GDecreaseRefRaw(objectIDs, remoteClientID...)
 }
 
+// ReleaseGRefs release object refs by remote client id
+func (l *libruntimeSDKImpl) ReleaseGRefs(remoteClientID string) error {
+	err := clibruntime.ReleaseGRefs(remoteClientID)
+	return err
+}
+
 func (l *libruntimeSDKImpl) GetAsync(objectID string, cb api.GetAsyncCallback) {
 	clibruntime.GetAsync(objectID, cb)
 }

@@ -255,6 +255,11 @@ func (f *fakeSDKClient) CreateClient(config api.ConnectArguments) (api.KvClient,
 	return &FakeDataSystemClinet{}, nil
 }
 
+func (f *fakeSDKClient) ReleaseGRfs(remoteClientID string) error {
+	// TODO implement me
+	panic("implement me")
+}
+
 func (f *fakeSDKClient) SaveState(state []byte) (string, error) {
 	return "", nil
 }

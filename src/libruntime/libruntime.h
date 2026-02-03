@@ -282,6 +282,13 @@ public:
                                                                                 const std::string &remoteId);
 
     /*!
+      @brief Releases global references associated with a remote ID
+      @param remoteId The ID of the remote context
+      @return An `ErrorInfo` object indicating the success or failure of the operation
+    */
+    virtual ErrorInfo ReleaseGRefs(const std::string &remoteId);
+
+    /*!
       @brief Allocates and initializes a return object with specified metadata and data sizes
       This function allocates a `DataObject` and initializes it with the provided metadata size, data size,
       and a list of nested object IDs. It also calculates and returns the total native buffer size.

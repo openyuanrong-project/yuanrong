@@ -1583,6 +1583,19 @@ func GDecreaseRefRaw(objectIDs []string, remoteClientID ...string) ([]string, er
 	return GDecreaseRefCommon(objectIDs, true, remoteClientID...)
 }
 
+// ReleaseGRefs release object refs by remote client id
+func ReleaseGRefs(remoteClientID string) error {
+	var cRemoteID *C.char = nil
+	cRemoteID = C.CString(remoteClientID)
+	defer C.free(unsafe.Pointer(cRemoteID))
+	cErr := C.CReleaseGRefs(cRemoteID)
+	code := int(cErr.code)
+	if code != 0 {
+		return codeNotZeroErr(code, cErr, "global decrease ref: ")
+	}
+	return nil
+}
+
 // AllocReturnObject Creates an object and applies for a memory block.
 // Computing operations can be performed on the memory block.
 // will return a 'Buffer' that will be used to manipulate the memory

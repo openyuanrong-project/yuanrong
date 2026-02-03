@@ -34,6 +34,7 @@ import (
 	commonUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
 	"yuanrong.org/kernel/pkg/functionmanager/config"
 	"yuanrong.org/kernel/pkg/functionmanager/state"
+	"yuanrong.org/kernel/pkg/functionmanager/types"
 	"yuanrong.org/kernel/pkg/functionmanager/utils"
 )
 
@@ -303,7 +304,16 @@ func (m *Manager) saveStateLoop() {
 }
 
 func killInstanceOuter(clientID string, traceID string) {
-
+	log.GetLogger().Infof("start to kill instance outer, clientID: %s, traceID: %s", clientID, traceID)
+	if err := libruntimeClient.Kill(clientID, types.KillSignalVal, []byte{}); err != nil {
+		log.GetLogger().Warnf("failed to clean instance when delete lease, traceID: %s, "+
+			"remoteClientID: %s, status: %s", traceID, clientID, err.Error())
+	}
+	libruntimeClient.SetTraceID(traceID)
+	if err := libruntimeClient.ReleaseGRefs(clientID); err != nil {
+		log.GetLogger().Warnf("failed to release refs when delete lease, traceID: %s, "+
+			"remoteClientID: %s, status: %s", traceID, clientID, err.Error())
+	}
 }
 
 func (m *Manager) handleKeepAlive(requestData []byte, traceID string) *commonType.CallHandlerResponse {

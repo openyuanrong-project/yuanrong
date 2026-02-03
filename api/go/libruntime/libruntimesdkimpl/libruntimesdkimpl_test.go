@@ -293,6 +293,12 @@ func TestLibruntimeSDKImpl(t *testing.T) {
 				},
 			)
 			convey.Convey(
+				"ReleaseGRefs success", func() {
+					err := libruntimeAPI.ReleaseGRefs("objectID")
+					convey.So(err, convey.ShouldBeNil)
+				},
+			)
+			convey.Convey(
 				"GetAsync success", func() {
 					convey.So(func() {
 						f := func(result []byte, err error) {}

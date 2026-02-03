@@ -411,6 +411,7 @@ CErrorInfo CIncreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRem
                                     int *size_cFailedIds, char isRaw);
 CErrorInfo CDecreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRemoteId, char ***cFailedIds,
                                     int *size_cFailedIds, char isRaw);
+CErrorInfo CReleaseGRefs(char *cRemoteId);
 CErrorInfo CAllocReturnObject(CDataObject *object, int dataSize, char **nestedIds, int sizeNestedIds,
                               uint64_t *totalNativeBufferSize);
 void CSetReturnObject(CDataObject *cObject, int dataSize);

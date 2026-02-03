@@ -316,3 +316,16 @@ func TestCreateClient(t *testing.T) {
 		},
 	)
 }
+
+func TestReleaseGRefs(t *testing.T) {
+	convey.Convey(
+		"Test ReleaseGRefs", t, func() {
+			convey.Convey(
+				"ReleaseGRefs success", func() {
+					err := clusterRt.ReleaseGRefs("")
+					convey.So(err, convey.ShouldNotBeNil)
+				},
+			)
+		},
+	)
+}

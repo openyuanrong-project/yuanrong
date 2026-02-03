@@ -1010,6 +1010,9 @@ TEST_F(GwClientTest, TestUnsupportedReq3)
         std::string errMsg = e.what();
         ASSERT_EQ(errMsg, "ErrCode: 3003, ModuleCode: 20, ErrMsg: StateLoadAsync is not supported with gateway client");
     }
+
+    err = gwClient_->ReleaseGRefs("remoteId");
+    ASSERT_EQ(err.Code(), ERR_PARAM_INVALID);
 }
 
 }  // namespace test

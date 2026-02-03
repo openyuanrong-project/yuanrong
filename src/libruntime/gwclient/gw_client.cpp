@@ -860,6 +860,11 @@ ErrorInfo GwClient::ParseDecreaseRefResponse(const std::string &result,
                                                                  ModuleCode::DATASYSTEM, decreaseRefRsp.message());
 }
 
+ErrorInfo GwClient::ReleaseGRefs(const std::string &remoteId)
+{
+    return ErrorInfo(ErrorCode::ERR_PARAM_INVALID, ModuleCode::RUNTIME, "not support out of cluster");
+}
+
 LeaseRequest GwClient::BuildLeaseRequest()
 {
     LeaseRequest leaseReq;

@@ -50,6 +50,7 @@ public:
     MOCK_METHOD((std::pair<ErrorInfo, std::vector<std::string>>), DecreGlobalReference,
                 (const std::vector<std::string> &objectIds, const std::string &remoteId), (override));
     MOCK_METHOD(std::vector<int>, QueryGlobalReference, (const std::vector<std::string> &objectIds), (override));
+    MOCK_METHOD(ErrorInfo, ReleaseGRefs, (const std::string &remoteId), (override));
     MOCK_METHOD(ErrorInfo, GenerateKey, (std::string & key, const std::string &prefix, bool isPut), (override));
     MOCK_METHOD(ErrorInfo, GetPrefix, (const std::string &key, std::string &prefix), (override));
     MOCK_METHOD(ErrorInfo, CreateBuffer,

@@ -422,6 +422,11 @@ std::vector<int> MemoryStore::QueryGlobalReference(const std::vector<std::string
     return globalRef;
 }
 
+ErrorInfo MemoryStore::ReleaseGRefs(const std::string &remoteId)
+{
+    return dsObjectStore->ReleaseGRefs(remoteId);
+}
+
 void MemoryStore::Clear()
 {
     std::lock_guard<std::mutex> lock(mu);

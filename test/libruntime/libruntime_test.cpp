@@ -1064,6 +1064,11 @@ TEST_F(LibruntimeTest, DecreaseReferenceTest)
     EXPECT_NO_THROW(lr->DecreaseReference(objIds));
 }
 
+TEST_F(LibruntimeTest, ReleaseGRefsTest)
+{
+    ASSERT_EQ(lr->ReleaseGRefs("remoteId").OK(), true);
+}
+
 TEST_F(LibruntimeTest, WaitTest)
 {
     ASSERT_EQ(lr->Wait({"objId"}, 1, 0)->readyIds.size(), 1);

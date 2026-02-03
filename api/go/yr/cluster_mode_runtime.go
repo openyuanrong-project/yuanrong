@@ -238,6 +238,11 @@ func (r *ClusterModeRuntime) CreateClient(config api.ConnectArguments) (api.KvCl
 	return nil, nil
 }
 
+// ReleaseGRefs release object refs by remote client id
+func (r *ClusterModeRuntime) ReleaseGRefs(remoteClientID string) error {
+	return fmt.Errorf("not support")
+}
+
 // GetCredential -
 func (r *ClusterModeRuntime) GetCredential() api.Credential {
 	return api.Credential{}
