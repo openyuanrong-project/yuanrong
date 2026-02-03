@@ -76,3 +76,8 @@ func WriterUnlatch(do *config.DataObject) error {
 func IsHealth() bool {
 	return clibruntime.IsHealth()
 }
+
+// IsDsHealth -
+func IsDsHealth() bool {
+	return clibruntime.IsDsHealth()
+}
