@@ -246,9 +246,14 @@ mvn clean package
 
 ### 部署微服务
 
-参考“准备工作” 安装 MinIO Client 步骤中的常用命令，上传 microservice-demo.zip 到 openYuanrong 集群中的 Minio 服务。
+参考“准备工作”安装 [MinIO Client](tools-minio-client) 步骤中的常用命令，上传 microservice-demo.zip 到 openYuanrong 集群中的 Minio 服务。
 
-在 `microservice-demo` 目录下新建 create_func.json 文件，内容如下（**根据实际情况替换 s3CodePath 中的字段**），作为注册函数服务的请求参数，参数含义详见[API 说明](../multi_language_function_programming_interface/api/function_service/register_function.md)
+```bash
+mc mb mys3/this-bucket
+mc cp microservice-demo.zip mys3/this-bucket/microservice-demo.zip
+```
+
+在 `microservice-demo` 目录下新建 `create_func.json` 文件，内容如下（**根据实际情况替换 s3CodePath 中的字段**），作为注册函数服务的请求参数，参数含义详见[API 说明](../multi_language_function_programming_interface/api/function_service/register_function.md)。
 
 ```json
 {

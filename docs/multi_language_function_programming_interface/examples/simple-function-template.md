@@ -1209,7 +1209,7 @@
     mvn clean package
     ```
 
-    成功构建将在 `service-java-demo/target` 目录下生成压缩包 `demo.zip` ，拷贝文件到所有节点的代码包目录下并使用命令 `unzip demo.zip` 解压。
+    成功构建将在 `service-java-demo/target` 目录下生成压缩包 `demo.zip` ，拷贝文件到所有节点的代码包目录下并且使用命令 `unzip demo.zip` 解压。
 
 3. 函数注册及调用
 
@@ -1338,11 +1338,10 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
         print("function instance is being destroyed")    
     ```
 
-    打包成demo.zip 并使用 [Minio 客户端](../../reference/development-tools.md)上传到MinIO。
+    打包成demo.zip并且使用[MinIO Client](tools-minio-client)上传代码包到 openYuanrong 集群中的 MinIO 服务 。
         
     ```bash
     zip demo.zip demo.py
-    # 上传到s3上面
     mc mb mys3/demo-bucket
     mc cp ./demo.zip mys3/demo-bucket/demo.zip
     ```
@@ -1365,7 +1364,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
           "kind" : "faas",
           "storageType": "s3",
           "s3CodePath": {
-            "bucketId": "mys3/demo-bucket",
+            "bucketId": "demo-bucket",
             "objectId": "demo.zip",
             "bucketUrl": "http://{Your MinIO Address:30110}"
           }  
@@ -1385,7 +1384,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     结果格式如下， 记录 ` functionVersionUrn ` 字段的值用于调用， 这里对应 ` sn:cn:yrk:12345678901234561234567890123456:function:0@myService@python-demo:latest `
         
     ```json
-    {"code":0,"message":"SUCCESS","function":{"id":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@python-demo:latest","createTime":"2026-01-20 01:57:36.938 UTC","updateTime":"","functionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@python-demo","name":"0@myService@python-demo","tenantId":"12345678901234561234567890123456","businessId":"yrk","productId":"","reversedConcurrency":0,"description":"","tag":null,"functionVersionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@python-demo:latest","revisionId":"20260120015736938","codeSize":0,"extendedHandler":{"initializer":"demo.init","pre_stop":"demo.pre_stop"},"codeSha256":"","bucketId":"mys3/demo-bucket","objectId":"demo.zip","handler":"demo.my_handler","layers":null,"cpu":600,"memory":512,"runtime":"python3.9","timeout":30,"versionNumber":"latest","versionDesc":"latest","environment":{"show_date":"true"},"customResources":null,"statefulFlag":0,"lastModified":"","Published":"2016-01-20 01:57:36.936 UTC","minInstance":1,"maxInstance":100,"concurrentNum":100,"funcLayer":[],"status":"","instanceNum":0,"device":{},"created":""}}
+    {"code":0,"message":"SUCCESS","function":{"id":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@python-demo:latest","createTime":"2026-01-20 01:57:36.938 UTC","updateTime":"","functionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@python-demo","name":"0@myService@python-demo","tenantId":"12345678901234561234567890123456","businessId":"yrk","productId":"","reversedConcurrency":0,"description":"","tag":null,"functionVersionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@python-demo:latest","revisionId":"20260120015736938","codeSize":0,"extendedHandler":{"initializer":"demo.init","pre_stop":"demo.pre_stop"},"codeSha256":"","bucketId":"demo-bucket","objectId":"demo.zip","handler":"demo.my_handler","layers":null,"cpu":600,"memory":512,"runtime":"python3.9","timeout":30,"versionNumber":"latest","versionDesc":"latest","environment":{"show_date":"true"},"customResources":null,"statefulFlag":0,"lastModified":"","Published":"2016-01-20 01:57:36.936 UTC","minInstance":1,"maxInstance":100,"concurrentNum":100,"funcLayer":[],"status":"","instanceNum":0,"device":{},"created":""}}
     ```
 
     使用 curl 工具调用函数，参数含义详见 [API 说明](../api/function_service/function_invocation.md)： 
@@ -1532,11 +1531,10 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     make
     ```
 
-    成功构建将在该目录下生成二进制文件 `demo` ，打包成demo.zip 并使用 [Minio 客户端](../../reference/development-tools.md)上传到MinIO。
+    成功构建将在该目录下生成二进制文件 `demo` ，打包成demo.zip 并且使用 [Minio 客户端](../../reference/development-tools.md)上传到MinIO。
         
     ```bash
     zip demo.zip demo
-    # 上传到s3上面
     mc mb mys3/demo-bucket
     mc cp ./demo.zip mys3/demo-bucket/demo.zip
     ```
@@ -1559,7 +1557,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
         "timeout": 60,
         "storageType": "s3",
         "s3CodePath": {
-            "bucketId": "mys3/demo-bucket",
+            "bucketId": "demo-bucket",
             "objectId": "demo.zip",
             "bucketUrl": "http://{Your MinIO Address:9000}"
         }
@@ -1579,7 +1577,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     结果返回格式如下，记录 `functionVersionUrn` 字段的值用于调用，这里对应 `sn:cn:yrk:12345678901234561234567890123456:function:0@myService@cpp-demo:latest`
 
     ```bash
-    {"code":0,"message":"SUCCESS","function":{"id":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@cpp-demo:latest","createTime":"2025-05-20 03:43:19.117 UTC","updateTime":"","functionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@cpp-demo","name":"0@myService@cpp-demo","tenantId":"12345678901234561234567890123456","businessId":"yrk","productId":"","reversedConcurrency":0,"description":"","tag":null,"functionVersionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@cpp-demo:latest","revisionId":"20250520034319117","codeSize":0,"codeSha256":"","bucketId":"mys3/demo-bucket","objectId":"demo.zip","handler":"demo","layers":null,"cpu":600,"memory":512,"runtime":"posix-custom-runtime","timeout":60,"versionNumber":"latest","versionDesc":"latest","environment":{"show_date":"true"},"customResources":null,"statefulFlag":0,"lastModified":"","Published":"2025-05-20 03:43:19.117 UTC","minInstance":0,"maxInstance":100,"concurrentNum":100,"funcLayer":[],"status":"","instanceNum":0,"device":{},"created":""}}
+    {"code":0,"message":"SUCCESS","function":{"id":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@cpp-demo:latest","createTime":"2025-05-20 03:43:19.117 UTC","updateTime":"","functionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@cpp-demo","name":"0@myService@cpp-demo","tenantId":"12345678901234561234567890123456","businessId":"yrk","productId":"","reversedConcurrency":0,"description":"","tag":null,"functionVersionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@cpp-demo:latest","revisionId":"20250520034319117","codeSize":0,"codeSha256":"","bucketId":"demo-bucket","objectId":"demo.zip","handler":"demo","layers":null,"cpu":600,"memory":512,"runtime":"posix-custom-runtime","timeout":60,"versionNumber":"latest","versionDesc":"latest","environment":{"show_date":"true"},"customResources":null,"statefulFlag":0,"lastModified":"","Published":"2025-05-20 03:43:19.117 UTC","minInstance":0,"maxInstance":100,"concurrentNum":100,"funcLayer":[],"status":"","instanceNum":0,"device":{},"created":""}}
     ```
 
     使用 curl 工具调用函数，参数含义详见 [API 说明](../api/function_service/function_invocation.md)：
@@ -1796,10 +1794,9 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     mvn clean package
     ```
 
-    成功构建将在 `service-java-demo/target` 目录下生成压缩包 `demo.zip` ，并使用 [Minio 客户端](../../reference/development-tools.md)上传到MinIO。
+    成功构建将在 `service-java-demo/target` 目录下生成压缩包 `demo.zip` ，并且使用 [Minio 客户端](../../reference/development-tools.md)上传到MinIO。
         
     ```bash
-    # 上传到s3上面
     mc mb mys3/demo-bucket
     mc cp ./demo.zip mys3/demo-bucket/demo.zip
     ```
@@ -1830,7 +1827,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
         "timeout": 60,
         "storageType": "s3",
         "s3CodePath": {
-            "bucketId": "mys3/demo-bucket",
+            "bucketId": "demo-bucket",
             "objectId": "demo.zip",
             "bucketUrl": "http://{Your MinIO Address:9000}"
         }
@@ -1848,7 +1845,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     结果返回格式如下，记录 `functionVersionUrn` 字段的值用    于调用，这里对应 `sn:cn:yrk:12345678901234561234567890123456:function:0@myService@java-demo:latest`
 
     ```bash
-    {"code":0,"message":"SUCCESS","function":{"id":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@java-demo:latest","createTime":"2025-05-20 06:26:42.396 UTC","updateTime":"","functionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@java-demo","name":"0@myService@java-demo","tenantId":"12345678901234561234567890123456","businessId":"yrk","productId":"","reversedConcurrency":0,"description":"","tag":null,"functionVersionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@java-demo:latest","revisionId":"20250520062642396","codeSize":0,"codeSha256":"","bucketId":"mys3/demo-bucket","objectId":"demo.zip","handler":"org.yuanrong.demo.Demo::handler","layers":null,"cpu":600,"memory":512,"runtime":"java8","timeout":60,"versionNumber":"latest","versionDesc":"latest","environment":{"show_date":"true"},"customResources":null,"statefulFlag":0,"lastModified":"","Published":"2025-05-20 06:26:42.396 UTC","minInstance":0,"maxInstance":100,"concurrentNum":100,"funcLayer":[],"status":"","instanceNum":0,"device":{},"created":""}}
+    {"code":0,"message":"SUCCESS","function":{"id":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@java-demo:latest","createTime":"2025-05-20 06:26:42.396 UTC","updateTime":"","functionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@java-demo","name":"0@myService@java-demo","tenantId":"12345678901234561234567890123456","businessId":"yrk","productId":"","reversedConcurrency":0,"description":"","tag":null,"functionVersionUrn":"sn:cn:yrk:12345678901234561234567890123456:function:0@myService@java-demo:latest","revisionId":"20250520062642396","codeSize":0,"codeSha256":"","bucketId":"demo-bucket","objectId":"demo.zip","handler":"org.yuanrong.demo.Demo::handler","layers":null,"cpu":600,"memory":512,"runtime":"java8","timeout":60,"versionNumber":"latest","versionDesc":"latest","environment":{"show_date":"true"},"customResources":null,"statefulFlag":0,"lastModified":"","Published":"2025-05-20 06:26:42.396 UTC","minInstance":0,"maxInstance":100,"concurrentNum":100,"funcLayer":[],"status":"","instanceNum":0,"device":{},"created":""}}
     ```
 
     使用 curl 工具调用函数，参数含义详见 [API 说明](../api/function_service/function_invocation.md)：

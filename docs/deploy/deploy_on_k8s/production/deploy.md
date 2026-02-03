@@ -36,9 +36,32 @@ systemctl restart docker
 
 在任意 K8s 节点上使用 helm 命令部署 openYuanrong。
 
+查找 openyuanrong 版本。
+
+```bash  
+helm search repo yr/openyuanrong
+```
+
+结果输出：
+
 ```bash
-helm pull --untar yr/openyuanrong
+NAME               CHART VERSION    APP VERSION    DESCRIPTION
+yr/openyuanrong    0.2.6            1.16.0         A Helm chart for Kubernetes
+```
+
+指定 openyuanrong 版本安装。
+
+```bash
+helm pull --untar yr/openyuanrong --version 0.2.6
 cd openyuanrong
+```
+
+安装最新版本。 
+
+```bash
+helm repo update
+helm pull --untar yr/openyuanrong 
+cd openyuanrong 
 ```
 
 :::{caution}
@@ -47,14 +70,13 @@ cd openyuanrong
 
 :::
 
-- 只部署 openYuanrong，不创建 Pod 资源池，需要配置  ETCD 的地址和端口信息，以及 MinIO 的 AccessKey 和 SecreteKey，适合自行通过[资源池管理 API](../api/index.md) 创建资源池的场景。
+- 只部署 openYuanrong，不创建 Pod 资源池，需要配置 ETCD 的地址和端口信息、MinIO 的 AccessKey 和 SecreteKey，适合自行通过[资源池管理 API](../api/index.md) 创建资源池的场景。其中，ETCD为集群时，多个节点的地址以逗号分隔，例如 `192.168.10.1X:2379,192.168.10.2X:2379,192.168.10.3X:2379`。
 
   ```shell
-  helm install openyuanrong --set global.imageRegistry="swr.cn-southwest-2.myhuaweicloud.com/yuanrong-dev/" \
-    --set global.etcd.etcdAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.systemUpgradeConfig.systemUpgradeWatchAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.etcdManagement.detcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.etcdManagement.metcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
+  helm install openyuanrong --set global.etcd.etcdAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.systemUpgradeConfig.systemUpgradeWatchAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.detcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.metcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
     --set global.obsManagement.s3AccessKey=${Your Minio AccessKey} \
     --set global.obsManagement.s3SecretKey=${Your Minio SecretKey}  .
   ```
@@ -62,61 +84,45 @@ cd openyuanrong
 - 部署 openYuanrong 并创建默认规格为（3 核 cpu，6GB 内存）的 Pod 资源池，建议用于开发有状态函数及无状态函数。
 
   ```shell
-    helm install openyuanrong --set global.imageRegistry="swr.cn-southwest-2.myhuaweicloud.com/yuanrong-dev/" \
-    --set global.etcd.etcdAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.systemUpgradeConfig.systemUpgradeWatchAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.etcdManagement.detcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.etcdManagement.metcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
+  helm install openyuanrong --set global.etcd.etcdAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.systemUpgradeConfig.systemUpgradeWatchAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.detcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.metcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
     --set global.obsManagement.s3AccessKey=${Your Minio AccessKey} \
     --set global.obsManagement.s3SecretKey=${Your Minio SecretKey} \
-    --set global.pools[0].id=default \
-    --set global.pools[0].size=1 \
-    --set global.pools[0].resources.requests.cpu=3000m \
-    --set global.pools[0].resources.requests.memory=6144Mi\
-    --set global.pools[0].resources.limits.cpu=3000m\
-    --set global.pools[0].resources.limits.memory=6144Mi .
-  ```
-
-  您也可以在部署完成后按需拉起该默认 Pod 资源池。
-
-  ```shell
-  kubectl scale deployment/function-agent-default --replicas=1
+    --set global.pool.poolSize=1 \
+    --set global.pool.requestCpu=3000m \
+    --set global.pool.requestMemory=6144Mi \
+    --set global.pool.limitCpu=3000m \
+    --set global.pool.limitMemory=6144Mi .
   ```
 
 - 部署 openYuanrong 并创建默认规格为 600 毫核 cpu，512MB 内存的 Pod 资源池，建议用于开发函数服务。
 
   ```shell
-  helm install openyuanrong --set global.imageRegistry="swr.cn-southwest-2.myhuaweicloud.com/yuanrong-dev/" \
-  --set global.etcd.etcdAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-  --set global.systemUpgradeConfig.systemUpgradeWatchAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-  --set global.etcdManagement.detcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-  --set global.etcdManagement.metcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-  --set global.obsManagement.s3AccessKey=${Your Minio AccessKey} \
-  --set global.obsManagement.s3SecretKey=${Your Minio SecretKey} \
-  --set global.pools[0].id=pool-600-512-fusion,
-  --set global.pools[0].size=1,\
-  --set global.pools[0].resources.requests.cpu=600m,
-  --set global.pools[0].resources.requests.memory=512Mi,\
-  --set global.pools[0].resources.limits.cpu=600m,global.pools[0].resources.limits.memory=512Mi, .
-  ```
-
-  您也可以在部署完成后按需拉起该默认 Pod 资源池。
-
-  ```shell
-  kubectl scale deployment/function-agent-pool-600-512-fusion --replicas=1
+  helm install openyuanrong --set global.etcd.etcdAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.systemUpgradeConfig.systemUpgradeWatchAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.detcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.metcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.obsManagement.s3AccessKey=${Your Minio AccessKey} \
+    --set global.obsManagement.s3SecretKey=${Your Minio SecretKey} \
+    --set global.pool.poolSize=1 \
+    --set global.pool.requestCpu=600m \
+    --set global.pool.requestMemory=512Mi \
+    --set global.pool.limitCpu=600m \
+    --set global.pool.limitMemory=512Mi .
   ```
 
 - 其他：修改单个组件的镜像版本示例。
 
   ```shell
-  helm install openyuanrong --set global.imageRegistry="swr.cn-southwest-2.myhuaweicloud.com/yuanrong-dev/" \
-    --set global.etcd.etcdAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.systemUpgradeConfig.systemUpgradeWatchAddress="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.etcdManagement.detcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
-    --set global.etcdManagement.metcd="${Your ETCD ADDRESS}:${Your ETCD Port}" \
+  helm install openyuanrong --set global.etcd.etcdAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.systemUpgradeConfig.systemUpgradeWatchAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.detcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
+    --set global.etcdManagement.metcd=${Your ETCD ADDRESS}:${Your ETCD Port} \
     --set global.obsManagement.s3AccessKey=${Your Minio AccessKey} \
     --set global.obsManagement.s3SecretKey=${Your Minio SecretKey} \
-    --set global.images.functionProxy=function-proxy:${version} .
+    --set global.images.functionAgent=function-agent:${version} .
   ```
 
 检查部署结果：以下所有 Pod 全部为 Running 状态即部署成功。
