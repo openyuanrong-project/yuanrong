@@ -360,7 +360,7 @@ if [ "$BAZEL_COMMAND" == "build" ]; then
 fi
 
 if [ "$PACKAGE_ALL" == "true" ]; then
-    
+
     start=$(date +%s)
     bash ${BASE_DIR}/scripts/package_yuanrong.sh -v ${BUILD_VERSION}
     end1=$(date +%s)

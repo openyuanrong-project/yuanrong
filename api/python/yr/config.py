@@ -237,6 +237,14 @@ class ResourceGroupOptions:
 
 
 @dataclass
+class DebugConfig:
+    """
+    debug instance configurations.
+    """
+    enable: bool = False
+
+
+@dataclass
 class FunctionGroupOptions:
     """
     Function group options.
@@ -526,6 +534,7 @@ class InvokeOptions:
     alias_params: Dict[str, str] = field(default_factory=dict)
 
     runtime_env: Dict = field(default_factory=dict)
+    debug: DebugConfig = field(default_factory=DebugConfig)
     """
     Configure the stateful/stateless function runtime environment with `conda`, `pip`, `working_dir`, and `env_vars`.
     

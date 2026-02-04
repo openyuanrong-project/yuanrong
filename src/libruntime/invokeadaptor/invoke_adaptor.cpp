@@ -259,7 +259,9 @@ void InvokeAdaptor::InitHandler(const std::shared_ptr<CallMessageSpec> &req)
         }
         librtConfig->InitFunctionGroupRunningInfo(runningInfo);
     }
-    CheckAndSetDebugBreakpoint(req);
+    if (metaData.functionmeta().language() == libruntime::LanguageType::Cpp) {
+        CheckAndSetDebugBreakpoint(req);
+    }
     librtConfig->funcMeta = metaData.functionmeta();
     librtConfig->funcMeta.set_needorder(librtConfig->needOrder);
     YRLOG_DEBUG("update instance function meta, req id is {}, value is {}", req->Immutable().requestid(),

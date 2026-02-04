@@ -973,6 +973,7 @@ cdef parse_invoke_opts(CInvokeOptions & opts, opt: yr.InvokeOptions, group_info:
     opts.instancePriority = opt.instance_priority
     opts.scheduleTimeoutMs = opt.schedule_timeout_ms
     opts.isDeleteRemoteTensor = opt.is_delete_remote_tensor
+    opts.debug.enable = opt.debug.enable
 
 cdef class Producer:
     """

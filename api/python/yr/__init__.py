@@ -85,6 +85,7 @@ from yr.metrics import Gauge, Alarm, UInt64Counter, DoubleCounter  # noqa: E402
 from yr.decorator.function_proxy import FunctionProxy  # noqa: E402
 from yr.decorator.instance_proxy import (  # noqa: E402
     InstanceCreator, InstanceProxy, MethodProxy, FunctionGroupHandler, FunctionGroupMethodProxy)
+from yr.debug_server.rpdb import set_trace
 
 __all__ = [
     "init", "finalize", "Config", "UserTLSConfig",
@@ -104,4 +105,5 @@ __all__ = [
     "get_function_group_context", "create_resource_group", "remove_resource_group", "ResourceGroup",
     "FunctionProxy", "InstanceCreator", "InstanceProxy", "MethodProxy", "FunctionGroupHandler",
     "FunctionGroupMethodProxy", "get_node_ip_address", "list_named_instances", "Group",  "GroupOptions",
+    "DebugServer", "set_trace",
 ]
