@@ -24,6 +24,7 @@
 #include "src/dto/config.h"
 #include "src/dto/constant.h"
 #include "src/libruntime/fsclient/protobuf/core_service.grpc.pb.h"
+#include "src/libruntime/invoke_spec.h"
 #include "src/libruntime/invokeadaptor/faas_instance_manager.h"
 #include "src/libruntime/invokeadaptor/normal_instance_manager.h"
 #include "src/libruntime/utils/constants.h"
@@ -626,69 +627,18 @@ bool TaskSubmitter::ScheduleRequest(const RequestResource &resource, std::shared
         customTag->insert({"ENABLE_FORCE_INVOKE", ""});
     }
     invokeSpec->instanceRoute = memoryStore->GetInstanceRoute(invokeSpec->returnIds[0].id);
-    // 如果开启eventstream功能，调用kill signal 把grpc server的ip和端口写入payload
+    // If event stream is enabled, pass event server info in invoke options.
     if (libRuntimeConfig->enableEvent) {
         auto it = resource.opts.invokeLabels.find(INSTANCE_REQUIREMENT_ACCEPT);
-        // 如果forceinvoke的是一个sse调用，由于signal无法通知到一个正在优雅退出的实例,这里会卡住，当前没有这个场景
         if (it != resource.opts.invokeLabels.end() && it->second == INSTANCE_REQUIREMENT_ACCEPT_EVENT_STREAM) {
-            if (summary.forceInvoke) {
-                memoryStore->AddEventData(invokeSpec->requestId, YR::Libruntime::EVENT_EOF);
-                NotifyRequest fake;
-                fake.set_code(common::ErrorCode(ERR_INNER_SYSTEM_ERROR));
-                fake.set_message("sse request fails when instance is gracefully shutting down.");
-                fake.set_requestid(invokeSpec->requestInvoke->Mutable().requestid());
-                HandleInvokeNotify(fake, ErrorInfo());
-                return false;
-            }
-            YRLOG_DEBUG("start to send eventInfo signal, instanceId is {}", requestId);
-            SendEventInfoSignalAndInvoke(libRuntimeConfig->instanceId, summary.instanceId, resource, invokeSpec);
-            return false;
+            auto invokeOptions = invokeSpec->requestInvoke->Mutable().mutable_invokeoptions();
+            auto customTag = invokeOptions->mutable_customtag();
+            (*customTag)[YR_EVENT_SERVER_IP] = fsClient->GetEventServerIP();
+            (*customTag)[YR_EVENT_SERVER_PORT] = std::to_string(fsClient->GetEventServerPort());
         }
     }
     SendInvokeReq(resource, invokeSpec);
     return false;
-}
-
-void TaskSubmitter::SendEventInfoSignalAndInvoke(const std::string &srcInstanceId, const std::string &instanceId,
-                                                 const RequestResource &resource,
-                                                 const std::shared_ptr<InvokeSpec> &invokeSpec)
-{
-    EventPayload eventPayload;
-    eventPayload.set_serverip(fsClient->GetEventServerIP());
-    eventPayload.set_serverport(fsClient->GetEventServerPort());
-    eventPayload.set_serverinstanceid(srcInstanceId);
-    std::string payload;
-    eventPayload.SerializeToString(&payload);
-
-    KillRequest killReq;
-    killReq.set_requestid(YR::utility::IDGenerator::GenRequestId());
-    killReq.set_instanceid(instanceId);
-    killReq.set_payload(std::move(payload));
-    killReq.set_signal(libruntime::Signal::UpdateEventInfo);
-
-    // 回调中执行invoke，保证signal时序先于invoke
-    auto weakThis = weak_from_this();
-    this->fsClient->KillAsync(
-        killReq, [weakThis, resource, invokeSpec, instanceId](KillResponse killRsp, const ErrorInfo &err) -> void {
-            if (killRsp.code() != common::ERR_NONE) {
-                YRLOG_ERROR("Failed to receive eventInfo signal response, instance id is {}, err is: {}", instanceId,
-                            killRsp.message());
-            } else {
-                YRLOG_DEBUG("Success to receive eventInfo signal response.");
-            }
-            if (auto thisPtr = weakThis.lock(); thisPtr) {
-                if (err.IsTimeout()) {
-                    thisPtr->memoryStore->AddEventData(invokeSpec->requestId, YR::Libruntime::EVENT_EOF);
-                    NotifyRequest fake;
-                    fake.set_code(common::ErrorCode(ERR_INNER_SYSTEM_ERROR));
-                    fake.set_message("sse request signal timeout, requestId: " + invokeSpec->requestId);
-                    fake.set_requestid(invokeSpec->requestInvoke->Mutable().requestid());
-                    thisPtr->HandleInvokeNotify(fake, err);
-                    return;
-                }
-                thisPtr->SendInvokeReq(resource, invokeSpec);
-            }
-        }, EVENT_SIGNAL_TIMEOUT_SECOND);
 }
 
 bool TaskSubmitter::CancelAndScheOtherRes(const RequestResource &resource)

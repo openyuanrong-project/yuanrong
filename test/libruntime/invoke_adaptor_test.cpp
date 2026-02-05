@@ -846,17 +846,6 @@ TEST_F(InvokeAdaptorTest, SignalHandlerTest)
     response = invokeAdaptor->SignalHandler(req);
     ASSERT_EQ(response.code(), ::common::ErrorCode::ERR_NONE);
     invokeAdaptor->isRunning = true;
-
-    req.set_signal(libruntime::Signal::UpdateEventInfo);
-    EventPayload eventPayload;
-    eventPayload.set_serverip("127.0.0.1");
-    eventPayload.set_serverport(8080);
-    eventPayload.set_serverinstanceid("test_instance_id");
-    std::string serializedEventPayload;
-    eventPayload.SerializeToString(&serializedEventPayload);
-    req.set_payload(serializedEventPayload);
-    response = invokeAdaptor->SignalHandler(req);
-    ASSERT_EQ(response.code(), ::common::ErrorCode::ERR_NONE);
 }
 
 TEST_F(InvokeAdaptorTest, SignalHandlerCancelWithPayloadTest)

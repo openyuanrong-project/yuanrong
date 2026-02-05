@@ -338,6 +338,24 @@ void InvokeAdaptor::CallHandler(const std::shared_ptr<CallMessageSpec> &req)
         metaData.invocationmeta(),
         [this, req, metaData]() {
             std::function<void()> handler = [this, req, metaData]() {
+                // For event stream: event server info can be carried in createoptions (forwarded from invokeOptions).
+                const auto &opts = req->Immutable().createoptions();
+                auto ipIt = opts.find(YR_EVENT_SERVER_IP);
+                auto portIt = opts.find(YR_EVENT_SERVER_PORT);
+                if (ipIt != opts.end() && portIt != opts.end() && !ipIt->second.empty()) {
+                    try {
+                        int port = std::stoi(portIt->second);
+                        if (port >= 0) {
+                            fsClient->UpdateEventServerInfo(ipIt->second, port, req->Immutable().senderid());
+                        } else {
+                            YRLOG_WARN("invalid event server port {}, requestId {}", portIt->second,
+                                       req->Immutable().requestid());
+                        }
+                    } catch (const std::exception &e) {
+                        YRLOG_WARN("failed to parse event server port {}, requestId {}, err {}", portIt->second,
+                                   req->Immutable().requestid(), e.what());
+                    }
+                }
                 threadLocalTraceId = req->Immutable().traceid();
                 threadLocalRequestId = req->Immutable().requestid();
                 threadLocalInstanceId = req->Immutable().senderid();
@@ -861,20 +879,6 @@ SignalResponse InvokeAdaptor::SignalHandler(const SignalRequest &req)
             }
             break;
         }
-        case libruntime::Signal::UpdateEventInfo: {
-            YRLOG_INFO("recv UpdateEventInfo signal");
-            const std::string &payload = req.payload();
-            EventPayload eventPayload;
-            if (!eventPayload.ParseFromString(payload) || eventPayload.serverip().empty() ||
-                eventPayload.serverport() == 0 || eventPayload.serverinstanceid().empty()) {
-                resp.set_code(::common::ErrorCode::ERR_PARAM_INVALID);
-                resp.set_message("Failed to parse event payload");
-                break;
-            }
-            fsClient->UpdateEventServerInfo(eventPayload.serverip(), eventPayload.serverport(),
-                                            eventPayload.serverinstanceid());
-            break;
-        }
         default: {
             resp = ExecSignalCallback(req);
             break;
@@ -1089,52 +1093,16 @@ void InvokeAdaptor::InvokeInstanceFunction(std::shared_ptr<InvokeSpec> spec)
     }
     if (librtConfig->enableEvent) {
         auto it = spec->opts.invokeLabels.find(INSTANCE_REQUIREMENT_ACCEPT);
-        // 如果froceinvoke的是一个sse调用，由于signal无法通知到一个正在优雅退出的实例，这里会卡住，当前没有这个场景
         if (it != spec->opts.invokeLabels.end() && it->second == INSTANCE_REQUIREMENT_ACCEPT_EVENT_STREAM) {
-            YRLOG_DEBUG("start to send eventInfo signal, instanceId is {}", spec->requestId);
-            SendEventInfoSignalAndInvoke(librtConfig->instanceId, spec->instanceId, spec);
-            return;
+            YRLOG_DEBUG("start to add eventInfo, instanceId is {}", spec->requestId);
+            auto invokeOptions = spec->requestInvoke->Mutable().mutable_invokeoptions();
+            auto customTag = invokeOptions->mutable_customtag();
+            (*customTag)[YR_EVENT_SERVER_IP] = fsClient->GetEventServerIP();
+            (*customTag)[YR_EVENT_SERVER_PORT] = std::to_string(fsClient->GetEventServerPort());
         }
     }
     fsClient->InvokeAsync(spec->requestInvoke, std::bind(&InvokeAdaptor::InvokeNotifyHandler, this, _1, _2),
                           spec->opts.timeout == 0 ? FLAG_OF_REQUEST_NO_TIMEOUT : spec->opts.timeout);
-}
-
-void InvokeAdaptor::SendEventInfoSignalAndInvoke(const std::string &srcInstanceId, const std::string &instanceId,
-                                                 const std::shared_ptr<InvokeSpec> &invokeSpec)
-{
-    EventPayload eventPayload;
-    eventPayload.set_serverip(fsClient->GetEventServerIP());
-    eventPayload.set_serverport(fsClient->GetEventServerPort());
-    eventPayload.set_serverinstanceid(srcInstanceId);
-    std::string payload;
-    eventPayload.SerializeToString(&payload);
-    auto weakThis = weak_from_this();
-    auto cb = [weakThis, invokeSpec, instanceId](const ErrorInfo &err) -> void {
-        if (!err.OK()) {
-            YRLOG_ERROR("Failed to receive eventInfo signal response, instance id is {}, err is: {}", instanceId,
-                        err.Msg());
-        } else {
-            YRLOG_DEBUG("Success to receive eventInfo signal response.");
-        }
-        if (auto thisPtr = weakThis.lock(); thisPtr) {
-            if (err.IsTimeout()) {
-                thisPtr->memStore->AddEventData(invokeSpec->requestId, YR::Libruntime::EVENT_EOF);
-                NotifyRequest fake;
-                fake.set_code(common::ErrorCode(ERR_INNER_SYSTEM_ERROR));
-                fake.set_message("sse request signal timeout, requestId: " + invokeSpec->requestId);
-                fake.set_requestid(invokeSpec->requestInvoke->Mutable().requestid());
-                thisPtr->InvokeNotifyHandler(fake, err);
-                return;
-            }
-            thisPtr->fsClient->InvokeAsync(invokeSpec->requestInvoke,
-                                           std::bind(&InvokeAdaptor::InvokeNotifyHandler, thisPtr, _1, _2),
-                                           invokeSpec->opts.timeout == 0 ? FLAG_OF_REQUEST_NO_TIMEOUT
-                                                                         : invokeSpec->opts.timeout);
-        }
-    };
-    this->KillAsyncCB(instanceId, std::move(payload), libruntime::Signal::UpdateEventInfo, cb,
-                      EVENT_SIGNAL_TIMEOUT_SECOND);
 }
 
 void InvokeAdaptor::SubmitFunction(std::shared_ptr<InvokeSpec> spec)

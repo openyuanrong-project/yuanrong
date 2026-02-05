@@ -32,7 +32,6 @@ const int RECONNECT_TIMES = 450;
 const int INTERVAL_TIME = 2;
 const int DEFAULT_INSTANCE_RANGE_NUM = -1;
 const int DEFAULT_INSTANCE_RANGE_STEP = 2;
-const int EVENT_SIGNAL_TIMEOUT_SECOND = 10;
 const std::string RESOURCE = "Resource";
 const std::string INSTANCE = "Instance";
 const std::string PREFERRED = "PreferredAffinity";

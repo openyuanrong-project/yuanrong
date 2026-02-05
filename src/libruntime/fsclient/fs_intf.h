@@ -81,7 +81,6 @@ using KillRequest = ::core_service::KillRequest;
 using KillResponse = ::core_service::KillResponse;
 using SubscriptionPayload = ::core_service::SubscriptionPayload;
 using NotificationPayload = ::core_service::NotificationPayload;
-using EventPayload = ::core_service::EventPayload;
 using InstanceTermination = ::core_service::InstanceTermination;
 using FunctionMasterObserve = ::core_service::FunctionMasterObserve;
 using KillCallBack = std::function<void(const KillResponse &, const ErrorInfo &err)>;

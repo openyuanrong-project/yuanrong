@@ -89,9 +89,6 @@ public:
 
     void InvokeInstanceFunction(std::shared_ptr<InvokeSpec> spec);
 
-    void SendEventInfoSignalAndInvoke(const std::string &srcInstanceId, const std::string &instnaceId,
-                                      const std::shared_ptr<InvokeSpec> &invokeSpec);
-
     void SubmitFunction(std::shared_ptr<InvokeSpec> spec);
 
     void InvokeStatelessFunction(const std::shared_ptr<InvokeSpec> spec, InvokeCallBack callback);

@@ -826,16 +826,5 @@ TEST_F(TaskSubmitterTest, UpdateFaasInvokeSendTimeTest)
     taskSubmitter->UpdateFaasInvokeSendTime("reqId");
     ASSERT_TRUE(taskSubmitter->faasInvokeDataMap_["reqId"]->sendTime > currentTime);
 }
-
-TEST_F(TaskSubmitterTest, SendEventInfoSignalAndInvokeTest)
-{
-    std::string srcInstanceId = "testSrcInstanceId";
-    std::string instanceId = "testInstanceId";
-    auto spec = std::make_shared<InvokeSpec>();
-    spec->opts.device = YR::Libruntime::Device{.name = "deviceName", .batch_size = 1};
-    spec->functionMeta.apiType = libruntime::ApiType::Faas;
-    auto resource = GetRequestResource(spec);
-    ASSERT_NO_THROW(taskSubmitter->SendEventInfoSignalAndInvoke(srcInstanceId, instanceId, resource, spec));
-}
 }  // namespace test
 }  // namespace YR

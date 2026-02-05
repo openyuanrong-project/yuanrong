@@ -58,6 +58,8 @@ extern const char *DELEGATE_DOWNLOAD;
 const std::string NEED_ORDER = "need_order";
 const std::string FAAS_INVOKE_TIMEOUT = "INVOKE_TIMEOUT";
 const std::string RECOVER_RETRY_TIMES = "RecoverRetryTimes";
+const std::string YR_EVENT_SERVER_IP = "YR_EVENT_SERVER_IP";
+const std::string YR_EVENT_SERVER_PORT = "YR_EVENT_SERVER_PORT";
 extern const char *ENABLE_DEBUG_KEY;
 extern const char *ENABLE_DEBUG;
 extern const char *DEBUG_CONFIG_KEY;
