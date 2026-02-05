@@ -17,9 +17,11 @@
 package selfregister
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -61,10 +63,14 @@ func TestGetServiceKeyAndValue(t *testing.T) {
 			defer func() {
 				config.GlobalConfig = rawGConfig
 			}()
+			os.Setenv("INSTANCE_ID", "faas-scheduler-5b5886db99-66gn8")
+			SetSelfInstanceSpec(&commontypes.InstanceSpecification{})
 			key, _, err := getInstanceKeyAndValue()
 			convey.So(err, convey.ShouldBeNil)
 			convey.So(key, convey.ShouldEqual,
 				"/sn/faas-scheduler/instances/cluster001/127.0.0.1/faas-scheduler-5b5886db99-66gn8")
+			os.Setenv("INSTANCE_ID", "")
+			SetSelfInstanceSpec(nil)
 		})
 		convey.Convey("failed", func() {
 			os.Setenv("NODE_IP", "")
@@ -216,6 +222,28 @@ func TestRegisterToEtcd(t *testing.T) {
 	})
 }
 
+func TestRegisterToEtcdWithoutContend(t *testing.T) {
+	convey.Convey("test RegisterToEtcdWithoutContend", t, func() {
+		config.GlobalConfig.SchedulerDiscovery = &types.SchedulerDiscovery{RegisterMode: types.RegisterTypeSelf}
+		ch := make(chan struct{})
+		err := RegisterToEtcd(ch)
+		convey.So(err, convey.ShouldNotBeNil)
+
+		SetSelfInstanceSpec(&commontypes.InstanceSpecification{RuntimeAddress: "127.0.0.1"})
+		defer gomonkey.ApplyMethod(reflect.TypeOf(&etcd3.EtcdRegister{}), "Register", func(this *etcd3.EtcdRegister) error {
+			convey.So(this.Value, convey.ShouldNotBeEmpty)
+			return nil
+		}).Reset()
+		err = RegisterToEtcd(ch)
+		convey.So(selfInstanceSpec.RuntimeAddress, convey.ShouldEqual, "127.0.0.1:8889")
+		convey.So(err, convey.ShouldBeNil)
+
+		selfInstanceSpec = nil
+		SetSelfInstanceSpec(&commontypes.InstanceSpecification{RuntimeAddress: "127.0.0.1:0"})
+		convey.So(selfInstanceSpec.RuntimeAddress, convey.ShouldEqual, "127.0.0.1:8889")
+	})
+}
+
 func TestPutInsSpecForInstanceKey(t *testing.T) {
 	var (
 		putErr    error
@@ -249,5 +277,118 @@ func TestPutInsSpecForInstanceKey(t *testing.T) {
 		putErr = nil
 		err = putInsSpecForInstanceKey(locker)
 		convey.So(err, convey.ShouldBeNil)
+	})
+}
+
+func TestDelInsSpecForInstanceKey(t *testing.T) {
+	convey.Convey("Given delInsSpecForInstanceKey function", t, func() {
+		patches := gomonkey.NewPatches()
+		defer patches.Reset()
+
+		isKeyExistFunc := func(client interface{}, key string) (bool, error) { return true, nil }
+		processEtcdPutFunc := func(client interface{}, key, val string) error { return nil }
+		patches.ApplyFunc(isKeyExist, isKeyExistFunc)
+		patches.ApplyFunc(processEtcdPut, processEtcdPutFunc)
+
+		convey.Convey("When lockedKey is empty", func() {
+			locker := &etcd3.EtcdLocker{LockedKey: ""}
+			err := delInsSpecForInstanceKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldEqual, "locked key is empty")
+		})
+
+		convey.Convey("When key does not exist in etcd", func() {
+			isKeyExistFunc = func(client interface{}, key string) (bool, error) { return false, nil }
+			patches.ApplyFunc(isKeyExist, isKeyExistFunc)
+
+			locker := &etcd3.EtcdLocker{LockedKey: "test-key"}
+			err := delInsSpecForInstanceKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldContainSubstring, "key not exist")
+		})
+
+		convey.Convey("When isKeyExist returns an error", func() {
+			isKeyExistFunc = func(client interface{}, key string) (bool, error) { return false, errors.New("etcd error") }
+			patches.ApplyFunc(isKeyExist, isKeyExistFunc)
+
+			locker := &etcd3.EtcdLocker{LockedKey: "test-key"}
+			err := delInsSpecForInstanceKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldContainSubstring, "key not exist or get error")
+		})
+
+		convey.Convey("When processEtcdPut succeeds", func() {
+			locker := &etcd3.EtcdLocker{LockedKey: "test-key"}
+			delInsSpecForInstanceKey(locker)
+			convey.So(Registered, convey.ShouldBeFalse)
+			convey.So(RegisterKey, convey.ShouldBeEmpty)
+		})
+
+		convey.Convey("When processEtcdPut fails", func() {
+			processEtcdPutFunc = func(client interface{}, key, val string) error { return errors.New("put error") }
+			patches.ApplyFunc(processEtcdPut, processEtcdPutFunc)
+
+			locker := &etcd3.EtcdLocker{LockedKey: "test-key"}
+			err := delInsSpecForInstanceKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldEqual, "put error")
+		})
+	})
+}
+
+func TestUnsetInstanceRegister(t *testing.T) {
+	convey.Convey("Given unsetInstanceRegister function", t, func() {
+		patches := gomonkey.NewPatches()
+		defer patches.Reset()
+
+		RegisterKey = "my-key"
+		unsetInstanceRegister()
+		convey.So(Registered, convey.ShouldBeFalse)
+		convey.So(RegisterKey, convey.ShouldBeEmpty)
+	})
+}
+
+func TestIsKeyExist(t *testing.T) {
+	convey.Convey("Given isKeyExist function", t, func() {
+		patches := gomonkey.NewPatches()
+		defer patches.Reset()
+
+		createEtcdCtxInfoWithTimeoutFunc := func(ctx context.Context, timeout time.Duration) etcd3.EtcdCtxInfo {
+			return etcd3.EtcdCtxInfo{}
+		}
+		patches.ApplyFunc(etcd3.CreateEtcdCtxInfoWithTimeout, createEtcdCtxInfoWithTimeoutFunc)
+
+		mockResponse := &clientv3.GetResponse{}
+		var mockErr error
+		client := &etcd3.EtcdClient{}
+		patches.ApplyMethodFunc(client, "Get", func(etcd3.EtcdCtxInfo, string, ...clientv3.OpOption) (*clientv3.GetResponse, error) {
+			return mockResponse, mockErr
+		})
+		convey.Convey("When etcd Get returns an error", func() {
+			mockResponse = nil
+			mockErr = errors.New("etcd server error")
+			exist, err := isKeyExist(client, "test-key")
+			convey.So(exist, convey.ShouldBeFalse)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldEqual, "etcd server error")
+		})
+
+		convey.Convey("When key does not exist", func() {
+
+			mockResponse = &clientv3.GetResponse{}
+			mockErr = nil
+			exist, err := isKeyExist(client, "test-key")
+			convey.So(exist, convey.ShouldBeFalse)
+			convey.So(err, convey.ShouldBeNil)
+		})
+
+		convey.Convey("When key exists", func() {
+			mockResponse = &clientv3.GetResponse{Kvs: make([]*mvccpb.KeyValue, 0)}
+			mockErr = nil
+			mockResponse.Kvs = append(mockResponse.Kvs, &mvccpb.KeyValue{})
+			exist, err := isKeyExist(client, "test-key")
+			convey.So(exist, convey.ShouldBeTrue)
+			convey.So(err, convey.ShouldBeNil)
+		})
 	})
 }

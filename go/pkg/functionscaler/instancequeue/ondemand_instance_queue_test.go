@@ -41,7 +41,7 @@ func TestNewOnDemandInstanceQueue(t *testing.T) {
 func TestOnDemandAcquireInstance(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	var createErr error
-	createInstanceFunc := func(name string, _ types.InstanceType, _ resspeckey.ResSpecKey, _ []byte) (
+	createInstanceFunc := func(traceID string, name string, _ types.InstanceType, _ resspeckey.ResSpecKey, _ []byte) (
 		*types.Instance, error) {
 		if createErr != nil {
 			return nil, createErr
@@ -76,7 +76,7 @@ func TestOnDemandAcquireInstance(t *testing.T) {
 func TestCreateInstance(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	var createErr error
-	createInstanceFunc := func(name string, _ types.InstanceType, _ resspeckey.ResSpecKey, _ []byte) (
+	createInstanceFunc := func(traceID string, name string, _ types.InstanceType, _ resspeckey.ResSpecKey, _ []byte) (
 		*types.Instance, error) {
 		if createErr != nil {
 			return nil, createErr
@@ -108,7 +108,7 @@ func TestCreateInstance(t *testing.T) {
 }
 
 func TestDeleteInstance(t *testing.T) {
-	createInstanceFunc := func(name string, _ types.InstanceType, _ resspeckey.ResSpecKey, _ []byte) (
+	createInstanceFunc := func(traceID string, name string, _ types.InstanceType, _ resspeckey.ResSpecKey, _ []byte) (
 		*types.Instance, error) {
 		return &types.Instance{InstanceID: "testInstance1", InstanceName: name}, nil
 	}

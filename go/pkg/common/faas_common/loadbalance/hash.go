@@ -56,6 +56,112 @@ func (u uint32Slice) Less(i, j int) bool {
 	return u[i] < u[j]
 }
 
+// SimpleCHGeneric is the simple generic consistent hash
+type SimpleCHGeneric struct {
+	instanceMap map[uint32]string
+	hashPool    uint32Slice
+	insMutex    sync.RWMutex
+}
+
+// NewSimpleCHGeneric creates generic consistent hash
+func NewSimpleCHGeneric() *SimpleCHGeneric {
+	return &SimpleCHGeneric{
+		hashPool:    make([]uint32, 0, MaxInstanceSize),
+		instanceMap: make(map[uint32]string, defaultMapSize),
+	}
+}
+func (c *SimpleCHGeneric) getNextHashKey(hashKey uint32) uint32 {
+	// need to be called with insMutex locked
+	if len(c.hashPool) == 0 {
+		return 0
+	}
+	nextHashKey := c.hashPool[0]
+	for _, v := range c.hashPool {
+		if v > hashKey {
+			nextHashKey = v
+			break
+		}
+	}
+	return nextHashKey
+}
+
+// Next returns the next scheduled node of a function, move is disable
+func (c *SimpleCHGeneric) Next(name string, move bool) interface{} {
+	// need to be called in a thread safe context
+	hashKey := getHashKeyCRC32([]byte(name))
+	c.insMutex.RLock()
+	instanceHash := c.getNextHashKey(hashKey)
+	instanceKey, exist := c.instanceMap[instanceHash]
+	c.insMutex.RUnlock()
+	// check if node still exists, no maxReqCount limitation
+	if !exist {
+		return ""
+	}
+	return instanceKey
+}
+
+// Add will add a node into hash ring
+func (c *SimpleCHGeneric) Add(node interface{}, weight int) {
+	c.insMutex.Lock()
+	defer c.insMutex.Unlock()
+	name, ok := node.(string)
+	if !ok {
+		log.GetLogger().Errorf("unable to convert %T to string", node)
+		return
+	}
+	hashKey := getHashKeyCRC32([]byte(name))
+	_, exist := c.instanceMap[hashKey]
+	if exist {
+		return
+	}
+	c.instanceMap[hashKey] = name
+	c.hashPool = append(c.hashPool, hashKey)
+	sort.Sort(c.hashPool)
+	log.GetLogger().Debugf("add node %s, hashKey %d to hash ring, hashPool is %v", name, hashKey, c.hashPool)
+}
+
+// Remove will remove a node from hash ring
+func (c *SimpleCHGeneric) Remove(node interface{}) {
+	name, assertOK := node.(string)
+	if !assertOK {
+		log.GetLogger().Errorf("unable to convert %T to string", node)
+		return
+	}
+	hashKey := getHashKeyCRC32([]byte(name))
+	c.insMutex.Lock()
+	delete(c.instanceMap, hashKey)
+	for i, hash := range c.hashPool {
+		if hash == hashKey {
+			copy(c.hashPool[i:], c.hashPool[i+1:])
+			c.hashPool[len(c.hashPool)-1] = 0
+			c.hashPool = c.hashPool[:len(c.hashPool)-1]
+			break
+		}
+	}
+	log.GetLogger().Infof("delete node %s from hash ring", name)
+	c.insMutex.Unlock()
+
+}
+
+// RemoveAll will remove all nodes from hash ring
+func (c *SimpleCHGeneric) RemoveAll() {
+	c.insMutex.Lock()
+	c.hashPool = make([]uint32, 0, MaxInstanceSize)
+	c.instanceMap = make(map[uint32]string, defaultMapSize)
+	c.insMutex.Unlock()
+	return
+}
+
+// Reset will clean all anchor infos
+func (c *SimpleCHGeneric) Reset() {
+	return
+}
+
+// DeleteBalancer -
+func (c *SimpleCHGeneric) DeleteBalancer(name string) {
+
+}
+
 type anchorInfo struct {
 	instanceHash uint32
 	instanceKey  string
@@ -241,91 +347,6 @@ func (c *CHGeneric) getPreviousHashKey(hashKey uint32) uint32 {
 
 func getHashKeyCRC32(key []byte) uint32 {
 	return crc32.ChecksumIEEE(key)
-}
-
-// NewConcurrentCHGeneric return ConcurrentCHGeneric with given concurrency
-func NewConcurrentCHGeneric(concurrency int) *ConcurrentCHGeneric {
-	return &ConcurrentCHGeneric{
-		CHGeneric:   NewCHGeneric(),
-		concurrency: concurrency,
-		counter:     make(map[string]*concurrentCounter, constant.DefaultMapSize),
-	}
-}
-
-type concurrentCounter struct {
-	count int
-	last  time.Time
-}
-
-// ConcurrentCHGeneric is concurrency balanced
-type ConcurrentCHGeneric struct {
-	*CHGeneric
-	counter     map[string]*concurrentCounter
-	countMutex  sync.Mutex
-	concurrency int
-}
-
-// Next returns the next scheduled node
-func (c *ConcurrentCHGeneric) Next(name string, move bool) interface{} {
-	c.countMutex.Lock()
-	defer c.countMutex.Unlock()
-	l, ok := c.counter[name]
-	if !ok {
-		c.counter[name] = &concurrentCounter{
-			last: time.Now(),
-		}
-		return c.CHGeneric.Next(name, move)
-	}
-	l.count++
-	if l.count >= c.concurrency {
-		now := time.Now()
-		l.count = 0
-		if now.Sub(l.last) < 1*time.Second {
-			move = true
-		}
-		l.last = now
-	}
-	return c.CHGeneric.Next(name, move)
-}
-
-// Previous - returns the previous scheduled node of a function
-func (c *ConcurrentCHGeneric) Previous(name string, move bool) interface{} {
-	return c.CHGeneric.Previous(name, move)
-}
-
-// Add a node to hash ring
-func (c *ConcurrentCHGeneric) Add(node interface{}, weight int) {
-	c.CHGeneric.Add(node, weight)
-}
-
-// Remove a node from hash ring
-func (c *ConcurrentCHGeneric) Remove(node interface{}) {
-	c.countMutex.Lock()
-	defer c.countMutex.Unlock()
-	c.CHGeneric.Remove(node)
-}
-
-// RemoveAll remove all nodes from hash ring
-func (c *ConcurrentCHGeneric) RemoveAll() {
-	c.countMutex.Lock()
-	defer c.countMutex.Unlock()
-	c.counter = make(map[string]*concurrentCounter, constant.DefaultMapSize)
-	c.CHGeneric.RemoveAll()
-}
-
-// Reset clean all anchor infos and counters
-func (c *ConcurrentCHGeneric) Reset() {
-	c.countMutex.Lock()
-	defer c.countMutex.Unlock()
-	c.counter = make(map[string]*concurrentCounter, constant.DefaultMapSize)
-	c.CHGeneric.Reset()
-}
-
-// DeleteBalancer -
-func (c *ConcurrentCHGeneric) DeleteBalancer(name string) {
-	c.countMutex.Lock()
-	delete(c.counter, name)
-	c.countMutex.Unlock()
 }
 
 // NewLimiterCHGeneric return limiterCHGeneric with given concurrency

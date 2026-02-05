@@ -223,6 +223,16 @@ func (f *FakeLibruntimeSdkClient) GetAsync(objectID string, cb api.GetAsyncCallb
 	return
 }
 
+// GetEvent -
+func (f *FakeLibruntimeSdkClient) GetEvent(objectID string, cb api.GetEventCallback) {
+	return
+}
+
+// DeleteGetEventCallback -
+func (f *FakeLibruntimeSdkClient) DeleteGetEventCallback(objectID string) {
+	return
+}
+
 // GetFormatLogger -
 func (f *FakeLibruntimeSdkClient) GetFormatLogger() api.FormatLogger {
 	return nil

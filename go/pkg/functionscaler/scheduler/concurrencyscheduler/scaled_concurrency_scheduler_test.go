@@ -86,6 +86,23 @@ func TestInstanceQueueWithBuffer(t *testing.T) {
 	assert.Equal(t, instance2.InstanceID, popIns1.instance.InstanceID)
 	popIns2 := insQue.PopFront().(*instanceElement)
 	assert.Equal(t, instance1.InstanceID, popIns2.instance.InstanceID)
+
+	instance3 := &types.Instance{InstanceID: "instance3", ConcurrentNum: 2}
+	err := insQue.UpdateObjByID("instance3", &instanceElement{
+		instance:  instance3,
+		threadMap: make(map[string]struct{}, 0),
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), queue.ErrObjectNotFound.Error())
+
+	insQue.buffer = append(insQue.buffer, &instanceElement{
+		instance: instance3,
+	})
+	err = insQue.UpdateObjByID("instance3", &instanceElement{
+		instance:  instance3,
+		threadMap: make(map[string]struct{}, 0),
+	})
+	assert.Nil(t, err)
 }
 
 func TestNewScaledConcurrencyScheduler(t *testing.T) {
@@ -107,7 +124,7 @@ func TestGetReqQueLen(t *testing.T) {
 }
 
 func TestAcquireInstanceScaled(t *testing.T) {
-	defer gomonkey.ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "CheckFuncOwner", func(
+	defer gomonkey.ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "IsFuncOwner", func(
 		*selfregister.SchedulerProxy, string) bool {
 		return true
 	}).Reset()
@@ -156,7 +173,7 @@ func TestAcquireInstanceScaled(t *testing.T) {
 }
 
 func TestPopInstanceScaled(t *testing.T) {
-	defer gomonkey.ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "CheckFuncOwner", func(
+	defer gomonkey.ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "IsFuncOwner", func(
 		*selfregister.SchedulerProxy, string) bool {
 		return true
 	}).Reset()
@@ -196,7 +213,7 @@ func TestHandleFuncSpecUpdateScaled(t *testing.T) {
 }
 
 func TestAddInstancePublishScaled(t *testing.T) {
-	defer gomonkey.ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "CheckFuncOwner", func(
+	defer gomonkey.ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "IsFuncOwner", func(
 		*selfregister.SchedulerProxy, string) bool {
 		return true
 	}).Reset()

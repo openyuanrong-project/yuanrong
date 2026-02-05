@@ -217,7 +217,7 @@ func checkPredictResultValid(predictResult *types.PredictResult, startTime time.
 func filterPredictFunction(predictResult *types.PredictResult) {
 	filterMap := make(map[string][]float64, len(predictResult.QPSResult))
 	for functionURN, predictNum := range predictResult.QPSResult {
-		if selfregister.GlobalSchedulerProxy.CheckFuncOwner(functionURN) {
+		if selfregister.GlobalSchedulerProxy.IsFuncOwner(functionURN) {
 			filterMap[functionURN] = predictNum
 		}
 	}

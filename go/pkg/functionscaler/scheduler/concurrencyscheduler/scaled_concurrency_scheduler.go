@@ -138,23 +138,29 @@ func (p *instanceQueueWithBuffer) DelByID(objID string) error {
 }
 
 // Range iterates item in queue and process item with given function
-func (p *instanceQueueWithBuffer) Range(f func(obj interface{}) bool) {
-	p.queue.Range(f)
+func (p *instanceQueueWithBuffer) Range(f func(obj interface{}) bool) bool {
+	if !p.queue.Range(f) {
+		return false
+	}
 	for _, item := range p.buffer {
 		if !f(item) {
-			break
+			return false
 		}
 	}
+	return true
 }
 
 // SortedRange iterates item in queue and process item with given function in order
-func (p *instanceQueueWithBuffer) SortedRange(f func(obj interface{}) bool) {
-	p.queue.SortedRange(f)
+func (p *instanceQueueWithBuffer) SortedRange(f func(obj interface{}) bool) bool {
+	if !p.queue.SortedRange(f) {
+		return false
+	}
 	for _, item := range p.buffer {
 		if !f(item) {
-			break
+			return false
 		}
 	}
+	return true
 }
 
 // UpdateObjByID has some cases which should be aware:
@@ -226,7 +232,8 @@ func NewScaledConcurrencyScheduler(funcSpec *types.FunctionSpecification, resKey
 		idFunc: getInstanceID,
 	}
 	scaledConcurrencyScheduler := &ScaledConcurrencyScheduler{
-		basicConcurrencyScheduler: newBasicConcurrencyScheduler(funcSpec, resKey, instanceQueue, otherQueue),
+		basicConcurrencyScheduler: newBasicConcurrencyScheduler(funcSpec, resKey, types.InstanceTypeScaled,
+			instanceQueue, otherQueue),
 	}
 	scaledConcurrencyScheduler.insAcqReqQueue = insThdReqQueue
 	insThdReqQueue.RegisterSchFunc("scaledScheduleFunc", scaledConcurrencyScheduler.scheduleRequest)

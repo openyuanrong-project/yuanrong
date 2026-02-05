@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -28,12 +29,8 @@ const (
 	minPace           = 2 * time.Millisecond
 	minSlotNum        = 1
 	notifyChannelSize = 1000
-)
-
-var (
-	timeTriggerPool = sync.Pool{New: func() interface{} {
-		return &timeTrigger{}
-	}}
+	readyChan         = 10
+	readyChanBlock    = 5
 )
 
 type timeTrigger struct {
@@ -42,10 +39,6 @@ type timeTrigger struct {
 	index       int64
 	circle      int64
 	circleCount int64
-	disable     bool
-	ch          chan struct{}
-	prev        *timeTrigger
-	next        *timeTrigger
 }
 
 // SimpleTimeWheel will trigger task at given interval by given times, it contains a certain number of slots and moves
@@ -57,15 +50,13 @@ type SimpleTimeWheel struct {
 	pace        time.Duration
 	perimeter   int64
 	slotNum     int64
-	curSlot     int64
+	curSlot     atomic.Int64
 	pendingTask int
-	slots       []*timeTrigger
-	readyList   []string
+	slots       []*sync.Map
 	record      *sync.Map
 	notifyCh    chan struct{}
-	readyCh     chan struct{}
+	readyCh     chan *[]string
 	stopCh      chan struct{}
-	sync.RWMutex
 }
 
 // NewSimpleTimeWheel will create a SimpleTimeWheel
@@ -81,12 +72,15 @@ func NewSimpleTimeWheel(pace time.Duration, slotNum int64) TimeWheel {
 		pace:      pace,
 		perimeter: slotNum * int64(pace),
 		slotNum:   slotNum,
-		curSlot:   0,
-		slots:     make([]*timeTrigger, slotNum, slotNum),
+		curSlot:   atomic.Int64{},
+		slots:     make([]*sync.Map, slotNum, slotNum),
 		record:    new(sync.Map),
 		notifyCh:  make(chan struct{}, notifyChannelSize),
-		readyCh:   make(chan struct{}, 1),
+		readyCh:   make(chan *[]string, readyChan),
 		stopCh:    make(chan struct{}),
+	}
+	for i := range timeWheel.slots {
+		timeWheel.slots[i] = &sync.Map{}
 	}
 	go timeWheel.run()
 	return timeWheel
@@ -96,10 +90,10 @@ func (gt *SimpleTimeWheel) run() {
 	for {
 		select {
 		case <-gt.ticker.C:
-			gt.Lock()
-			gt.curSlot = (gt.curSlot + 1) % int64(len(gt.slots))
-			gt.Unlock()
-			gt.checkAndFireTrigger()
+			// 只有这里会修改curSlot，不需要考虑过期
+			curSlot := (gt.curSlot.Load() + 1) % int64(len(gt.slots))
+			gt.curSlot.Store(curSlot)
+			gt.checkAndFireTrigger(curSlot)
 		case <-gt.stopCh:
 			gt.ticker.Stop()
 			return
@@ -107,91 +101,79 @@ func (gt *SimpleTimeWheel) run() {
 	}
 }
 
-func (gt *SimpleTimeWheel) checkAndFireTrigger() {
-	trigger := gt.slots[gt.curSlot]
+func (gt *SimpleTimeWheel) checkAndFireTrigger(currSlot int64) {
+	slot := gt.slots[currSlot]
 	var readyList []string
-	for trigger != nil {
-		if !trigger.disable && trigger.circleCount == trigger.circle {
+	slot.Range(func(id, object any) bool {
+		trigger, ok := object.(*timeTrigger)
+		if !ok {
+			slot.Delete(id)
+			return true
+		}
+		if trigger.circleCount == trigger.circle {
 			trigger.circleCount = 0
 			if trigger.times == 0 {
-				trigger.disable = true
 				gt.record.Delete(trigger.taskID)
-				gt.removeTrigger(trigger)
-				continue
+				slot.Delete(id)
 			}
 			readyList = append(readyList, trigger.taskID)
-			select {
-			case trigger.ch <- struct{}{}:
-			default:
-			}
 			if trigger.times > 0 {
 				trigger.times--
 			}
 		}
 		trigger.circleCount++
-		trigger = trigger.next
-	}
-	gt.Lock()
-	gt.readyList = readyList
-	gt.Unlock()
+		return true
+	})
 	if len(readyList) != 0 {
-		gt.readyCh <- struct{}{}
+		select {
+		case gt.readyCh <- &readyList:
+		case <-gt.stopCh:
+			return
+		default:
+		}
 	}
 }
 
 // Wait will block until tasks are triggered and returns triggered task list
-func (gt *SimpleTimeWheel) Wait() []string {
-	select {
-	case _, ok := <-gt.readyCh:
-		if !ok {
-			return nil
-		}
+func (gt *SimpleTimeWheel) Wait() ([]string, error) {
+	readyList, ok := <-gt.readyCh
+	if !ok {
+		return nil, nil
 	}
-	gt.RLock()
-	readyList := gt.readyList
-	gt.RUnlock()
-	return readyList
+	if len(gt.readyCh) > readyChanBlock {
+		return *readyList, fmt.Errorf("ready chan has been block, may lease leak")
+	}
+	return *readyList, nil
 }
 
 // AddTask will add a task which will be triggered periodically over an given interval with given times (-1 means to
 // run endlessly), considering that pace has a reasonable size and the logic below won't cost more time than that,
 // AddTask won't catch up with the curSlot, so we don't need a mutex. it's also worth noticing that interval can't be
 // smaller than the circumference of this time wheel
-func (gt *SimpleTimeWheel) AddTask(taskID string, interval time.Duration, times int) (<-chan struct{}, error) {
+func (gt *SimpleTimeWheel) AddTask(taskID string, interval time.Duration, times int) error {
 	if interval < time.Duration(gt.perimeter) {
-		return nil, ErrInvalidTaskInterval
+		return ErrInvalidTaskInterval
 	}
 	if _, exist := gt.record.Load(taskID); exist {
-		return nil, fmt.Errorf("%s, taskId: %s", ErrTaskAlreadyExist.Error(), taskID)
+		return fmt.Errorf("%s, taskId: %s", ErrTaskAlreadyExist.Error(), taskID)
 	}
-	trigger, ok := timeTriggerPool.Get().(*timeTrigger)
-	if !ok {
-		return nil, errors.New("not a timeTrigger type")
-	}
-	gt.Lock()
-	curSlot := gt.curSlot
+	curSlot := gt.curSlot.Load()
 	circle := (int64(interval)/int64(gt.pace) + curSlot + 1) / gt.slotNum
 	circleCount := int64(1)
 	index := (int64(interval)/int64(gt.pace) + curSlot + 1) % gt.slotNum
 	if index > curSlot {
 		circleCount--
 	}
-	trigger.taskID = taskID
-	trigger.times = times
-	trigger.circle = circle
-	trigger.circleCount = circleCount
-	trigger.index = index
-	trigger.disable = false
-	trigger.ch = make(chan struct{}, 1)
-	trigger.prev = nil
-	trigger.next = gt.slots[index]
-	if gt.slots[index] != nil {
-		gt.slots[index].prev = trigger
+	trigger := &timeTrigger{
+		taskID:      taskID,
+		times:       times,
+		index:       index,
+		circle:      circle,
+		circleCount: circleCount,
 	}
-	gt.slots[index] = trigger
-	gt.Unlock()
+	gt.slots[index].Store(trigger.taskID, trigger)
 	gt.record.Store(taskID, trigger)
-	return trigger.ch, nil
+	return nil
 }
 
 // DelTask will delete a task in SimpleTimeWheel and remove its trigger
@@ -205,10 +187,7 @@ func (gt *SimpleTimeWheel) DelTask(taskID string) error {
 	if !ok {
 		return errors.New("not a timeTrigger type")
 	}
-	// since caller no longer need this task, it's ok that this trigger still fires
-	trigger.disable = true
-	gt.removeTrigger(trigger)
-	timeTriggerPool.Put(trigger)
+	gt.slots[trigger.index].Delete(taskID)
 	return nil
 }
 
@@ -218,25 +197,29 @@ func (gt *SimpleTimeWheel) Stop() {
 	close(gt.readyCh)
 }
 
-// removeTrigger won't set trigger's prev and next to nil since checkAndFireTrigger may processing this trigger right
-// now and we don't want to lose track of the next trigger
-func (gt *SimpleTimeWheel) removeTrigger(trigger *timeTrigger) {
-	gt.Lock()
-	defer gt.Unlock()
-	// special treatment if this trigger is the head of linked list
-	if trigger.prev == nil {
-		if trigger.index >= int64(len(gt.slots)) {
-			fmt.Errorf("trigger.index is out of slots slice")
-		} else {
-			gt.slots[trigger.index] = trigger.next
-		}
-		if trigger.next != nil {
-			trigger.next.prev = nil
-		}
-	} else {
-		trigger.prev.next = trigger.next
-		if trigger.next != nil {
-			trigger.next.prev = trigger.prev
-		}
+// UpdateTask del and add a task
+func (gt *SimpleTimeWheel) UpdateTask(taskID string, interval time.Duration, times int) error {
+	object, exist := gt.record.Load(taskID)
+	if !exist {
+		return gt.AddTask(taskID, interval, times)
 	}
+	trigger, ok := object.(*timeTrigger)
+	if !ok {
+		return errors.New("not a timeTrigger type")
+	}
+	gt.slots[trigger.index].Delete(trigger.taskID)
+
+	curSlot := gt.curSlot.Load()
+	circle := (int64(interval)/int64(gt.pace) + curSlot + 1) / gt.slotNum
+	circleCount := int64(1)
+	index := (int64(interval)/int64(gt.pace) + curSlot + 1) % gt.slotNum
+	if index > curSlot {
+		circleCount--
+	}
+	trigger.times = times
+	trigger.circle = circle
+	trigger.circleCount = circleCount
+	trigger.index = index
+	gt.slots[index].Store(trigger.taskID, trigger)
+	return nil
 }

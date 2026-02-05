@@ -22,11 +22,51 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
+
+	"golang.org/x/crypto/pkcs12"
+	
+	"yuanrong.org/kernel/pkg/common/faas_common/utils"
 )
 
 // LoadCerts - parsing certificate
 func LoadCerts() (*x509.CertPool, *tls.Certificate, error) {
-	return nil, nil, nil
+	var keyStorePath string
+	var err error
+	if err != nil {
+		return nil, nil, err
+	}
+	caCertsPool := x509.NewCertPool()
+	var bytes []byte
+	if err != nil {
+		return nil, nil, err
+	}
+	fileContent, err := os.ReadFile(keyStorePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	pemBlocks, err := pkcs12.ToPEM(fileContent, string(bytes))
+	utils.ClearByteMemory(fileContent)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	caBytes, certByte, keyByte, err := parseSTSCerts(pemBlocks)
+	if err != nil {
+		return nil, nil, err
+
+	}
+	for _, caByte := range caBytes {
+		caCertsPool.AppendCertsFromPEM(caByte)
+	}
+	tlsCert, err := tls.X509KeyPair(certByte, keyByte)
+	utils.ClearByteMemory(certByte)
+	utils.ClearByteMemory(keyByte)
+	if err != nil {
+		return nil, nil, err
+
+	}
+	return caCertsPool, &tlsCert, nil
 }
 
 func parseSTSCerts(pemBlocks []*pem.Block) ([][]byte, []byte, []byte, error) {

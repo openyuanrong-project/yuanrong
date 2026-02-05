@@ -163,15 +163,6 @@ func NewCustomKeyProvider(tenantID string, key []byte) *CustomKeyProvider {
 	return &CustomKeyProvider{tenantID: tenantID, key: key}
 }
 
-// Load -
-func (c *CustomKeyProvider) Load() {
-}
-
-// GetName -
-func (c *CustomKeyProvider) GetName() string {
-	return c.tenantID
-}
-
 // GenerateHTTPSAndLocalSecretVolumeMounts -
 func GenerateHTTPSAndLocalSecretVolumeMounts(
 	httpsConfig tls.InternalHTTPSConfig, builder *utils.VolumeBuilder) (string, string, error) {

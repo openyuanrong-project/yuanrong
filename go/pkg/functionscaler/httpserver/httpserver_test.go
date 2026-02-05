@@ -34,6 +34,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"yuanrong.org/kernel/runtime/libruntime/api"
 
+	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
 	"yuanrong.org/kernel/pkg/common/faas_common/localauth"
 	commtls "yuanrong.org/kernel/pkg/common/faas_common/tls"
@@ -268,5 +269,33 @@ func TestFastHTTPListenAndServeTLS(t *testing.T) {
 		defer patch.Reset()
 		err := fastHTTPListenAndServeTLS("123", nil)
 		convey.So(err.Error(), convey.ShouldEqual, "server or tls config is nil")
+	})
+}
+
+func Test_auth(t *testing.T) {
+	convey.Convey("Test auth", t, func() {
+		ctx := &fasthttp.RequestCtx{}
+		originalAuthenticationEnable := config.GlobalConfig.AuthenticationEnable
+		defer func() {
+			config.GlobalConfig.AuthenticationEnable = originalAuthenticationEnable
+		}()
+		convey.Convey("when authenticationEnable is false", func() {
+			config.GlobalConfig.AuthenticationEnable = false
+			err := auth(ctx)
+			convey.So(err, convey.ShouldBeNil)
+		})
+		convey.Convey("when sign is start with HmacSha256", func() {
+			ctx.Request.Header.Set(constant.HeaderAuthorization, "HmacSha256 xxx")
+			config.GlobalConfig.AuthenticationEnable = true
+			err := auth(ctx)
+			convey.So(err, convey.ShouldNotBeNil)
+		})
+		convey.Convey("when sign is not start with HmacSha256", func() {
+			ctx.Request.Header.Set(constant.HeaderAuthorization, "xxx")
+			ctx.Request.Header.Set(constant.HeaderAuthTimestamp, "xxx")
+			config.GlobalConfig.AuthenticationEnable = true
+			err := auth(ctx)
+			convey.So(err, convey.ShouldNotBeNil)
+		})
 	})
 }

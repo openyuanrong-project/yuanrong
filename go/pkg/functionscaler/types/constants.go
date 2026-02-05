@@ -24,6 +24,12 @@ const (
 	SystemTenantID = "0"
 	// FaasManagerFuncName is the function name of faas manager
 	FaasManagerFuncName = "faasmanager"
+	// FaasSchedulerFuncName is the function name of faas scheduler
+	FaasSchedulerFuncName = "faasscheduler"
+	// FaasFrontendFuncName is the function name of faas frontend
+	FaasFrontendFuncName = "faasfrontend"
+	// FaasControllerFuncName is the function name of faas controller
+	FaasControllerFuncName = "faascontroller"
 	// UserInitEntryKey is the key for user init entry
 	UserInitEntryKey = "initializer"
 	// UserCallEntryKey is the key for user call entry
@@ -134,4 +140,16 @@ const (
 	DefaultMaxOnDemandInstanceNumPerTenant = 1000
 	// DefaultMaxReversedInstanceNumPerTenant define the default value for maximum reversed instance per tenant
 	DefaultMaxReversedInstanceNumPerTenant = 1000
+)
+
+const (
+	// FgsTunnelName -
+	FgsTunnelName = "tunl_fgs_vpc"
+	// IPIPMode -
+	IPIPMode = "ipip"
+
+	// ICMPProtocol -
+	ICMPProtocol = "ICMP"
+	// HTTPProtocol -
+	HTTPProtocol = "HTTP"
 )

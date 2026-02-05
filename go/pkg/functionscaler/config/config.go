@@ -29,7 +29,6 @@ import (
 	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
 	"yuanrong.org/kernel/pkg/common/faas_common/localauth"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
-	"yuanrong.org/kernel/pkg/common/faas_common/sts"
 	"yuanrong.org/kernel/pkg/common/faas_common/utils"
 	"yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/serviceaccount"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
@@ -43,7 +42,9 @@ const (
 	defaultDockerRootPath           = "/var/lib/docker"
 	defaultFaasschedulerSTScertPath = "/opt/certs/HMSClientCloudAccelerateService/" +
 		"HMSCaaSYuanRongWorkerManager/HMSCaaSYuanRongWorkerManager.ini"
-	defaultPredictGroupWindow = 15 * 60 * 1000
+	defaultPredictGroupWindow      = 15 * 60 * 1000
+	defaultDataSystemTimeoutMs     = 60000
+	defaultUploadDataSystemTimeout = 10
 )
 
 var (
@@ -110,16 +111,6 @@ func loadFunctionConfig(GlobalConfig *types.Configuration) error {
 			log.GetLogger().Warnf("cannot set default env DOCKER_ROOT_DIR")
 		}
 	}
-	if GlobalConfig.RawStsConfig.StsEnable {
-		if err := sts.InitStsSDK(GlobalConfig.RawStsConfig.ServerConfig); err != nil {
-			log.GetLogger().Errorf("failed to init sts sdk, err: %s", err.Error())
-			return err
-		}
-		if err = os.Setenv(sts.EnvSTSEnable, "true"); err != nil {
-			log.GetLogger().Errorf("failed to set env of %s, err: %s", sts.EnvSTSEnable, err.Error())
-			return err
-		}
-	}
 	if len(GlobalConfig.Scenario) == 0 {
 		GlobalConfig.Scenario = types.ScenarioWiseCloud
 	}
@@ -133,23 +124,20 @@ func loadFunctionConfig(GlobalConfig *types.Configuration) error {
 	if err != nil {
 		return fmt.Errorf("failed to set serviceaccount jwt config %s", err.Error())
 	}
+	if GlobalConfig.DataSystemConfig.InitTimeoutMs <= 0 {
+		GlobalConfig.DataSystemConfig.InitTimeoutMs = defaultDataSystemTimeoutMs
+	}
+	if GlobalConfig.DataSystemConfig.UploadTTLSec <= 0 {
+		GlobalConfig.DataSystemConfig.UploadTTLSec = defaultUploadDataSystemTimeout
+	}
 	return nil
 }
 
 func setServiceAccountJwt(cfg *types.Configuration) error {
-	if cfg.RawStsConfig.StsEnable && len(cfg.ServiceAccountJwt.ServiceAccountKeyStr) > 0 {
-		var err error
-		cfg.ServiceAccountJwt.ServiceAccount, err =
-			serviceaccount.ParseServiceAccount(cfg.ServiceAccountJwt.ServiceAccountKeyStr)
-		if err != nil {
-			return err
-		}
-	}
 	if cfg.ServiceAccountJwt.TlsConfig != nil &&
 		len(cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuitesStr) > 0 {
 		var err error
-		cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuites, err =
-			serviceaccount.ParseTlsCipherSuites(cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuitesStr)
+		cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuites, err = serviceaccount.ParseTlsCipherSuites(cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuitesStr)
 		if err != nil {
 			return err
 		}
@@ -192,6 +180,13 @@ func InitEtcd(stopCh <-chan struct{}) error {
 	if err := etcd3.InitMetaEtcdClient(GlobalConfig.MetaETCDConfig, GlobalConfig.AlarmConfig, stopCh); err != nil {
 		return fmt.Errorf("faaSScheduler failed to init metadata etcd: %s", err.Error())
 	}
+	if len(GlobalConfig.DataSystemEtcd.Servers) != 0 {
+		if err := etcd3.InitDataSystemEtcdClient(GlobalConfig.DataSystemEtcd, GlobalConfig.AlarmConfig, stopCh); err != nil {
+			return fmt.Errorf("faaSFrontend failed to init dataSystemEtcd etcd: %s", err.Error())
+		}
+		log.GetLogger().Infof("init dataSystemEtcd success")
+	}
+
 	return nil
 }
 

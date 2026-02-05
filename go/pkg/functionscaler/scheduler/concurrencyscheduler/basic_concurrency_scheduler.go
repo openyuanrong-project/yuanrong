@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -55,6 +54,8 @@ const (
 	backward popDirection = false
 
 	randomThreadIDLength = 8
+
+	recordTriggerChanLen = 10
 )
 
 var (
@@ -64,51 +65,12 @@ var (
 	ErrNoInsThdAvail = errors.New("no instance thread available")
 )
 
-type sessionRecord struct {
-	ctx            context.Context
-	timer          *time.Timer
-	availThdMap    map[string]struct{}
-	allocThdMap    map[string]struct{}
-	expiring       atomic.Value
-	ttl            time.Duration
-	concurrency    int
-	sessionID      string
-	expireCancelCh chan struct{}
-	expireCh       chan struct{}
-	cancelFunc     func()
-}
-
-func (s *sessionRecord) PutThreadToAvailThdMap(threadID string) error {
-	if _, ok := s.allocThdMap[threadID]; !ok {
-		return fmt.Errorf("thread %s doesn't belong to session %s for function", threadID, s.sessionID)
-	}
-	s.availThdMap[threadID] = struct{}{}
-	return nil
-}
-
-func (s *sessionRecord) PutThreadToAllocThdMap(threadID string) {
-	s.allocThdMap[threadID] = struct{}{}
-}
-
-func (s *sessionRecord) GetThreadFromAvailThdMap() string {
-	var (
-		threadID string
-	)
-	for key := range s.availThdMap {
-		threadID = key
-		break
-	}
-	delete(s.availThdMap, threadID)
-	return threadID
-}
-
 type instanceElement struct {
 	instance       *types.Instance
 	threadIndex    int
 	threadIDPrefix string
 	isNewInstance  bool
 	threadMap      map[string]struct{}
-	sessionMap     map[string]*sessionRecord
 }
 
 func (i *instanceElement) PutThreadToThreadMap(threadID string) {
@@ -279,35 +241,41 @@ func (i *instanceQueueWithSubHealthAndEvictingRecord) Len() int {
 }
 
 // Range -
-func (i *instanceQueueWithSubHealthAndEvictingRecord) Range(f func(obj interface{}) bool) {
-	i.instanceQueue.Range(f)
+func (i *instanceQueueWithSubHealthAndEvictingRecord) Range(f func(obj interface{}) bool) bool {
+	if !i.instanceQueue.Range(f) {
+		return false
+	}
 	for _, insElem := range i.subHealthRecord {
 		if !f(insElem) {
-			break
+			return false
 		}
 	}
 
 	for _, insElem := range i.evictingRecord {
 		if !f(insElem) {
-			break
+			return false
 		}
 	}
+	return true
 }
 
 // SortedRange -
-func (i *instanceQueueWithSubHealthAndEvictingRecord) SortedRange(f func(obj interface{}) bool) {
-	i.instanceQueue.SortedRange(f)
+func (i *instanceQueueWithSubHealthAndEvictingRecord) SortedRange(f func(obj interface{}) bool) bool {
+	if !i.instanceQueue.SortedRange(f) {
+		return false
+	}
 	for _, insElem := range i.subHealthRecord {
 		if !f(insElem) {
-			break
+			return false
 		}
 	}
 
 	for _, insElem := range i.evictingRecord {
 		if !f(insElem) {
-			break
+			return false
 		}
 	}
+	return true
 }
 
 type instanceQueueWithObserver struct {
@@ -515,7 +483,7 @@ type basicConcurrencyScheduler struct {
 	otherInstanceQueue   queue.Queue
 	selfSubHealthRecord  map[string]*instanceElement
 	otherSubHealthRecord map[string]*instanceElement
-	sessionRecord        map[string]*instanceElement
+	sessionManager       *sessionManager
 	observers            map[scheduler.InstanceTopic][]*instanceObserver
 	funcKeyWithRes       string
 	concurrentNum        int
@@ -528,7 +496,8 @@ type basicConcurrencyScheduler struct {
 }
 
 func newBasicConcurrencyScheduler(funcSpec *types.FunctionSpecification, resKey resspeckey.ResSpecKey,
-	selfInstanceQueue queue.Queue, otherInstanceQueue queue.Queue) basicConcurrencyScheduler {
+	instanceType types.InstanceType, selfInstanceQueue queue.Queue,
+	otherInstanceQueue queue.Queue) basicConcurrencyScheduler {
 	leaseInterval := time.Duration(config.GlobalConfig.LeaseSpan) * time.Millisecond
 	if leaseInterval < types.MinLeaseInterval {
 		leaseInterval = types.MinLeaseInterval
@@ -541,19 +510,82 @@ func newBasicConcurrencyScheduler(funcSpec *types.FunctionSpecification, resKey 
 		leaseManager:         lease.NewGenericLeaseManager(funcKeyWitRes),
 		selfSubHealthRecord:  make(map[string]*instanceElement, utils.DefaultMapSize),
 		otherSubHealthRecord: make(map[string]*instanceElement, utils.DefaultMapSize),
-		sessionRecord:        make(map[string]*instanceElement, utils.DefaultMapSize),
-		observers:            make(map[scheduler.InstanceTopic][]*instanceObserver, utils.DefaultMapSize),
-		concurrentNum:        utils.GetConcurrentNum(funcSpec.InstanceMetaData.ConcurrentNum),
-		leaseInterval:        leaseInterval,
-		RWMutex:              mutex,
-		Cond:                 sync.NewCond(mutex),
-		grayAllocator:        NewHashBasedInstanceAllocator(0),
-		isFuncOwner:          selfregister.GlobalSchedulerProxy.CheckFuncOwner(funcSpec.FuncKey),
+		sessionManager: makeSessionManager(makeSessionCacheKey(funcSpec.FuncMetaData.Name, funcKeyWitRes),
+			os.Getenv("HOST_IP"), instanceType),
+		observers:     make(map[scheduler.InstanceTopic][]*instanceObserver, utils.DefaultMapSize),
+		concurrentNum: utils.GetConcurrentNum(funcSpec.InstanceMetaData.ConcurrentNum),
+		leaseInterval: leaseInterval,
+		RWMutex:       mutex,
+		Cond:          sync.NewCond(mutex),
+		grayAllocator: NewHashBasedInstanceAllocator(0),
+		isFuncOwner:   selfregister.GlobalSchedulerProxy.IsFuncOwner(funcSpec.FuncKey),
 	}
+	bcs.sessionManager.setFuncOwner(bcs.isFuncOwner)
 	bcs.grayAllocator.UpdateRolloutRatio(rollout.GetGlobalRolloutHandler().GetCurrentRatio())
 	bcs.createOtherInstanceQueue(otherInstanceQueue)
 	bcs.createSelfInstanceQueue(selfInstanceQueue)
+	if config.GlobalConfig.EnableSessionRecover {
+		go bcs.sessionManager.saveOrDeleteSessionRecordLoop()
+	}
 	return bcs
+}
+func (bcs *basicConcurrencyScheduler) RecoverSessionRecordFromDataSystem(fn utils.RecoverSessionCallback) {
+	if !config.GlobalConfig.EnableSessionRecover {
+		return
+	}
+	var sessionCache map[string][]SessionInDS
+	if bcs.sessionManager.isGrayStatus() {
+		sessionCache = bcs.sessionManager.loadSessionWithFilter(func(ds SessionInDS) bool {
+			return ds.SchedulerID == bcs.sessionManager.currentSchedulerID
+		})
+	} else {
+		sessionCache = bcs.sessionManager.loadSessionFromDataSystem()
+	}
+	if sessionCache == nil {
+		return
+	}
+	bcs.Lock()
+	bcs.loadSessionToInstanceQueue(fn, bcs.selfInstanceQueue, &sessionCache)
+	bcs.loadSessionToInstanceQueue(fn, bcs.otherInstanceQueue, &sessionCache)
+	bcs.Unlock()
+}
+
+func (bcs *basicConcurrencyScheduler) loadSessionToInstanceQueue(recoverCallback utils.RecoverSessionCallback,
+	queue queue.Queue, sessionCache *map[string][]SessionInDS) {
+	var instanceWaitBind []*instanceElement
+	queue.Range(func(obj interface{}) bool {
+		insElem, ok := obj.(*instanceElement)
+		if !ok {
+			return true
+		}
+		_, ok = (*sessionCache)[insElem.instance.InstanceID]
+		if ok {
+			instanceWaitBind = append(instanceWaitBind, insElem)
+		}
+		return true
+	})
+	for _, insElem := range instanceWaitBind {
+		sesses, ok := (*sessionCache)[insElem.instance.InstanceID]
+		if !ok {
+			continue
+		}
+		for _, sess := range sesses {
+			record, err := bcs.bindThdWithSession(queue, insElem, sess.InstanceSessionConfig)
+			if err != nil {
+				log.GetLogger().Errorf("bind session %s to instance %s failed, skip",
+					sess.SessionID, insElem.instance.InstanceID)
+				continue
+			}
+			bcs.sessionManager.addSession(sess.SessionID, record)
+			recoverCallback(&types.SessionInfo{
+				SessionID:  record.sessionID,
+				SessionCtx: record.ctx,
+			}, insElem.instance)
+			record.expiring.Store(true)
+			record.timer = time.NewTimer(record.ttl + 2*bcs.leaseInterval) // double lease timeout period.
+			go bcs.unbindInstanceSession(queue, record)
+		}
+	}
 }
 
 func (bcs *basicConcurrencyScheduler) createOtherInstanceQueue(instanceQueue queue.Queue) {
@@ -590,10 +622,20 @@ func (bcs *basicConcurrencyScheduler) scheduleRequest(insAcqReq *types.InstanceA
 	)
 	// once a session is bound with an instance, all pending requests of this session will be marked as designate
 	// instance requests to avoid other instanceScheduler scheduling them (others don't have a bound record)
-	if len(insAcqReq.InstanceSession.SessionID) != 0 {
-		insElem, exist := bcs.sessionRecord[insAcqReq.InstanceSession.SessionID]
+	if insAcqReq.DesignateInstanceID == "" && len(insAcqReq.InstanceSession.SessionID) != 0 {
+		record, exist := bcs.sessionManager.getSession(insAcqReq.InstanceSession.SessionID)
 		if exist {
-			insAcqReq.DesignateInstanceID = insElem.instance.InstanceID
+			insAcqReq.DesignateInstanceID = record.insElem.instance.InstanceID
+		} else if bcs.sessionManager.isGrayStatus() || !bcs.isFuncOwner {
+			insAcqReq.DesignateThreadID = bcs.sessionManager.queryInsBySessionFromDS(insAcqReq.InstanceSession.SessionID)
+		}
+	}
+	// 适配当前灰度设计，从数据系统恢复session-instance时，需要判断instance在哪个queue，灰度需求完成后删除该逻辑
+	if insAcqReq.DesignateInstanceID != "" && (bcs.sessionManager.isGrayStatus() || !bcs.isFuncOwner) {
+		if bcs.selfInstanceQueue.GetByID(insAcqReq.DesignateInstanceID) == nil {
+			useSelfInstance = false
+		} else {
+			useSelfInstance = true
 		}
 	}
 	if useSelfInstance {
@@ -625,6 +667,22 @@ func (bcs *basicConcurrencyScheduler) AcquireInstance(insAcqReq *types.InstanceA
 	// use other instance when: this scheduler is not the funcOwner and funcOwner breaks down so acquire request sent
 	// to this scheduler
 	useSelfInstance := bcs.isFuncOwner || insAcqReq.TrafficLimited
+	if insAcqReq.DesignateInstanceID == "" && len(insAcqReq.InstanceSession.SessionID) != 0 {
+		record, exist := bcs.sessionManager.getSession(insAcqReq.InstanceSession.SessionID)
+		if exist {
+			insAcqReq.DesignateInstanceID = record.insElem.instance.InstanceID
+		} else if bcs.sessionManager.isGrayStatus() || !bcs.isFuncOwner {
+			insAcqReq.DesignateThreadID = bcs.sessionManager.queryInsBySessionFromDS(insAcqReq.InstanceSession.SessionID)
+		}
+	}
+	if insAcqReq.DesignateInstanceID != "" && (bcs.sessionManager.isGrayStatus() || !bcs.isFuncOwner) {
+		// 适配当前灰度设计，从数据系统恢复session-instance时，需要判断instance在哪个queue，灰度需求完成后删除该逻辑
+		if bcs.selfInstanceQueue.GetByID(insAcqReq.DesignateInstanceID) != nil {
+			useSelfInstance = true
+		} else {
+			useSelfInstance = false
+		}
+	}
 	var (
 		insAlloc *types.InstanceAllocation
 		err      error
@@ -708,7 +766,7 @@ func (bcs *basicConcurrencyScheduler) acquireInstanceInternal(instanceQueue queu
 
 func (bcs *basicConcurrencyScheduler) acquireDefaultInstance(instanceQueue queue.Queue,
 	insAcqReq *types.InstanceAcquireRequest) (*types.InstanceAllocation, error) {
-	log.GetLogger().Infof("acquire default instance for function %s traceID %s", bcs.funcKeyWithRes,
+	log.GetLogger().Debugf("acquire default instance for function %s traceID %s", bcs.funcKeyWithRes,
 		insAcqReq.TraceID)
 	obj := instanceQueue.Front()
 	if obj == nil {
@@ -728,13 +786,12 @@ func (bcs *basicConcurrencyScheduler) acquireSessionInstance(instanceQueue queue
 	if insAcqReq.InstanceSession.Concurrency > bcs.concurrentNum {
 		return nil, scheduler.ErrInvalidSession
 	}
-	insElem, exist := fetchInsElemForSessionAcquire(instanceQueue, insAcqReq, bcs)
-	if !exist {
+	if !bcs.isSessionExist(instanceQueue, insAcqReq) {
 		var (
-			found bool
-			ok    bool
+			ok      bool
+			insElem *instanceElement
 		)
-		instanceQueue.SortedRange(func(obj interface{}) bool {
+		if instanceQueue.SortedRange(func(obj interface{}) bool {
 			insElem, ok = obj.(*instanceElement)
 			if !ok {
 				return true
@@ -743,48 +800,42 @@ func (bcs *basicConcurrencyScheduler) acquireSessionInstance(instanceQueue queue
 				return true
 			}
 			if len(insElem.threadMap) >= insAcqReq.InstanceSession.Concurrency {
-				found = true
 				return false
 			}
 			return true
-		})
-		if !found {
+		}) {
 			return nil, scheduler.ErrNoInsAvailable
 		}
-		if err := bcs.bindSessionWithInstance(instanceQueue, insElem, insAcqReq.InstanceSession); err != nil {
+		record, err := bcs.bindThdWithSession(instanceQueue, insElem, insAcqReq.InstanceSession)
+		if err != nil {
 			return nil, err
 		}
-		bcs.sessionRecord[insAcqReq.InstanceSession.SessionID] = insElem
-		return bcs.acquireInstanceThreadWithSession(insElem, insAcqReq.InstanceSession)
+		bcs.sessionManager.addSession(insAcqReq.InstanceSession.SessionID, record)
 	}
-	insAlloc, acqErr := bcs.acquireInstanceThreadWithSession(insElem, insAcqReq.InstanceSession)
+	insAlloc, acqErr := bcs.acquireSessionThread(insAcqReq.DesignateThreadID, insAcqReq.InstanceSession)
 	// if acqErr equals ErrNoInsThdAvail, try getting thread without session from the same instance
 	if acqErr != ErrNoInsThdAvail {
 		return insAlloc, acqErr
 	}
-	return acquireInstanceThread(insAcqReq.DesignateThreadID, instanceQueue, insElem)
+	record, ok := bcs.sessionManager.getSession(insAcqReq.InstanceSession.SessionID)
+	if !ok {
+		return insAlloc, acqErr
+	}
+	return bcs.acquireInstanceWithOverAcqSession(instanceQueue, record, insAcqReq)
 }
 
-func fetchInsElemForSessionAcquire(instanceQueue queue.Queue, insAcqReq *types.InstanceAcquireRequest,
-	bcs *basicConcurrencyScheduler) (*instanceElement, bool) {
-	insElem, exist := bcs.sessionRecord[insAcqReq.InstanceSession.SessionID]
+func (bcs *basicConcurrencyScheduler) isSessionExist(instanceQueue queue.Queue,
+	insAcqReq *types.InstanceAcquireRequest) bool {
+	record, exist := bcs.sessionManager.getSession(insAcqReq.InstanceSession.SessionID)
 	if exist {
 		// 缓存中有session但是instance已经被删除时，更新缓存
-		obj := instanceQueue.GetByID(insElem.instance.InstanceID)
+		obj := instanceQueue.GetByID(record.insElem.instance.InstanceID)
 		if obj == nil {
-			delete(bcs.sessionRecord, insAcqReq.InstanceSession.SessionID)
+			bcs.sessionManager.delSession(insAcqReq.InstanceSession.SessionID)
 			exist = false
-		} else {
-			insElemNew, ok := obj.(*instanceElement)
-			if !ok {
-				delete(bcs.sessionRecord, insAcqReq.InstanceSession.SessionID)
-				exist = false
-			} else {
-				insElem = insElemNew
-			}
 		}
 	}
-	return insElem, exist
+	return exist
 }
 
 func (bcs *basicConcurrencyScheduler) acquireDesignateInstance(instanceQueue queue.Queue,
@@ -798,7 +849,7 @@ func (bcs *basicConcurrencyScheduler) acquireDesignateInstance(instanceQueue que
 	obj := instanceQueue.GetByID(insAcqReq.DesignateInstanceID)
 	if obj == nil {
 		if len(insAcqReq.InstanceSession.SessionID) != 0 {
-			delete(bcs.sessionRecord, insAcqReq.InstanceSession.SessionID)
+			bcs.sessionManager.delSession(insAcqReq.InstanceSession.SessionID)
 		}
 		return nil, scheduler.ErrInsNotExist
 	}
@@ -810,11 +861,25 @@ func (bcs *basicConcurrencyScheduler) acquireDesignateInstance(instanceQueue que
 		return nil, scheduler.ErrInsSubHealthy
 	}
 	if len(insAcqReq.InstanceSession.SessionID) != 0 {
-		insAlloc, acqErr = bcs.acquireInstanceThreadWithSession(insElem, insAcqReq.InstanceSession)
-		// if acqErr equals ErrNoInsThdAvail, try getting thread without session from the same instance
-		if acqErr != ErrNoInsThdAvail {
-			return insAlloc, acqErr
+		record, ok := bcs.sessionManager.getSession(insAcqReq.InstanceSession.SessionID)
+		// 指定的实例与session绑定的实例冲突，以指定实例为准
+		if ok && record.insElem.instance.InstanceID != insAcqReq.DesignateInstanceID {
+			insAcqReq.InstanceSession.SessionID = ""
 		}
+		if !ok {
+			record, acqErr = bcs.bindThdWithSession(instanceQueue, insElem, insAcqReq.InstanceSession)
+			if acqErr != nil {
+				return nil, scheduler.ErrInternal
+			}
+			bcs.sessionManager.addSession(insAcqReq.InstanceSession.SessionID, record)
+		}
+		insAlloc, acqErr = bcs.acquireSessionThread(insAcqReq.DesignateThreadID,
+			insAcqReq.InstanceSession)
+		// if acqErr equals ErrNoInsThdAvail, try getting thread without session from the same instance
+		if acqErr == ErrNoInsThdAvail {
+			return bcs.acquireInstanceWithOverAcqSession(instanceQueue, record, insAcqReq)
+		}
+		return insAlloc, acqErr
 	}
 
 	// 对于evicting实例，仅供绑定会话的请求使用，否则认为改实例不可用
@@ -822,6 +887,19 @@ func (bcs *basicConcurrencyScheduler) acquireDesignateInstance(instanceQueue que
 		return nil, scheduler.ErrDesignateInsNotAvailable
 	}
 	return acquireInstanceThread(insAcqReq.DesignateThreadID, instanceQueue, insElem)
+}
+
+func (bcs *basicConcurrencyScheduler) acquireInstanceWithOverAcqSession(instanceQueue queue.Queue,
+	record *sessionRecord, insAcqReq *types.InstanceAcquireRequest) (*types.InstanceAllocation, error) {
+	insAlloc, acqErr := acquireInstanceThread(insAcqReq.DesignateThreadID, instanceQueue, record.insElem)
+	if acqErr == nil {
+		record.overAcqThdMap[insAlloc.AllocationID] = struct{}{}
+		insAlloc.SessionInfo = types.SessionInfo{
+			SessionID:  insAcqReq.InstanceSession.SessionID,
+			SessionCtx: record.ctx,
+		}
+	}
+	return insAlloc, acqErr
 }
 
 func acquireInstanceThread(designateThreadID string, insQue queue.Queue,
@@ -849,10 +927,10 @@ func acquireInstanceThread(designateThreadID string, insQue queue.Queue,
 	return insAlloc, nil
 }
 
-func (bcs *basicConcurrencyScheduler) bindSessionWithInstance(insQue queue.Queue, insElem *instanceElement,
-	session commonTypes.InstanceSessionConfig) error {
+func (bcs *basicConcurrencyScheduler) bindThdWithSession(insQue queue.Queue, insElem *instanceElement,
+	session commonTypes.InstanceSessionConfig) (*sessionRecord, error) {
 	if len(insElem.threadMap) < session.Concurrency {
-		return scheduler.ErrNoInsAvailable
+		return nil, scheduler.ErrNoInsAvailable
 	}
 	ctx, cancelFunc := context.WithCancel(context.TODO())
 	record := &sessionRecord{
@@ -861,11 +939,12 @@ func (bcs *basicConcurrencyScheduler) bindSessionWithInstance(insQue queue.Queue
 		ttl:            time.Duration(session.SessionTTL) * time.Second,
 		availThdMap:    make(map[string]struct{}, utils.DefaultMapSize),
 		allocThdMap:    make(map[string]struct{}, utils.DefaultMapSize),
+		overAcqThdMap:  make(map[string]struct{}, utils.DefaultMapSize),
 		concurrency:    session.Concurrency,
 		expireCancelCh: make(chan struct{}, 1),
 		cancelFunc:     cancelFunc,
+		insElem:        insElem,
 	}
-	insElem.sessionMap[session.SessionID] = record
 	for i := 0; i < session.Concurrency; i++ {
 		threadID := insElem.GetThreadFromThreadMap()
 		record.PutThreadToAllocThdMap(threadID)
@@ -878,7 +957,7 @@ func (bcs *basicConcurrencyScheduler) bindSessionWithInstance(insQue queue.Queue
 	if err != nil {
 		log.GetLogger().Errorf("failed to update instance %s during session binding of function %s error %s",
 			insElem.instance.InstanceID, bcs.funcKeyWithRes, err.Error())
-		return err
+		return nil, err
 	}
 	for threadId, _ := range record.allocThdMap {
 		insAlloc := &types.InstanceAllocation{
@@ -889,16 +968,16 @@ func (bcs *basicConcurrencyScheduler) bindSessionWithInstance(insQue queue.Queue
 	}
 	log.GetLogger().Infof("bind session %s with instance %s for function %s", record.sessionID,
 		insElem.instance.InstanceID, bcs.funcKeyWithRes)
-	return nil
+	return record, nil
 }
 
-func (bcs *basicConcurrencyScheduler) acquireInstanceThreadWithSession(insElem *instanceElement,
+func (bcs *basicConcurrencyScheduler) acquireSessionThread(designateThreadID string,
 	sessionConfig commonTypes.InstanceSessionConfig) (
 	*types.InstanceAllocation, error) {
-	record, exist := insElem.sessionMap[sessionConfig.SessionID]
+	record, exist := bcs.sessionManager.getSession(sessionConfig.SessionID)
 	if !exist {
-		log.GetLogger().Errorf("session %s is not bound with instance %s for function %s", sessionConfig.SessionID,
-			insElem.instance.InstanceID, bcs.funcKeyWithRes)
+		log.GetLogger().Errorf("session %s is not bound with instance for function %s", sessionConfig.SessionID,
+			bcs.funcKeyWithRes)
 		return nil, scheduler.ErrInternal
 	}
 	if len(record.availThdMap) == 0 {
@@ -914,8 +993,15 @@ func (bcs *basicConcurrencyScheduler) acquireInstanceThreadWithSession(insElem *
 	record.ttl = time.Duration(sessionConfig.SessionTTL) * time.Second
 	// every object here is pointer, no need to call UpdateObjByID
 	threadID := record.GetThreadFromAvailThdMap()
+	// 指定租约id时，需要替换allocThdMap中的id
+	if designateThreadID != "" {
+		log.GetLogger().Debugf("threadID %s has been replaced by %s", threadID, designateThreadID)
+		delete(record.allocThdMap, threadID)
+		record.allocThdMap[designateThreadID] = struct{}{}
+		threadID = designateThreadID
+	}
 	return &types.InstanceAllocation{
-		Instance: insElem.instance.Copy(),
+		Instance: record.insElem.instance.Copy(),
 		SessionInfo: types.SessionInfo{
 			SessionID:  sessionConfig.SessionID,
 			SessionCtx: record.ctx,
@@ -982,32 +1068,43 @@ func (bcs *basicConcurrencyScheduler) releaseInstanceThreadWithSession(insQue qu
 	insAlloc *types.InstanceAllocation) error {
 	log.GetLogger().Infof("start to unbind session %s with thread %s for function %s", insAlloc.SessionInfo.SessionID,
 		insAlloc.AllocationID, bcs.funcKeyWithRes)
-	record, exist := insElem.sessionMap[insAlloc.SessionInfo.SessionID]
+	record, exist := bcs.sessionManager.getSession(insAlloc.SessionInfo.SessionID)
 	if !exist {
 		log.GetLogger().Errorf("session %s is not bound with instance %s for function %s",
 			insAlloc.SessionInfo.SessionID, insElem.instance.InstanceID, bcs.funcKeyWithRes)
 		return scheduler.ErrInternal
+	}
+	if _, ok := record.overAcqThdMap[insAlloc.AllocationID]; ok {
+		log.GetLogger().Debugf("%s is over acquire thd for session %s, function %s", insAlloc.AllocationID,
+			insAlloc.SessionInfo.SessionID, bcs.funcKeyWithRes)
+		delete(record.overAcqThdMap, insAlloc.AllocationID)
+		bcs.startUnbindInstanceSession(insQue, record)
+		// overAcq的租约不属于这个session，因此需要返回ErrInsThdNotExist
+		return ErrInsThdNotExist
 	}
 	err := record.PutThreadToAvailThdMap(insAlloc.AllocationID)
 	if err != nil {
 		log.GetLogger().Warnf("put thread to availthdmap failed, err %s, func %s", err.Error(), bcs.funcKeyWithRes)
 		return ErrInsThdNotExist
 	}
-	expiring, _ := record.expiring.Load().(bool)
-	if len(record.availThdMap) == len(record.allocThdMap) && !expiring {
-		record.expiring.Store(true)
-		record.timer = time.NewTimer(record.ttl)
-		go bcs.unbindInstanceSession(insQue, insElem, record)
-	}
+	bcs.startUnbindInstanceSession(insQue, record)
 	return nil
 }
 
-func (bcs *basicConcurrencyScheduler) unbindInstanceSession(insQue queue.Queue, insElem *instanceElement,
-	record *sessionRecord) {
+func (bcs *basicConcurrencyScheduler) startUnbindInstanceSession(insQue queue.Queue, record *sessionRecord) {
+	expiring, _ := record.expiring.Load().(bool)
+	if len(record.overAcqThdMap) == 0 && len(record.availThdMap) == len(record.allocThdMap) && !expiring {
+		record.expiring.Store(true)
+		record.timer = time.NewTimer(record.ttl)
+		go bcs.unbindInstanceSession(insQue, record)
+	}
+}
+
+func (bcs *basicConcurrencyScheduler) unbindInstanceSession(insQue queue.Queue, record *sessionRecord) {
 	select {
 	case <-record.timer.C:
 		bcs.L.Lock()
-		if len(record.availThdMap) != len(record.allocThdMap) {
+		if len(record.availThdMap) != len(record.allocThdMap) || len(record.overAcqThdMap) != 0 {
 			<-record.expireCancelCh
 			log.GetLogger().Infof("avail thd has been acquired, session %s expire canceled", record.sessionID)
 			record.timer.Stop()
@@ -1016,23 +1113,26 @@ func (bcs *basicConcurrencyScheduler) unbindInstanceSession(insQue queue.Queue, 
 			return
 		}
 		record.cancelFunc()
+		if record.insElem == nil {
+			log.GetLogger().Infof("session %s has not bind by instance", record.sessionID)
+			return
+		}
 		for threadID, _ := range record.allocThdMap {
-			insElem.PutThreadToThreadMap(threadID)
+			record.insElem.PutThreadToThreadMap(threadID)
 			insAlloc := &types.InstanceAllocation{
-				Instance:     insElem.instance,
+				Instance:     record.insElem.instance,
 				AllocationID: threadID,
 			}
 			metrics.OnReleaseLease(insAlloc)
 		}
-		delete(insElem.sessionMap, record.sessionID)
-		delete(bcs.sessionRecord, record.sessionID)
-		if err := insQue.UpdateObjByID(insElem.instance.InstanceID, insElem); err != nil {
+		bcs.sessionManager.delSession(record.sessionID)
+		if err := insQue.UpdateObjByID(record.insElem.instance.InstanceID, record.insElem); err != nil {
 			log.GetLogger().Errorf("failed to update instance %s during unbinding with session %s for function %s"+
-				" error %s", insElem.instance.InstanceID, record.sessionID, bcs.funcKeyWithRes, err.Error())
+				" error %s", record.insElem.instance.InstanceID, record.sessionID, bcs.funcKeyWithRes, err.Error())
 		}
 		bcs.L.Unlock()
 		log.GetLogger().Infof("unbind session %s with instance %s for function %s", record.sessionID,
-			insElem.instance.InstanceID, bcs.funcKeyWithRes)
+			record.insElem.instance.InstanceID, bcs.funcKeyWithRes)
 	case <-record.expireCancelCh:
 		// set lock here may cause deadlock because multiple acquire requests of a same session may trigger this
 		// case many times
@@ -1100,8 +1200,7 @@ func (bcs *basicConcurrencyScheduler) AddInstance(instance *types.Instance) erro
 		err error
 	)
 	insElem := &instanceElement{
-		instance:   instance,
-		sessionMap: make(map[string]*sessionRecord, utils.DefaultMapSize),
+		instance: instance,
 	}
 	insElem.initThreadMap()
 	if isSelfInstance {
@@ -1156,6 +1255,14 @@ func (bcs *basicConcurrencyScheduler) SignalAllInstances(signalFunc scheduler.Si
 		signalFunc(insElem.instance)
 		return true
 	})
+	bcs.otherInstanceQueue.Range(func(obj interface{}) bool {
+		insElem, ok := obj.(*instanceElement)
+		if !ok {
+			return true
+		}
+		signalFunc(insElem.instance)
+		return true
+	})
 	bcs.RUnlock()
 }
 
@@ -1185,7 +1292,6 @@ func (bcs *basicConcurrencyScheduler) HandleInstanceUpdate(instance *types.Insta
 		insElem := &instanceElement{
 			instance:      instance,
 			isNewInstance: isNewInstance,
-			sessionMap:    make(map[string]*sessionRecord, utils.DefaultMapSize),
 		}
 		insElem.initThreadMap()
 		if err := instanceQueue.PushBack(insElem); err != nil {
@@ -1258,6 +1364,7 @@ func (bcs *basicConcurrencyScheduler) Destroy() {
 	bcs.Lock()
 	bcs.stopped = true
 	bcs.Unlock()
+	bcs.sessionManager.stopAndClean()
 	bcs.leaseManager.CleanAllLeases()
 }
 
@@ -1421,6 +1528,7 @@ func (bcs *basicConcurrencyScheduler) HandleFuncOwnerUpdate(isFuncOwner bool) {
 	)
 	isOwnerBefore := bcs.isFuncOwner
 	bcs.isFuncOwner = isFuncOwner
+	bcs.sessionManager.setFuncOwner(isFuncOwner)
 	if !isOwnerBefore && isFuncOwner {
 		becomeOwner = true
 		srcQueue = bcs.otherInstanceQueue

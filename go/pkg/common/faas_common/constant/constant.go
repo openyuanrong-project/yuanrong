@@ -108,16 +108,20 @@ const (
 	AcquireLeaseTrafficLimitErrorMessage = "reach max limit of acquiring lease concurrently"
 	// LeaseErrorInstanceIsAbnormalMessage - lease op failed, instance is abnormal
 	LeaseErrorInstanceIsAbnormalMessage = "lease op failed, instance is abnormal"
+	// AllSchedulerUnavailableErrorMessage - all scheduler unavailable
+	AllSchedulerUnavailableErrorMessage = "all scheduler unavailable"
 	// InsAcquireTimeOutErrorCode is the return code when acquire instance timout
 	InsAcquireTimeOutErrorCode = 6038
 	// AcquireLeaseVPCConflictErrorCode The called function instance has a VPC conflict
 	AcquireLeaseVPCConflictErrorCode = 6039
+	// AcquireVPCPatInfoErrorCode -
+	AcquireVPCPatInfoErrorCode = 6040
 	// InstancesConfigEtcdPrefix -
 	InstancesConfigEtcdPrefix = "/instances"
 	// InstancePathPrefix is the etcd path where the instance info will be placed
 	InstancePathPrefix = "/sn/instance"
-	// ModuleSchedulerPrefix is the etcd path where the module scheduler info will be placed
-	ModuleSchedulerPrefix = "/sn/faas-scheduler/instances"
+	// SchedulerHashPrefix is the etcd path where the scheduler hash info will be placed
+	SchedulerHashPrefix = "/sn/faas-scheduler/instances"
 	// SchedulerRolloutPrefix -
 	SchedulerRolloutPrefix = "/sn/faas-scheduler/rollout"
 	// RolloutConfigPrefix -
@@ -152,6 +156,9 @@ const (
 
 	// SchedulerExclusivityKey is the key for tenant exclusivity scheduler
 	SchedulerExclusivityKey = "exclusivity"
+	// FaaSSchedulerExclusivityEnvKey -
+	FaaSSchedulerExclusivityEnvKey = "FaaSScheduler_Exclusivity"
+
 	// SchedulerRecoverTime -
 	SchedulerRecoverTime = 30 * time.Second
 	// DefaultServerWriteTimeOut 1300s
@@ -160,6 +167,8 @@ const (
 	SchedulerKeyTypeFunction = "function"
 	// SchedulerKeyTypeModule -
 	SchedulerKeyTypeModule = "module"
+	// SchedulerInstanceKeyType -
+	SchedulerInstanceKeyType = "instance"
 	// StaticInstanceApplier mark the instance is created by static function
 	StaticInstanceApplier = "static_function"
 )
@@ -371,6 +380,11 @@ const (
 )
 
 const (
+	// DefaultFaaSSchedulerHttpPort -
+	DefaultFaaSSchedulerHttpPort = "8889"
+)
+
+const (
 	// HeaderInvokeURN  -
 	HeaderInvokeURN = "X-Tag-VersionUrn"
 	// HeaderStateKey -
@@ -405,6 +419,10 @@ const (
 	HeaderAuthTimestamp = "X-Timestamp-Auth"
 	// HeaderAuthorization is authorization
 	HeaderAuthorization = "Authorization"
+	// HeaderConnection -
+	HeaderConnection = "Connection"
+	// HeaderSignedHeader -
+	HeaderSignedHeader = "X-Signed-Header"
 	// HeaderInvokeAlias indicates alias of current invocation
 	HeaderInvokeAlias = "x-invoke-alias"
 	// HeaderRetryFlag -
@@ -436,6 +454,8 @@ const (
 	HeaderFrontendResponseStreamName = "X-Frontend-Response-Stream-Name"
 	// HeaderRemoteClientId -
 	HeaderRemoteClientId = "X-Remote-Client-Id"
+	// HeaderAcceptEventStream Accept:text/event-stream
+	HeaderAcceptEventStream = "text/event-stream"
 )
 
 const (
@@ -521,4 +541,13 @@ const (
 	InstanceTypeNote = "INSTANCE_TYPE_NOTE"
 	// InstanceLabelNode -
 	InstanceLabelNode = "INSTANCE_LABEL_NOTE"
+)
+
+const (
+	// BusinessTypeAgent -
+	BusinessTypeAgent = "AGENT"
+	// EnableAgentCRDRegistry -
+	EnableAgentCRDRegistry = "ENABLE_AGENT_CRD_REGISTRY"
+	// NodeNameSpaceSelectorKey the function is not in the default namespace, mark the node selector key.
+	NodeNameSpaceSelectorKey = "node-namespace"
 )

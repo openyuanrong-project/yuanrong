@@ -20,6 +20,7 @@ package scaler
 import (
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/instanceconfig"
@@ -37,12 +38,11 @@ const (
 	defaultScaleUpInitTime = 100
 )
 
-var (
-	scaleUpInitTime = time.Duration(defaultScaleUpInitTime) * time.Millisecond
-)
+var scaleUpInitTime = time.Duration(defaultScaleUpInitTime) * time.Millisecond
 
 // AutoScaler will scales instance automatically based on calculation upon instance metrics
 type AutoScaler struct {
+	enable           atomic.Bool
 	metricsCollector metrics.Collector
 	funcKeyWithRes   string
 	scaleUpWindow    time.Duration
@@ -61,7 +61,6 @@ type AutoScaler struct {
 	autoScaleUpFlag bool
 	// autoScaleDownFlag tells if auto scale up process is running
 	autoScaleDownFlag bool
-	enable            bool
 	checkReqNumFunc   func() int
 	scaleUpHandler    ScaleUpHandler
 	scaleDownHandler  ScaleDownHandler
@@ -77,7 +76,8 @@ type AutoScaler struct {
 
 // NewAutoScaler will create a AutoScaler
 func NewAutoScaler(funcKeyWithRes string, metricsCollector metrics.Collector, checkReqNumFunc CheckReqNumFunc,
-	scaleUpHandler ScaleUpHandler, scaleDownHandler ScaleDownHandler) InstanceScaler {
+	scaleUpHandler ScaleUpHandler, scaleDownHandler ScaleDownHandler,
+) InstanceScaler {
 	scaleUpWindow := time.Duration(config.GlobalConfig.AutoScaleConfig.SLAQuota) * time.Millisecond
 	if scaleUpWindow < minSLATime {
 		scaleUpWindow = minSLATime
@@ -94,7 +94,7 @@ func NewAutoScaler(funcKeyWithRes string, metricsCollector metrics.Collector, ch
 		checkReqNumFunc:    checkReqNumFunc,
 		scaleUpHandler:     scaleUpHandler,
 		scaleDownHandler:   scaleDownHandler,
-		enable:             false,
+		enable:             atomic.Bool{},
 		scaleUpTriggerCh:   make(chan struct{}, 1),
 		scaleDownTriggerCh: make(chan struct{}, 1),
 		stopCh:             make(chan struct{}),
@@ -112,6 +112,7 @@ func NewAutoScaler(funcKeyWithRes string, metricsCollector metrics.Collector, ch
 
 // SetEnable will configure the enable of scaler
 func (as *AutoScaler) SetEnable(enable bool) {
+	as.enable.Store(enable)
 }
 
 // TriggerScale will trigger scale

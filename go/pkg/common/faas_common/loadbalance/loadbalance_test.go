@@ -158,8 +158,8 @@ func TestLBTestSuite(t *testing.T) {
 	suite.Run(t, &LBTestSuite{lbType: ConsistentHashGeneric})
 }
 
-func TestConcurrentCHGeneric_Add(t *testing.T) {
-	con := NewConcurrentCHGeneric(2)
+func TestSimpleCHGeneric_Add(t *testing.T) {
+	con := NewSimpleCHGeneric()
 	con.Add("n1", 0)
 	con.Add("n2", 0)
 

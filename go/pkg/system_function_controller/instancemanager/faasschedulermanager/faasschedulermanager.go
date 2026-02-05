@@ -284,6 +284,8 @@ func createExtraParams(conf *types.SchedulerConfig, tenantID string) (*commonTyp
 	if conf.Affinity != "" {
 		createOptions[commonconstant.DelegateAffinity] = conf.Affinity
 	}
+	createOptions[commonconstant.DelegateEnvVar] = fmt.Sprintf(`{"%s":"%s"}`,
+		commonconstant.FaaSSchedulerExclusivityEnvKey, tenantID)
 	makePodLabel(createOptions, tenantID)
 	if config.GetFaaSControllerConfig().RawStsConfig.StsEnable {
 		secretVolumeMounts, err := sts.GenerateSecretVolumeMounts(sts.FaaSSchedulerName, utils.NewVolumeBuilder())

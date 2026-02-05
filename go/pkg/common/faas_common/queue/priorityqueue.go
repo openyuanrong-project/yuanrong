@@ -67,24 +67,25 @@ func (pq *PriorityQueue) Front() interface{} {
 }
 
 // Range iterates item in queue and process item with given function
-func (pq *PriorityQueue) Range(f func(obj interface{}) bool) {
+func (pq *PriorityQueue) Range(f func(obj interface{}) bool) bool {
 	for _, item := range pq.deHeap.items {
 		if !f(item.Obj) {
-			break
+			return false
 		}
 	}
+	return true
 }
 
 // SortedRange iterates item in queue and process item with given function in order
-func (pq *PriorityQueue) SortedRange(f func(obj interface{}) bool) {
+func (pq *PriorityQueue) SortedRange(f func(obj interface{}) bool) bool {
 	tmpHeap := pq.deHeap.Copy()
 	for {
 		item, ok := tmpHeap.PopMax().(*Item)
 		if !ok {
-			break
+			return true
 		}
 		if !f(item.Obj) {
-			break
+			return false
 		}
 	}
 }

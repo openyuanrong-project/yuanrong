@@ -50,8 +50,9 @@ func NewReservedConcurrencyScheduler(funcSpec *types.FunctionSpecification, resK
 	instanceQueue := queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance)
 	otherQueue := queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance)
 	reservedConcurrencyScheduler := &ReservedConcurrencyScheduler{
-		basicConcurrencyScheduler: newBasicConcurrencyScheduler(funcSpec, resKey, instanceQueue, otherQueue),
-		checkScalingTimeout:       requestTimeout,
+		basicConcurrencyScheduler: newBasicConcurrencyScheduler(funcSpec, resKey, types.InstanceTypeReserved,
+			instanceQueue, otherQueue),
+		checkScalingTimeout: requestTimeout,
 	}
 	reservedConcurrencyScheduler.insAcqReqQueue = insThdReqQueue
 	insThdReqQueue.RegisterSchFunc("reserveScheduleFunc", reservedConcurrencyScheduler.scheduleRequest)

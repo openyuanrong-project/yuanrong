@@ -31,8 +31,9 @@ var (
 
 // TimeWheel can trigger tasks periodically by given intervals
 type TimeWheel interface {
-	Wait() []string
-	AddTask(taskID string, interval time.Duration, times int) (<-chan struct{}, error)
+	Wait() ([]string, error)
+	AddTask(taskID string, interval time.Duration, times int) error
 	DelTask(taskID string) error
+	UpdateTask(taskID string, interval time.Duration, times int) error
 	Stop()
 }

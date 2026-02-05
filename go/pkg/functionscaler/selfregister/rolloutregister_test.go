@@ -253,3 +253,64 @@ func TestPutInsSpecForRolloutKey(t *testing.T) {
 		convey.So(err, convey.ShouldBeNil)
 	})
 }
+
+func Test_delInsSpecForRolloutKey(t *testing.T) {
+	convey.Convey("Given delInsSpecForRolloutKey function", t, func() {
+		patches := gomonkey.NewPatches()
+		defer patches.Reset()
+
+		isKeyExistFunc := func(client interface{}, key string) (bool, error) { return true, nil }
+		processEtcdPutFunc := func(client interface{}, key, val string) error { return nil }
+		patches.ApplyFunc(isKeyExist, isKeyExistFunc)
+		patches.ApplyFunc(processEtcdPut, processEtcdPutFunc)
+
+		convey.Convey("When lockedKey is empty", func() {
+			locker := &etcd3.EtcdLocker{LockedKey: ""}
+			err := delInsSpecForRolloutKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldEqual, "locked key is empty")
+		})
+
+		convey.Convey("When key does not exist in etcd", func() {
+			isKeyExistFunc = func(client interface{}, key string) (bool, error) { return false, nil }
+			patches.ApplyFunc(isKeyExist, isKeyExistFunc)
+
+			locker := &etcd3.EtcdLocker{LockedKey: "test-key"}
+			err := delInsSpecForRolloutKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldContainSubstring, "key not exist")
+		})
+
+		convey.Convey("When isKeyExist returns an error", func() {
+			isKeyExistFunc = func(client interface{}, key string) (bool, error) { return false, errors.New("etcd error") }
+			patches.ApplyFunc(isKeyExist, isKeyExistFunc)
+
+			locker := &etcd3.EtcdLocker{LockedKey: "test-key"}
+			err := delInsSpecForRolloutKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldContainSubstring, "key not exist or get error")
+		})
+
+		convey.Convey("When processEtcdPut fails", func() {
+			processEtcdPutFunc = func(client interface{}, key, val string) error { return errors.New("put error") }
+			patches.ApplyFunc(processEtcdPut, processEtcdPutFunc)
+
+			locker := &etcd3.EtcdLocker{LockedKey: "test-key"}
+			err := delInsSpecForRolloutKey(locker)
+			convey.So(err, convey.ShouldNotBeNil)
+			convey.So(err.Error(), convey.ShouldEqual, "put error")
+		})
+	})
+}
+
+func Test_unsetRolloutRegister(t *testing.T) {
+	convey.Convey("Given unsetRolloutRegister function", t, func() {
+		patches := gomonkey.NewPatches()
+		defer patches.Reset()
+
+		RolloutRegisterKey = "my-key"
+		unsetRolloutRegister()
+		convey.So(IsRolloutObject, convey.ShouldBeFalse)
+		convey.So(RolloutRegisterKey, convey.ShouldBeEmpty)
+	})
+}

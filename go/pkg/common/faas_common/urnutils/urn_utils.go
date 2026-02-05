@@ -283,6 +283,18 @@ func (p *FunctionURN) Valid() error {
 	return nil
 }
 
+// GetServiceNameFromFullName -
+func GetServiceNameFromFullName(funcName string) string {
+	if strings.HasPrefix(funcName, ServicePrefix) {
+		splits := strings.Split(funcName, "@") // 0@default@funcName
+		if len(splits) != funcNameMinLen {
+			return ""
+		}
+		return splits[ServiceNameIndex]
+	}
+	return ""
+}
+
 // GetFunctionNameAndServiceName returns serviceName and FunctionName
 func GetFunctionNameAndServiceName(funcName string) (string, string, error) {
 	if strings.HasPrefix(funcName, ServiceIDPrefix) {

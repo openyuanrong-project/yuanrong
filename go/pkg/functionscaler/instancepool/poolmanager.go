@@ -39,7 +39,6 @@ import (
 	"yuanrong.org/kernel/pkg/common/faas_common/urnutils"
 	commonUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
-	"yuanrong.org/kernel/pkg/functionscaler/dynamicconfigmanager"
 	"yuanrong.org/kernel/pkg/functionscaler/metrics"
 	"yuanrong.org/kernel/pkg/functionscaler/registry"
 	"yuanrong.org/kernel/pkg/functionscaler/state"
@@ -65,6 +64,7 @@ type PoolManager struct {
 	// instanceRecord is used to find instancePool for a specific instance watched from etcd, because router etcd will
 	instanceConfigRecord map[string]map[string]*instanceconfig.Configuration
 	stateLeaseManager    map[string]*stateinstance.Leaser // key instanceID
+	abnormalInstanceMap  *utils.TimeoutMap
 	leaseInterval        time.Duration
 	stopCh               <-chan struct{}
 	sync.RWMutex
@@ -98,6 +98,7 @@ func NewPoolManager(stopCh <-chan struct{}) *PoolManager {
 		instancePool:         make(map[string]InstancePool, utils.DefaultMapSize),
 		instanceConfigRecord: make(map[string]map[string]*instanceconfig.Configuration, utils.DefaultMapSize),
 		stateLeaseManager:    make(map[string]*stateinstance.Leaser),
+		abnormalInstanceMap:  utils.NewTimeoutMap(time.Minute),
 		leaseInterval:        leaseInterval,
 		stopCh:               stopCh,
 	}
@@ -285,17 +286,21 @@ func (pm *PoolManager) ReleaseInstanceThread(insAlloc *types.InstanceAllocation)
 }
 
 // ReleaseAbnormalInstance will release an abnormal instance of a specific function
-func (pm *PoolManager) ReleaseAbnormalInstance(instance *types.Instance) {
+func (pm *PoolManager) ReleaseAbnormalInstance(instance *types.Instance, logger api.FormatLogger) {
 	pm.RLock()
 	pool, exist := pm.instancePool[instance.FuncKey]
 	pm.RUnlock()
 	if !exist {
-		log.GetLogger().Warnf("instance pool for function %s doesn't exist", instance.FuncKey)
+		logger.Warnf("instance pool for function %s doesn't exist", instance.FuncKey)
 		return
 	}
-	if config.GlobalConfig.Scenario != types.ScenarioWiseCloud {
-		pool.HandleInstanceEvent(registry.SubEventTypeRemove, instance)
+	if _, ok := pm.abnormalInstanceMap.Get(instance.InstanceID); ok {
+		logger.Debugf("instance %s has stored into abnormal instance map, skip delete",
+			instance.InstanceID)
+		return
 	}
+	pm.abnormalInstanceMap.Set(instance.InstanceID, nil, time.Minute)
+	pool.HandleInstanceEvent(registry.SubEventTypeRemove, instance)
 }
 
 // HandleFunctionEvent handles function event
@@ -311,7 +316,6 @@ func (pm *PoolManager) HandleFunctionEvent(eventType registry.EventType, funcSpe
 				return
 			}
 		}
-		go handleK8sResourceUpdate(funcSpec)
 		if poolExist {
 			pool.HandleFunctionEvent(eventType, funcSpec)
 		}
@@ -333,7 +337,6 @@ func (pm *PoolManager) HandleFunctionEvent(eventType registry.EventType, funcSpe
 			pm.processInstancePoolDelete(funcSpec)
 			pool.HandleFunctionEvent(eventType, funcSpec)
 		}
-		go handleK8sResourceDelete(funcSpec)
 		metrics.ClearMetricsForFunction(funcSpec)
 	}
 
@@ -383,16 +386,24 @@ func (pm *PoolManager) processInstancePoolDelete(funcSpec *types.FunctionSpecifi
 
 // HandleInstanceEvent handles instance event
 func (pm *PoolManager) HandleInstanceEvent(eventType registry.EventType, insSpec *commonTypes.InstanceSpecification) {
+	if eventType == registry.SubEventTypeSynced {
+		for _, pool := range pm.instancePool {
+			pool.HandleInstanceEvent(eventType, nil)
+		}
+		return
+	}
 	items := strings.Split(insSpec.Function, utils.FuncKeyDelimiter)
 	if len(items) != utils.ValidFuncKeyLen {
 		return
 	}
 	if utils.IsFaaSManager(items[1]) {
-		pm.faasManagerInfo.funcKey = insSpec.Function
-		pm.faasManagerInfo.instanceID = insSpec.InstanceID
-		log.GetLogger().Infof("set faas manager info to %v", pm.faasManagerInfo)
-		for _, pool := range pm.instancePool {
-			pool.HandleFaaSManagerUpdate(pm.faasManagerInfo)
+		if eventType != registry.SubEventTypeDelete {
+			pm.faasManagerInfo.funcKey = insSpec.Function
+			pm.faasManagerInfo.instanceID = insSpec.InstanceID
+			log.GetLogger().Infof("set faas manager info to %v", pm.faasManagerInfo)
+			for _, pool := range pm.instancePool {
+				pool.HandleFaaSManagerUpdate(pm.faasManagerInfo)
+			}
 		}
 		return
 	}
@@ -469,9 +480,12 @@ func (pm *PoolManager) HandleInstanceConfigEvent(eventType registry.EventType,
 		With(zap.Any("eventType", eventType)).
 		With(zap.Any("InstanceLabel", insConfig.InstanceLabel))
 	logger.Infof("handling instance config event")
-	if eventType == registry.SubEventTypeSynced {
+	if eventType == registry.SubEventTypeSynced || eventType == registry.SubEventTypeCRSynced {
 		for _, pool := range pm.instancePool {
-			pool.CleanOrphansInstanceQueue()
+			if eventType == registry.SubEventTypeSynced && !pool.GetFuncSpec().MetaFromCR ||
+				eventType == registry.SubEventTypeCRSynced && pool.GetFuncSpec().MetaFromCR {
+				pool.CleanOrphansInstanceQueue()
+			}
 		}
 	}
 	pm.RLock()
@@ -547,27 +561,10 @@ func (pm *PoolManager) CheckMinInsAndReport(stopCh <-chan struct{}) {
 	go pm.checkMinInsRegularly(stopCh)
 }
 
-func handleK8sResourceUpdate(funcSpec *types.FunctionSpecification) {
-	dynamicconfigmanager.HandleUpdateFunctionEvent(funcSpec)
-}
-
-func handleK8sResourceDelete(funcSpec *types.FunctionSpecification) {
-	dynamicconfigmanager.HandleDeleteFunctionEvent(funcSpec)
-	utils.DeleteConfigMapByFuncInfo(funcSpec)
-}
-
 func getInstanceType(createOptions map[string]string) types.InstanceType {
 	instanceType, ok := createOptions[types.InstanceTypeNote]
 	if !ok {
 		return types.InstanceTypeUnknown
 	}
 	return types.InstanceType(instanceType)
-}
-
-func getInstanceLabel(createOptions map[string]string) string {
-	instanceLabel, ok := createOptions[types.InstanceLabelNode]
-	if !ok {
-		return ""
-	}
-	return instanceLabel
 }

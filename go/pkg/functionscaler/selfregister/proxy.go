@@ -18,11 +18,15 @@
 package selfregister
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
 	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/loadbalance"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
@@ -43,14 +47,15 @@ var (
 	SelfInstanceID string
 	// SelfInstanceName is the instanceName used when discovery type is module
 	SelfInstanceName string
-	selfInstanceSpec *types.InstanceSpecification
+
+	selfInstanceSpecLock sync.RWMutex
+	selfInstanceSpec     *types.InstanceSpecification
 )
 
 var (
 	// GlobalSchedulerProxy -
 	GlobalSchedulerProxy = NewSchedulerProxy(
-		loadbalance.NewConcurrentCHGeneric(HashRingSize),
-	)
+		loadbalance.LBFactory(loadbalance.SimpleHashGeneric))
 )
 
 // SchedulerProxy is used to get instances from FaaSScheduler via a grpc stream
@@ -73,7 +78,38 @@ func SetSelfInstanceName(instanceName string) {
 
 // SetSelfInstanceSpec -
 func SetSelfInstanceSpec(insSpec *types.InstanceSpecification) {
-	selfInstanceSpec = insSpec
+	var insSpecCopy *types.InstanceSpecification
+	if insSpec != nil {
+		bytes, err := json.Marshal(insSpec)
+		if err != nil {
+			return
+		}
+		err = json.Unmarshal(bytes, &insSpecCopy)
+		if err != nil || insSpecCopy == nil {
+			return
+		}
+
+		splits := strings.Split(insSpecCopy.RuntimeAddress, ":")
+		portStr := GetFaaSSchedulerHttpPort()
+		if len(splits) == 2 { // magic number
+			port, err := strconv.Atoi(splits[1]) // magic number
+			if err == nil && port > 0 {          // magic number
+				portStr = splits[1] // magic number
+			}
+		}
+		if len(splits) > 0 {
+			insSpecCopy.RuntimeAddress = fmt.Sprintf("%s:%s", splits[0], portStr)
+		}
+	}
+	selfInstanceSpecLock.Lock()
+	selfInstanceSpec = insSpecCopy
+	selfInstanceSpecLock.Unlock()
+}
+
+func getSelfInstanceSpec() *types.InstanceSpecification {
+	selfInstanceSpecLock.RLock()
+	defer selfInstanceSpecLock.RUnlock()
+	return selfInstanceSpec
 }
 
 // GetSchedulerProxyName -
@@ -123,37 +159,44 @@ func (sp *SchedulerProxy) Contains(id string) bool {
 	return ok
 }
 
+// IsFuncOwner determine etcd event should or not to be deal with
+func (sp *SchedulerProxy) IsFuncOwner(funcKey string) bool {
+	_, ok := sp.CheckFuncOwner(funcKey)
+	return ok
+}
+
 // CheckFuncOwner determine etcd event should or not to be deal with
-func (sp *SchedulerProxy) CheckFuncOwner(funcKey string) bool {
-	log.GetLogger().Debugf("check which faas scheduler instance should process function %s", funcKey)
+func (sp *SchedulerProxy) CheckFuncOwner(funcKey string) (string, bool) {
+	logger := log.GetLogger().With(zap.Any("funcKey", funcKey))
+	logger.Debugf("check which faas scheduler instance should process this function")
 	// select one FaaSScheduler by the func key
 	next := sp.loadBalance.Next(funcKey, false)
 	faasSchedulerName, ok := next.(string)
 	if !ok {
-		log.GetLogger().Errorf("failed to parse the result of load balance: %+v", next)
-		return false
+		logger.Errorf("failed to parse the result of load balance: %+v", next)
+		return "", false
 	}
 	if strings.TrimSpace(faasSchedulerName) == "" {
-		log.GetLogger().Errorf("no available faas scheduler was found")
-		return false
+		logger.Errorf("no available faas scheduler was found")
+		return "", false
 	}
 	faaSSchedulerData, ok := sp.FaaSSchedulers.Load(faasSchedulerName)
 	if !ok {
-		log.GetLogger().Errorf("failed to get the faas scheduler named %s", faasSchedulerName)
-		return false
+		logger.Errorf("failed to get the faas scheduler named %s", faasSchedulerName)
+		return "", false
 	}
 	faaSScheduler, ok := faaSSchedulerData.(*types.InstanceInfo)
 	if !ok {
-		log.GetLogger().Errorf("invalid faas scheduler named %s: %#v", faasSchedulerName, faaSSchedulerData)
-		return false
+		logger.Errorf("invalid faas scheduler named %s: %#v", faasSchedulerName, faaSSchedulerData)
+		return "", false
 	}
 	if faaSScheduler.InstanceName != GetSchedulerProxyName() {
-		log.GetLogger().Warnf("instanceID self is: %s, hash computed: %s", GetSchedulerProxyName(),
+		logger.Warnf("instanceID self is: %s, hash computed: %s", GetSchedulerProxyName(),
 			faaSScheduler.InstanceName)
-		return false
+		return faaSScheduler.InstanceID, false
 	}
-	log.GetLogger().Infof("this scheduler %s should process function %s", SelfInstanceID, funcKey)
-	return true
+	logger.Infof("this scheduler %s should process function", SelfInstanceID)
+	return faaSScheduler.InstanceID, true
 }
 
 // WaitForHash wait for num of concurrent hash node to add

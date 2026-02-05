@@ -212,16 +212,11 @@ bool TaskSubmitter::HandleFailInvokeIsDelayScaleDown(const NotifyRequest &req, c
     YRLOG_INFO("check if invoke is abnormal notify request code {} requestid {}", fmt::underlying(req.code()),
                req.requestid());
     if (req.code() == common::ErrorCode::ERR_INSTANCE_NOT_FOUND ||
-        req.code() == common::ErrorCode::ERR_INSTANCE_EXITED || req.code() == common::ErrorCode::ERR_INSTANCE_EVICTED) {
+        req.code() == common::ErrorCode::ERR_INSTANCE_EXITED || req.code() == common::ErrorCode::ERR_INSTANCE_EVICTED ||
+        req.code() == common::ErrorCode::ERR_USER_FUNCTION_EXCEPTION) {
         return false;
     }
-    if (req.code() == common::ErrorCode::ERR_INNER_SYSTEM_ERROR && err.IsTimeout()) {
-        return true;
-    }
-    if (req.code() < ::common::ErrorCode::ERR_USER_CODE_LOAD) {
-        return true;
-    }
-    return false;
+    return true;
 }
 
 void TaskSubmitter::HandleFailInvokeNotify(const NotifyRequest &req, const std::shared_ptr<InvokeSpec> spec,

@@ -20,14 +20,7 @@ package serviceaccount
 import (
 	"crypto/tls"
 	"fmt"
-
-	"yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/types"
 )
-
-// ParseServiceAccount -
-func ParseServiceAccount(serviceAccountKeyStr string) (*types.ServiceAccount, error) {
-	return nil, nil
-}
 
 // ParseTlsCipherSuites -
 func ParseTlsCipherSuites(tlsCipherSuitesStrs []string) ([]uint16, error) {

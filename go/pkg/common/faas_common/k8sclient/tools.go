@@ -72,8 +72,8 @@ func GetkubeClient() *KubeClient {
 	return KubeClientSet
 }
 
-// NewDynamicClient New Dynamic Client
-func NewDynamicClient() dynamic.Interface {
+// GetDynamicClient Get Dynamic Client
+func GetDynamicClient() dynamic.Interface {
 	dynamicClientOnce.Do(func() {
 		// create Kubernetes config
 		config, err := rest.InClusterConfig()

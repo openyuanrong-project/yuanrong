@@ -71,7 +71,6 @@ var (
 
 type basicHandler struct {
 	funcSpec          *types.FuncSpec
-	httpClient        *http.Client
 	sdkClient         api.LibruntimeAPI
 	functionLogger    *functionlog.FunctionLogger
 	logger            *RuntimeContainerLogger
@@ -111,10 +110,13 @@ func newBasicHandler(funcSpec *types.FuncSpec, client api.LibruntimeAPI) *basicH
 	}
 }
 
+var transport *http.Transport
+
 func (bh *basicHandler) getHTTPClient(timeout time.Duration) *http.Client {
 	bh.once.Do(func() {
 		defaultTransport := http.DefaultTransport
-		transport, ok := defaultTransport.(*http.Transport)
+		var ok bool
+		transport, ok = defaultTransport.(*http.Transport)
 		if !ok {
 			logger.GetLogger().Warnf("not a http transport type")
 			transport = &http.Transport{}
@@ -123,12 +125,11 @@ func (bh *basicHandler) getHTTPClient(timeout time.Duration) *http.Client {
 		// If we send a request while the connection is closing, the HTTP client will return an EOF error. As a result,
 		// we disable keep-alive completely.
 		transport.DisableKeepAlives = true
-		bh.httpClient = &http.Client{
-			Transport: transport,
-		}
 	})
-	bh.httpClient.Timeout = timeout
-	return bh.httpClient
+	return &http.Client{
+		Transport: transport,
+		Timeout: timeout,
+	}
 }
 
 func (bh *basicHandler) parseCreateParams(args []api.Arg) error {
@@ -238,7 +239,8 @@ func (bh *basicHandler) sendRequest(request *http.Request, timeout time.Duration
 	bh.setHTTPHeader(request.Header)
 	response, err := bh.getHTTPClient(timeout).Do(request)
 	if err != nil {
-		logger.GetLogger().Errorf("failed to send request with timeout %d s, error %s", timeout, err.Error())
+		logger.GetLogger().Errorf("failed to send request with timeout %d s, error %s", 
+			int(timeout.Seconds()), err.Error())
 		return nil, err
 	}
 	return response, nil
@@ -319,13 +321,12 @@ func (bh *basicHandler) processInitRequest(timeout time.Duration) ([]byte, error
 }
 
 func (bh *basicHandler) processCallRequest(args []api.Arg, traceID string,
-	timeout time.Duration, totalTime utils.ExecutionDuration) ([]byte, error) {
+	totalTime utils.ExecutionDuration) ([]byte, error) {
 	if len(args) < argsMinLength {
 		return nil, errors.New("args.length should not less than 2")
 	}
 	logRecorder := bh.functionLogger.NewLogRecorder(traceID, traceID, constants.InvokeStage)
 	logRecorder.StartSync()
-	logger := logger.GetLogger().With(zap.Any("traceID", traceID))
 	defer func() {
 		logRecorder.FinishSync()
 		logRecorder.Finish()
@@ -335,6 +336,11 @@ func (bh *basicHandler) processCallRequest(args []api.Arg, traceID string,
 		return utils.HandleCallResponse(fmt.Sprintf("unmarshal invoke call request data: %s, err: %s",
 			string(args[1].Data), err), constants.FaaSError, "", totalTime, nil)
 	}
+	timeoutSeconds := bh.callTimeout
+	if userCallRequest.Timeout > defaultTimeout {
+		timeoutSeconds = int(userCallRequest.Timeout)
+	}
+	logger := logger.GetLogger().With(zap.Any("traceID", traceID), zap.Any("timeout", timeoutSeconds))
 	request, err := bh.parseRequest(context.TODO(), userCallRequest.Body, userCallRequest.Header)
 	if err != nil {
 		logger.Errorf("failed to create request to call route,error: %s", err.Error())
@@ -344,8 +350,8 @@ func (bh *basicHandler) processCallRequest(args []api.Arg, traceID string,
 	totalTime.UserFuncBeginTime = time.Now()
 	result, err, _ := executeWithTimeout(func() (interface{}, error) {
 		request.Header.Set("Content-Type", "application/json")
-		return bh.sendRequest(request, timeout)
-	}, timeout, bh.monitor.ErrChan)
+		return bh.sendRequest(request, time.Duration(timeoutSeconds) * time.Second)
+	}, time.Duration(timeoutSeconds) * time.Second, bh.monitor.ErrChan)
 	totalTime.UserFuncTotalTime = time.Since(totalTime.UserFuncBeginTime)
 	if bh.logger != nil {
 		bh.logger.syncTo(time.Now())
@@ -520,7 +526,7 @@ func (bh *basicHandler) CallHandler(args []api.Arg, ctx map[string]string) ([]by
 		return utils.HandleCallResponse("invalid invoke argument", constants.FaaSError,
 			"", totalTime, nil)
 	}
-	return bh.processCallRequest(args, traceID, time.Duration(bh.callTimeout)*time.Second, totalTime)
+	return bh.processCallRequest(args, traceID, totalTime)
 }
 
 // CheckPointHandler handles checkpoint

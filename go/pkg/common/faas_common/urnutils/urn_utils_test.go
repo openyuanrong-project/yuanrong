@@ -222,6 +222,57 @@ func TestBaseURN_Valid(t *testing.T) {
 	separator = "-"
 }
 
+// TestGetServiceNameFromFullName 是主测试函数
+func TestGetServiceNameFromFullName(t *testing.T) {
+	// 使用一个 map 来存储所有测试用例，方便管理和扩展
+	tests := map[string]struct {
+		input    string
+		expected string
+	}{
+		"standard format with multiple @": {
+			input:    "0@my-service@my-function",
+			expected: "my-service",
+		},
+		"minimal valid format": {
+			input:    "0@core-service",
+			expected: "",
+		},
+		"service name with special characters": {
+			input:    "0@default@streamtest",
+			expected: "default",
+		},
+		"multiple separators, should pick by index": {
+			input:    "@a@b@c@d",
+			expected: "",
+		},
+		"wrong prefix": {
+			input:    "invalid-prefix@my-service",
+			expected: "",
+		},
+		"empty input": {
+			input:    "",
+			expected: "",
+		},
+		"input starts with @ but not the prefix": {
+			input:    "@not-a-service@my-func",
+			expected: "",
+		},
+	}
+
+	// 遍历并执行每个测试用例
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			// 调用被测函数
+			got := GetServiceNameFromFullName(tt.input)
+
+			// 断言结果是否符合预期
+			if got != tt.expected {
+				t.Errorf("GetServiceNameFromFullName(%q) = %q; want %q", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestBaseURN_GetAlias(t *testing.T) {
 	urn := FunctionURN{
 		ProductID:   "",

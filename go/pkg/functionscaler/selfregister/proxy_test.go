@@ -47,7 +47,7 @@ func Test_schedulerProxy_DealFilter(t *testing.T) {
 
 			SelfInstanceID = "aa2794fb-dc9e-420d-ae54-bedfa3577930"
 
-			flag := proxy.CheckFuncOwner("244177614494719500/0@default@testcustom001/latest")
+			flag := proxy.IsFuncOwner("244177614494719500/0@default@testcustom001/latest")
 
 			convey.So(flag, convey.ShouldBeFalse)
 
@@ -55,7 +55,7 @@ func Test_schedulerProxy_DealFilter(t *testing.T) {
 				InstanceName: "d06832bc-8c02-4589-9c37-edae4109302d",
 			})
 
-			flag = proxy.CheckFuncOwner("244177614494719500/0@default@testcustom001/latest")
+			flag = proxy.IsFuncOwner("244177614494719500/0@default@testcustom001/latest")
 
 			convey.So(flag, convey.ShouldBeFalse)
 
@@ -63,7 +63,7 @@ func Test_schedulerProxy_DealFilter(t *testing.T) {
 				InstanceName: "7d3f736e-b2b0-4b7e-bc8d-3a390ec0ed31",
 			})
 
-			flag = proxy.CheckFuncOwner("244177614494719500/0@default@testcustom001/latest")
+			flag = proxy.IsFuncOwner("244177614494719500/0@default@testcustom001/latest")
 
 			convey.So(flag, convey.ShouldBeTrue)
 
@@ -71,7 +71,7 @@ func Test_schedulerProxy_DealFilter(t *testing.T) {
 				InstanceName: "d06832bc-8c02-4589-9c37-edae4109302d",
 			}, "")
 
-			flag = proxy.CheckFuncOwner("244177614494719500/0@default@testcustom001/latest")
+			flag = proxy.IsFuncOwner("244177614494719500/0@default@testcustom001/latest")
 
 			convey.So(flag, convey.ShouldBeTrue)
 
@@ -81,7 +81,7 @@ func Test_schedulerProxy_DealFilter(t *testing.T) {
 
 			proxy.Reset()
 
-			flag = proxy.CheckFuncOwner("244177614494719500/0@default@testcustom001/latest")
+			flag = proxy.IsFuncOwner("244177614494719500/0@default@testcustom001/latest")
 
 			convey.So(flag, convey.ShouldBeFalse)
 		})
@@ -89,32 +89,32 @@ func Test_schedulerProxy_DealFilter(t *testing.T) {
 }
 
 func TestDealFilter(t *testing.T) {
-	proxy := NewSchedulerProxy(loadbalance.NewConcurrentCHGeneric(10))
+	proxy := NewSchedulerProxy(loadbalance.NewSimpleCHGeneric())
 	convey.Convey("start failed", t, func() {
-		res := proxy.CheckFuncOwner("mock-funcKey")
+		res := proxy.IsFuncOwner("mock-funcKey")
 		convey.So(res, convey.ShouldBeFalse)
 	})
 	proxy.Add(&types.InstanceInfo{
 		InstanceName: "scheduler-001",
 	}, "")
 	convey.Convey("start failed", t, func() {
-		res := proxy.CheckFuncOwner("mock-funcKey")
+		res := proxy.IsFuncOwner("mock-funcKey")
 		convey.So(res, convey.ShouldBeFalse)
 	})
 	SelfInstanceID = "scheduler-001"
 	convey.Convey("start success", t, func() {
-		res := proxy.CheckFuncOwner("mock-funcKey")
+		res := proxy.IsFuncOwner("mock-funcKey")
 		convey.So(res, convey.ShouldBeTrue)
 	})
 	proxy.FaaSSchedulers.Delete("scheduler-001")
 	convey.Convey("start failed", t, func() {
-		res := proxy.CheckFuncOwner("mock-funcKey")
+		res := proxy.IsFuncOwner("mock-funcKey")
 		convey.So(res, convey.ShouldBeFalse)
 	})
 }
 
 func TestContains(t *testing.T) {
-	proxy := NewSchedulerProxy(loadbalance.NewConcurrentCHGeneric(10))
+	proxy := NewSchedulerProxy(loadbalance.NewSimpleCHGeneric())
 	convey.Convey("not contains", t, func() {
 		res := proxy.Contains("instance1")
 		convey.So(res, convey.ShouldBeFalse)
@@ -122,7 +122,7 @@ func TestContains(t *testing.T) {
 }
 
 func Test(t *testing.T) {
-	proxy := NewSchedulerProxy(loadbalance.NewConcurrentCHGeneric(10))
+	proxy := NewSchedulerProxy(loadbalance.NewSimpleCHGeneric())
 	callTime := 0
 	defer gomonkey.ApplyFunc(time.Sleep, func(d time.Duration) {
 		callTime++

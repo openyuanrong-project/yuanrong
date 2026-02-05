@@ -20,6 +20,7 @@ package concurrencyscheduler
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/constant"
+	"yuanrong.org/kernel/pkg/common/faas_common/datasystemclient"
 	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
 	"yuanrong.org/kernel/pkg/common/faas_common/instanceconfig"
 	"yuanrong.org/kernel/pkg/common/faas_common/queue"
@@ -120,6 +122,7 @@ func TestMain(m *testing.M) {
 		BurstScaleNum: 100000,
 	}
 	config.GlobalConfig.LeaseSpan = 500
+	config.GlobalConfig.EnableSessionRecover = true
 	registry.InitRegistry(make(chan struct{}))
 	m.Run()
 }
@@ -128,7 +131,7 @@ func TestNewBasicConcurrencyScheduler(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 1},
-	}, resspeckey.ResSpecKey{}, nil, nil)
+	}, resspeckey.ResSpecKey{}, "", nil, nil)
 	assert.NotNil(t, bcs)
 }
 
@@ -136,7 +139,7 @@ func TestGetInstanceNumber(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 1},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	err := bcs.AddInstance(&types.Instance{
@@ -162,7 +165,7 @@ func TestAcquireInstanceBasic(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -212,7 +215,7 @@ func TestAcquireInstanceOtherQueue(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = false
@@ -251,13 +254,23 @@ func TestAcquireInstanceOtherQueue(t *testing.T) {
 }
 
 func TestAcquireInstanceWithSession(t *testing.T) {
+	defer gomonkey.ApplyFunc((*sessionManager).saveSessionRecordToDataSystem, func(_ *sessionManager) {
+		return
+	}).Reset()
+	defer gomonkey.ApplyFunc((*sessionManager).deleteSessionRecordToDataSystem, func(_ *sessionManager) {
+		return
+	}).Reset()
+	defer gomonkey.ApplyFunc((*sessionManager).loadSessionFromDataSystem, func(_ *sessionManager) map[string][]commonTypes.InstanceSessionConfig {
+		return map[string][]commonTypes.InstanceSessionConfig{}
+	}).Reset()
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 4},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
-	bcs.isFuncOwner = true
+	//bcs.isFuncOwner = true
+	bcs.HandleFuncOwnerUpdate(true)
 	checkInUseInsThd := 0
 	checkAvailInsThd := 0
 	bcs.addObservers(scheduler.InUseInsThdTopic, func(obj interface{}) {
@@ -313,10 +326,19 @@ func TestAcquireInstanceWithSession(t *testing.T) {
 }
 
 func TestReleaseInstance(t *testing.T) {
+	defer gomonkey.ApplyFunc((*sessionManager).saveSessionRecordToDataSystem, func(_ *sessionManager) {
+		return
+	}).Reset()
+	defer gomonkey.ApplyFunc((*sessionManager).deleteSessionRecordToDataSystem, func(_ *sessionManager) {
+		return
+	}).Reset()
+	defer gomonkey.ApplyFunc((*sessionManager).loadSessionFromDataSystem, func(_ *sessionManager) map[string][]commonTypes.InstanceSessionConfig {
+		return map[string][]commonTypes.InstanceSessionConfig{}
+	}).Reset()
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -376,7 +398,7 @@ func TestReleaseInstanceWithSession(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -433,7 +455,7 @@ func TestAddInstance(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -506,7 +528,7 @@ func TestDelInstance(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -580,7 +602,7 @@ func TestPopInstanceElement(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -647,7 +669,7 @@ func TestSignalAllInstances(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -683,7 +705,7 @@ func TestHandleInstanceUpdate(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -776,7 +798,7 @@ func TestHandleInstanceUpdate_withEvictingInstance(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	bcs.isFuncOwner = true
@@ -821,19 +843,7 @@ func TestHandleInstanceUpdate_withEvictingInstance(t *testing.T) {
 	assert.Equal(t, 2, checkTotalInsThd)
 	assert.Equal(t, 0, checkInUseInsThd)
 
-	obj := bcs.selfInstanceQueue.GetByID("instance2")
-	ins2, ok := obj.(*instanceElement)
-	assert.True(t, ok)
-	ins2.sessionMap["0000"] = &sessionRecord{
-		availThdMap: make(map[string]struct{}),
-	}
-	ins2.sessionMap["0000"].availThdMap["00"] = struct{}{}
-	_, err := bcs.AcquireInstance(&types.InstanceAcquireRequest{DesignateInstanceID: "instance2", InstanceSession: commonTypes.InstanceSessionConfig{
-		SessionID: "0000",
-	}})
-	assert.Nil(t, err)
-
-	_, err = bcs.AcquireInstance(&types.InstanceAcquireRequest{DesignateInstanceID: "instance2"})
+	_, err := bcs.AcquireInstance(&types.InstanceAcquireRequest{DesignateInstanceID: "instance2"})
 	assert.NotNil(t, err)
 
 	assert.Equal(t, 2, checkAvailInsThd)
@@ -855,7 +865,7 @@ func Test_basicConcurrencyScheduler_ReassignInstance(t *testing.T) {
 	bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	checkAvailInsThd := 0
@@ -943,7 +953,7 @@ func Test_basicConcurrencyScheduler_scheduleRequest(t *testing.T) {
 			bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 				FuncKey:          "testFunction",
 				InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-			}, resspeckey.ResSpecKey{},
+			}, resspeckey.ResSpecKey{}, "",
 				queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 				queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 			bcs.isFuncOwner = false
@@ -967,7 +977,7 @@ func Test_basicConcurrencyScheduler_scheduleRequest(t *testing.T) {
 			bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 				FuncKey:          "testFunction",
 				InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-			}, resspeckey.ResSpecKey{},
+			}, resspeckey.ResSpecKey{}, "",
 				queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 				queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 			bcs.isFuncOwner = false
@@ -985,7 +995,7 @@ func Test_basicConcurrencyScheduler_scheduleRequest(t *testing.T) {
 			bcs := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 				FuncKey:          "testFunction",
 				InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 1},
-			}, resspeckey.ResSpecKey{},
+			}, resspeckey.ResSpecKey{}, "",
 				queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 				queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 			bcs.isFuncOwner = true
@@ -1022,7 +1032,7 @@ func TestReassignInstancesGray(t *testing.T) {
 	mainScheduler := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	mainScheduler.isFuncOwner = true
@@ -1030,7 +1040,7 @@ func TestReassignInstancesGray(t *testing.T) {
 	grayScheduler := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	grayScheduler.isFuncOwner = true
@@ -1084,7 +1094,7 @@ func TestReassignInstancesGrayWhenAddOrDelReassign(t *testing.T) {
 	mainScheduler := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	mainScheduler.isFuncOwner = true
@@ -1092,7 +1102,7 @@ func TestReassignInstancesGrayWhenAddOrDelReassign(t *testing.T) {
 	grayScheduler := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	grayScheduler.isFuncOwner = true
@@ -1207,7 +1217,7 @@ func TestReassignInstancesGrayBothQueuesInitiallyEmpty(t *testing.T) {
 	scheduler1 := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	scheduler1.isFuncOwner = true
@@ -1266,7 +1276,7 @@ func TestReassignInstancesGrayWhenFixedOtherInstance(t *testing.T) {
 	scheduler1 := newBasicConcurrencyScheduler(&types.FunctionSpecification{
 		FuncKey:          "testFunction",
 		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
-	}, resspeckey.ResSpecKey{},
+	}, resspeckey.ResSpecKey{}, "",
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
 		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
 	instance := &types.Instance{
@@ -1372,4 +1382,277 @@ func TestInstanceQueueWithSubHealthAndEvictingRecord(t *testing.T) {
 			convey.So(iq.Len(), convey.ShouldEqual, 0)
 		})
 	})
+}
+
+// newTestQueue 是一个辅助函数，用于创建一个带有预填充数据的测试实例
+func newTestQueue(main, sub, evicting map[string]*instanceElement) *instanceQueueWithSubHealthAndEvictingRecord {
+	// 注意：这里假设 instanceQueueWithSubHealthAndEvictingRecord 有一个可以接收 mockInstances 的构造函数
+	// 或者它的成员变量可以直接赋值。如果您的实现不同，需要调整这部分。
+	// 为了演示，我们假设可以这样初始化：
+	instanceQueue := queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance)
+	for _, ins := range main {
+		instanceQueue.PushBack(ins)
+	}
+	q := &instanceQueueWithSubHealthAndEvictingRecord{
+		// 假设 instanceQueue 是一个实现了 Range 和 SortedRange 的类型
+		// 这里我们用一个 mockInstances 来模拟它
+		instanceQueue:   instanceQueue,
+		subHealthRecord: sub,
+		evictingRecord:  evicting,
+	}
+	return q
+}
+
+func getMockInstanceMap(instanceNames []string, statusCode int32) map[string]*instanceElement {
+	instanceMap := make(map[string]*instanceElement)
+	for _, name := range instanceNames {
+		ins := &instanceElement{
+			instance: &types.Instance{
+				InstanceStatus: commonTypes.InstanceStatus{
+					Code: statusCode,
+				},
+				ResKey:     resspeckey.ResSpecKey{},
+				InstanceID: name,
+			},
+			threadMap: make(map[string]struct{}),
+		}
+		instanceMap[name] = ins
+	}
+	return instanceMap
+}
+
+// --- Test Cases for Range ---
+func TestInstanceQueue_Range(t *testing.T) {
+	convey.Convey("TestInstanceQueue_Range", t, func() {
+		testInstanceQueueWithSubHealthAndEvictingRecord := newTestQueue(
+			getMockInstanceMap([]string{"a", "b", "c", "d", "e"}, int32(constant.KernelInstanceStatusRunning)),
+			getMockInstanceMap([]string{"d", "e", "f"}, int32(constant.KernelInstanceStatusSubHealth)),
+			getMockInstanceMap([]string{"e", "f", "g"}, int32(constant.KernelInstanceStatusEvicting)))
+
+		var testInstance *instanceElement
+
+		vistedStr := "d visited"
+		testInstanceId := "d"
+		testFunc := func(obj interface{}) bool {
+			ins, ok := obj.(*instanceElement)
+			if !ok {
+				return true
+			}
+			ins.instance.FuncKey = vistedStr
+			if ins.instance.InstanceID == testInstanceId {
+				testInstance = ins
+				return false
+			}
+			return true
+		}
+		testInstanceQueueWithSubHealthAndEvictingRecord.Range(testFunc)
+		convey.So(testInstance, convey.ShouldNotBeNil)
+		convey.So(testInstance.instance.InstanceID, convey.ShouldEqual, testInstanceId)
+		for _, ins := range testInstanceQueueWithSubHealthAndEvictingRecord.subHealthRecord {
+			convey.So(ins.instance.FuncKey, convey.ShouldNotEqual, vistedStr)
+		}
+		for _, ins := range testInstanceQueueWithSubHealthAndEvictingRecord.evictingRecord {
+			convey.So(ins.instance.FuncKey, convey.ShouldNotEqual, vistedStr)
+		}
+
+		vistedStr = "d sortrange visited"
+		testInstanceQueueWithSubHealthAndEvictingRecord.SortedRange(testFunc)
+		convey.So(testInstance.instance.InstanceID, convey.ShouldEqual, testInstanceId)
+		for _, ins := range testInstanceQueueWithSubHealthAndEvictingRecord.subHealthRecord {
+			convey.So(ins.instance.FuncKey, convey.ShouldNotEqual, vistedStr)
+		}
+		for _, ins := range testInstanceQueueWithSubHealthAndEvictingRecord.evictingRecord {
+			convey.So(ins.instance.FuncKey, convey.ShouldNotEqual, vistedStr)
+		}
+
+		testInstanceId = "f"
+		testInstanceQueueWithSubHealthAndEvictingRecord.Range(testFunc)
+		convey.So(testInstance.instance.InstanceID, convey.ShouldEqual, testInstanceId)
+		convey.So(testInstance.instance.InstanceStatus.Code, convey.ShouldEqual, int32(constant.KernelInstanceStatusSubHealth))
+		testInstance = nil
+		testInstanceQueueWithSubHealthAndEvictingRecord.SortedRange(testFunc)
+		convey.So(testInstance.instance.InstanceID, convey.ShouldEqual, testInstanceId)
+		convey.So(testInstance.instance.InstanceStatus.Code, convey.ShouldEqual, int32(constant.KernelInstanceStatusSubHealth))
+
+		testInstanceId = "g"
+		testInstanceQueueWithSubHealthAndEvictingRecord.Range(testFunc)
+		convey.So(testInstance.instance.InstanceID, convey.ShouldEqual, testInstanceId)
+		convey.So(testInstance.instance.InstanceStatus.Code, convey.ShouldEqual, int32(constant.KernelInstanceStatusEvicting))
+		testInstance = nil
+		testInstanceQueueWithSubHealthAndEvictingRecord.SortedRange(testFunc)
+		convey.So(testInstance.instance.InstanceID, convey.ShouldEqual, testInstanceId)
+		convey.So(testInstance.instance.InstanceStatus.Code, convey.ShouldEqual, int32(constant.KernelInstanceStatusEvicting))
+	})
+}
+
+func TestRecoverSessionRecordFromDataSystem(t *testing.T) {
+	config.GlobalConfig.EnableSessionRecover = true
+	defer gomonkey.ApplyFunc(datasystemclient.KVGetWithRetry, func(key string, option *datasystemclient.Option, traceID string) ([]byte, error) {
+		return []byte("{\"38b03220-7f67-473e-8000-000000000030\":[{\"sessionID\":\"bbbbb\",\"sessionTTL\":3600,\"concurrency\":3},{\"sessionID\":\"ccccc\",\"sessionTTL\":3600,\"concurrency\":3}]}"), nil
+	}).Reset()
+
+	config.GlobalConfig.DataSystemConfig = types.DataSystemConfig{
+		CurrentCluster:  "",
+		UploadWriteMode: 0,
+		UploadTTLSec:    10,
+	}
+	sc := newBasicConcurrencyScheduler(&types.FunctionSpecification{
+		FuncKey:          "testFunction",
+		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
+	}, resspeckey.ResSpecKey{}, "",
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
+	sc.HandleFuncOwnerUpdate(true)
+	instance := &types.Instance{
+		InstanceID:        "38b03220-7f67-473e-8000-000000000030",
+		ConcurrentNum:     6,
+		ResKey:            resspeckey.ResSpecKey{},
+		Permanent:         true,
+		CreateSchedulerID: "abc",
+		InstanceStatus:    commonTypes.InstanceStatus{Code: int32(constant.KernelInstanceStatusRunning)},
+	}
+	assert.NoError(t, sc.AddInstance(instance))
+	i := 0
+	defer gomonkey.ApplyFunc(datasystemclient.KVPutWithRetry, func(key string, value []byte, option *datasystemclient.Option, traceID string) error {
+		i++
+		return fmt.Errorf("put failed")
+	}).Reset()
+	defer gomonkey.ApplyFunc(datasystemclient.KVDelWithRetry, func(key string, option *datasystemclient.Option, traceID string) error {
+		i++
+		return fmt.Errorf("del failed")
+	}).Reset()
+	sc.RecoverSessionRecordFromDataSystem(func(sessInfo *types.SessionInfo, instance *types.Instance) {})
+	assert.Equal(t, 2, len(sc.sessionManager.sessionMap))
+	sc.sessionManager.delSession("bbbbb")
+	sc.sessionManager.delSession("ccccc")
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, 4, i)
+}
+
+func TestRecoverSessionRecordFromDataSystemInGray(t *testing.T) {
+	config.GlobalConfig.EnableSessionRecover = true
+	defer gomonkey.ApplyFunc(datasystemclient.KVGetWithRetry, func(key string, option *datasystemclient.Option, traceID string) ([]byte, error) {
+		return []byte("{\"38b03220-7f67-473e-8000-000000000030\":[{\"SchedulerID\":\"1.1.1.1\",\"sessionID\":\"bbbbb\",\"sessionTTL\":3600,\"concurrency\":3},{\"SchedulerID\":\"2.2.2.2\",\"sessionID\":\"ccccc\",\"sessionTTL\":3600,\"concurrency\":3}]}"), nil
+	}).Reset()
+	delCnt := 0
+	putCnt := 0
+	defer gomonkey.ApplyFunc(datasystemclient.KVPutWithRetry, func(key string, value []byte, option *datasystemclient.Option, traceID string) error {
+		putCnt++
+		return nil
+	}).Reset()
+	defer gomonkey.ApplyFunc(datasystemclient.KVDelWithRetry, func(key string, option *datasystemclient.Option, traceID string) error {
+		delCnt++
+		return nil
+	}).Reset()
+	selfregister.IsRollingOut = true
+	defer func() {
+		selfregister.IsRollingOut = false
+	}()
+	config.GlobalConfig.DataSystemConfig = types.DataSystemConfig{
+		CurrentCluster:  "",
+		UploadWriteMode: 0,
+		UploadTTLSec:    10,
+	}
+	os.Setenv("POD_IP", "1.1.1.1")
+	defer os.Unsetenv("POD_IP")
+	sc := newBasicConcurrencyScheduler(&types.FunctionSpecification{
+		FuncKey:          "testFunction",
+		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
+	}, resspeckey.ResSpecKey{}, "",
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
+	sc.HandleFuncOwnerUpdate(true)
+	instance := &types.Instance{
+		InstanceID:        "38b03220-7f67-473e-8000-000000000030",
+		ConcurrentNum:     6,
+		ResKey:            resspeckey.ResSpecKey{},
+		Permanent:         true,
+		CreateSchedulerID: "abc",
+		InstanceStatus:    commonTypes.InstanceStatus{Code: int32(constant.KernelInstanceStatusRunning)},
+	}
+	assert.NoError(t, sc.AddInstance(instance))
+	sc.RecoverSessionRecordFromDataSystem(func(sessInfo *types.SessionInfo, instance *types.Instance) {})
+	assert.Equal(t, 1, len(sc.sessionManager.sessionMap))
+	_, exist := sc.sessionManager.getSession("bbbbb")
+	assert.Equal(t, exist, true)
+	_, exist = sc.sessionManager.getSession("ccccc")
+	assert.Equal(t, exist, false)
+	insId := sc.sessionManager.queryInsBySessionFromDS("ccccc")
+	assert.Equal(t, insId, "38b03220-7f67-473e-8000-000000000030")
+	insId = sc.sessionManager.queryInsBySessionFromDS("aaaaa")
+	assert.Equal(t, insId, "")
+	sc.sessionManager.triggerDeleteSessionRecord()
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, delCnt, 0)
+	assert.Equal(t, putCnt, 2)
+}
+
+func TestRecoverSessionRecordSwitch(t *testing.T) {
+	config.GlobalConfig.EnableSessionRecover = false
+	sc := newBasicConcurrencyScheduler(&types.FunctionSpecification{
+		FuncKey:          "testFunction",
+		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
+	}, resspeckey.ResSpecKey{}, "",
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
+	sc.HandleFuncOwnerUpdate(true)
+	instance := &types.Instance{
+		InstanceID:        "38b03220-7f67-473e-8000-000000000030",
+		ConcurrentNum:     6,
+		ResKey:            resspeckey.ResSpecKey{},
+		Permanent:         true,
+		CreateSchedulerID: "abc",
+		InstanceStatus:    commonTypes.InstanceStatus{Code: int32(constant.KernelInstanceStatusRunning)},
+	}
+	assert.NoError(t, sc.AddInstance(instance))
+	i := 0
+	defer gomonkey.ApplyFunc((*sessionManager).saveSessionRecordToDataSystem, func(_ *sessionManager) {
+		i++
+		return
+	}).Reset()
+	defer gomonkey.ApplyFunc((*sessionManager).deleteSessionRecordToDataSystem, func(_ *sessionManager) {
+		i++
+		return
+	}).Reset()
+	sc.sessionManager.triggerSaveSessionRecord()
+	sc.sessionManager.triggerSaveSessionRecord()
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, 0, i)
+}
+
+func TestSaveSessionRecord(t *testing.T) {
+	config.GlobalConfig.EnableSessionRecover = true
+	sc := newBasicConcurrencyScheduler(&types.FunctionSpecification{
+		FuncKey:          "testFunction",
+		InstanceMetaData: commonTypes.InstanceMetaData{ConcurrentNum: 2},
+	}, resspeckey.ResSpecKey{}, "",
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance),
+		queue.NewPriorityQueue(getInstanceID, priorityFuncForReservedInstance))
+	sc.HandleFuncOwnerUpdate(true)
+	instance := &types.Instance{
+		InstanceID:        "38b03220-7f67-473e-8000-000000000030",
+		ConcurrentNum:     6,
+		ResKey:            resspeckey.ResSpecKey{},
+		Permanent:         true,
+		CreateSchedulerID: "abc",
+		InstanceStatus:    commonTypes.InstanceStatus{Code: int32(constant.KernelInstanceStatusRunning)},
+	}
+	assert.NoError(t, sc.AddInstance(instance))
+
+	i := 0
+	defer gomonkey.ApplyFunc(datasystemclient.KVPutWithRetry, func(key string, value []byte, option *datasystemclient.Option, traceID string) error {
+		i++
+		assert.Equal(t, "sessioncache--6f273ad8e3999bbc", key)
+		return nil
+	}).Reset()
+	sc.sessionManager.addSession("sessionid", &sessionRecord{
+		ttl:         0,
+		concurrency: 0,
+		sessionID:   "sessionid",
+		insElem: &instanceElement{
+			instance: instance,
+		},
+	})
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, 1, i)
 }

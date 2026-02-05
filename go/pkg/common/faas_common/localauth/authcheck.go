@@ -32,6 +32,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/valyala/fasthttp"
+
+	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	"yuanrong.org/kernel/pkg/common/faas_common/utils"
 )
@@ -47,6 +50,14 @@ const (
 	minLengthOfAuthValue  = 2
 	base                  = 10
 	bitSize               = 64
+)
+
+const (
+	// AuthPrefixHmacSha256 -
+	AuthPrefixHmacSha256 = "HmacSha256"
+	defaultSignFieldNum  = 4
+	signExpirationTime   = int64(5 * 60 * 1000)
+	signFieldSize        = 2
 )
 
 var timestampDiffLimit = getTimestampDiffLimit()
@@ -87,6 +98,19 @@ type AuthConfig struct {
 type Authentication struct {
 	AKey []byte
 	SKey []byte
+}
+
+// SignRequest -
+type SignRequest struct {
+	Method           string
+	Path             string
+	Query            string
+	Body             []byte
+	Headers          map[string]string
+	SignedHeaderKeys []string
+	Timestamp        string
+	AK               string
+	SK               string
 }
 
 // signLocalAuthRequest returns the authentication header
@@ -307,6 +331,7 @@ func getTimestampDiffLimit() float64 {
 	} else {
 		tsDiffLimit = float64(defaultTimestampDiffLimit)
 	}
+	log.GetLogger().Infof("current timestampDiffLimit is %f", tsDiffLimit)
 	return tsDiffLimit
 }
 
@@ -403,4 +428,223 @@ func CreateAuthorization(ak, sk, url, appID string, data []byte) (string, string
 	utils.ClearByteMemory(aKey)
 	utils.ClearByteMemory(sKey)
 	return authorization, timestamp
+}
+
+// SignWithHmacSha256 make signatures for request with system ak/sk
+func SignWithHmacSha256(req *fasthttp.Request, ak, sk string) error {
+	headers, signedHeaderKeys := getHeaders(req)
+	signReq := &SignRequest{
+		Method:           string(req.Header.Method()),
+		Path:             string(req.URI().Path()),
+		Query:            getQuery(req),
+		Body:             req.Body(),
+		Headers:          headers,
+		SignedHeaderKeys: signedHeaderKeys,
+		Timestamp:        strconv.FormatInt(time.Now().UnixMilli(), base),
+		AK:               ak,
+		SK:               sk,
+	}
+	signature := sign(signReq)
+	if len(signature) == 0 {
+		return fmt.Errorf("sign failed")
+	}
+	auth := fmt.Sprintf("%s timestamp=%s,ak=%s,signature=%s", AuthPrefixHmacSha256, signReq.Timestamp,
+		signReq.AK, signature)
+	req.Header.Set(constant.HeaderAuthorization, auth)
+	return nil
+}
+
+// VerifySignWithHmacSha256 check signatures for request with system ak/sk
+func VerifySignWithHmacSha256(ctx *fasthttp.RequestCtx, ak, sk string) error {
+	authHeader := string(ctx.Request.Header.Peek(constant.HeaderAuthorization))
+	signatures := strings.FieldsFunc(authHeader, func(r rune) bool {
+		return r == ' ' || r == ','
+	})
+	if len(signatures) != defaultSignFieldNum {
+		return fmt.Errorf("the signature field is missing")
+	}
+	timestamp, err := checkTimestamp(signatures[1])
+	if err != nil {
+		return err
+	}
+	err = checkSignField("ak", signatures[2], ak)
+	if err != nil {
+		return fmt.Errorf("%w, request value: %s, actual value: %s", err, signatures[2], ak)
+	}
+	headers, signedHeaderKeys := getHeaders(&ctx.Request)
+	signReq := &SignRequest{
+		Method:           string(ctx.Request.Header.Method()),
+		Path:             string(ctx.Request.URI().Path()),
+		Query:            getQuery(&ctx.Request),
+		Body:             ctx.Request.Body(),
+		Headers:          headers,
+		SignedHeaderKeys: signedHeaderKeys,
+		Timestamp:        timestamp,
+		AK:               ak,
+		SK:               sk,
+	}
+	actualSignature := sign(signReq)
+	err = checkSignField("signature", signatures[3], actualSignature)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// checkTimestamp requestTimestamp eq: "timestamp=1767611707333"
+func checkTimestamp(requestTimestamp string) (string, error) {
+	timestampSlice := strings.FieldsFunc(requestTimestamp, func(r rune) bool {
+		return r == '='
+	})
+	if len(timestampSlice) != signFieldSize {
+		return "", fmt.Errorf("the timestamp is error, request value: %s", requestTimestamp)
+	}
+	// 将时间戳字符串转换为int64
+	timestamp, err := strconv.ParseInt(timestampSlice[1], base, bitSize)
+	if err != nil {
+		return "", fmt.Errorf("parse timestamp: %s failed, err: %w", timestampSlice[1], err)
+	}
+	// 校验时间有效性
+	now := time.Now().UnixMilli()
+	diff := now - timestamp
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > signExpirationTime {
+		return "", fmt.Errorf("timestamp is invaild, timestamp: %d, now: %d", timestamp, now)
+	}
+	return timestampSlice[1], nil
+}
+
+// checkSignField originalStr eq: ak=xxxx
+func checkSignField(fieldName string, originalStr string, actualStr string) error {
+	originals := strings.FieldsFunc(originalStr, func(r rune) bool {
+		return r == '='
+	})
+	if len(originals) != signFieldSize {
+		return fmt.Errorf("the %s is error", fieldName)
+	}
+	if originals[1] != actualStr {
+		return fmt.Errorf("the %s is different, original value: %s, actual value: %s", fieldName, originals[1],
+			actualStr)
+	}
+	return nil
+}
+
+func getHeaders(req *fasthttp.Request) (map[string]string, []string) {
+	signedHeader := string(req.Header.Peek(constant.HeaderSignedHeader))
+	if len(signedHeader) == 0 {
+		return nil, nil
+	}
+	signedHeaderKeys := strings.FieldsFunc(signedHeader, func(r rune) bool {
+		return r == ';'
+	})
+	size := len(signedHeaderKeys)
+	headers := make(map[string]string, size)
+	sortedHeaderKeys := make([]string, 0, size)
+	for _, v := range signedHeaderKeys {
+		headerValue := string(req.Header.Peek(v))
+		if len(headerValue) == 0 {
+			continue
+		}
+		headerKey := strings.ToLower(v)
+		headers[headerKey] = headerValue
+		sortedHeaderKeys = append(sortedHeaderKeys, headerKey)
+	}
+	sort.Strings(sortedHeaderKeys)
+	return headers, sortedHeaderKeys
+}
+
+func getQuery(req *fasthttp.Request) string {
+	originalQueryStr := string(req.URI().QueryString())
+	if len(originalQueryStr) == 0 {
+		return ""
+	}
+	querys := strings.FieldsFunc(originalQueryStr, func(r rune) bool {
+		return r == '&'
+	})
+	sort.Strings(querys)
+	var sortedQuery strings.Builder
+	for i, value := range querys {
+		if i > 0 {
+			sortedQuery.WriteString("&")
+		}
+		sortedQuery.WriteString(value)
+	}
+	return sortedQuery.String()
+}
+
+func sign(req *SignRequest) string {
+	canonicalString := buildCanonicalString(req)
+	stringToSign := req.Timestamp + " " + makeSha256Hex([]byte(canonicalString))
+	signatureStr := buildSignature(req.SK, stringToSign)
+	return signatureStr
+}
+
+// buildCanonicalString converts the request info into canonical format
+func buildCanonicalString(req *SignRequest) string {
+	canonicalHeadersOut := buildCanonicalHeaders(req.Headers, req.SignedHeaderKeys)
+	signedHeaders := buildSignedHeadersString(req.SignedHeaderKeys)
+	hexBody := makeSha256Hex(req.Body)
+	canonicalRequestStr := strings.Join([]string{
+		req.Method,
+		req.Path,
+		req.Query,
+		canonicalHeadersOut,
+		signedHeaders,
+		hexBody,
+	}, "\n")
+	return canonicalRequestStr
+}
+
+func buildCanonicalHeaders(headers map[string]string, keys []string) string {
+	if headers == nil || keys == nil || len(keys) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	lowerHeaderConnection := strings.ToLower(constant.HeaderConnection)
+	lowerHeaderAuthorization := strings.ToLower(constant.HeaderAuthorization)
+	for _, v := range keys {
+		headerKey := strings.ToLower(v)
+		if headerKey == lowerHeaderConnection ||
+			headerKey == lowerHeaderAuthorization {
+			continue
+		}
+		headerValue := strings.TrimSpace(headers[headerKey])
+		sb.WriteString(headerKey + ":" + headerValue + "\n")
+	}
+	return sb.String()
+}
+
+func buildSignedHeadersString(keys []string) string {
+	if keys == nil || len(keys) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	first := true
+	lowerHeaderConnection := strings.ToLower(constant.HeaderConnection)
+	lowerHeaderAuthorization := strings.ToLower(constant.HeaderAuthorization)
+	for _, v := range keys {
+		headerKey := strings.ToLower(v)
+		if headerKey == lowerHeaderConnection ||
+			headerKey == lowerHeaderAuthorization {
+			continue
+		}
+		if first {
+			first = false
+			sb.WriteString(headerKey)
+		} else {
+			sb.WriteString(";" + headerKey)
+		}
+	}
+	return sb.String()
+}
+
+// buildSignature generate a signature by secret key
+func buildSignature(sk string, data string) string {
+	var secretBuf bytes.Buffer
+	secretBuf.WriteString(sk)
+	toSignature := makeHmac(secretBuf.Bytes(), []byte(data))
+	signature := hex.EncodeToString(toSignature)
+	return signature
 }

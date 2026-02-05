@@ -25,12 +25,15 @@ import (
 	_ "go.uber.org/automaxprocs"
 	"yuanrong.org/kernel/runtime/libruntime/api"
 
+	"yuanrong.org/kernel/pkg/common/faas_common/datasystemclient"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	"yuanrong.org/kernel/pkg/common/faas_common/trafficlimit"
+	"yuanrong.org/kernel/pkg/common/faas_common/types"
 	"yuanrong.org/kernel/pkg/common/faas_common/utils"
 	"yuanrong.org/kernel/pkg/functionscaler"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
 	"yuanrong.org/kernel/pkg/functionscaler/healthcheck"
+	"yuanrong.org/kernel/pkg/functionscaler/httpserver"
 	"yuanrong.org/kernel/pkg/functionscaler/instancepool"
 	"yuanrong.org/kernel/pkg/functionscaler/registry"
 	"yuanrong.org/kernel/pkg/functionscaler/rollout"
@@ -80,8 +83,42 @@ func InitHandlerLibruntime(args []api.Arg, libruntimeAPI api.LibruntimeAPI) ([]b
 	if err = healthcheck.StartHealthCheck(errCh); err != nil {
 		return []byte(""), err
 	}
+
+	if err = startHTTPServer(); err != nil {
+		return nil, err
+	}
+
 	config.ClearSensitiveInfo()
+	log.GetLogger().Infof("init handler over")
 	return []byte(""), nil
+}
+
+func startHTTPServer() error {
+	errChan := make(chan error)
+	server, err := httpserver.StartHTTPServer(errChan)
+	if err != nil {
+		return err
+	}
+	go func() {
+		select {
+		case <-stopCh:
+			log.GetLogger().Infof("received termination signal")
+			if server != nil {
+				if err := server.Shutdown(); err != nil {
+					errMessage := fmt.Sprintf("http server shutdowm error:%s", err.Error())
+					log.GetLogger().Errorf(errMessage)
+					fmt.Println(errMessage)
+					log.GetLogger().Sync()
+				}
+			}
+		case err := <-errChan:
+			errMessage := fmt.Sprintf("http server error:%s", err.Error())
+			log.GetLogger().Errorf(errMessage)
+			fmt.Println(errMessage)
+			log.GetLogger().Sync()
+		}
+	}()
+	return nil
 }
 
 // CallHandlerLibruntime is the call handler called by runtime based on multi libruntime
@@ -131,6 +168,7 @@ func RecoverHandlerLibruntime(stateData []byte, libruntimeAPI api.LibruntimeAPI)
 // ShutdownHandlerLibruntime is the shutdown handler called by runtime based on multi libruntime
 func ShutdownHandlerLibruntime(gracePeriodSecond uint64) error {
 	log.GetLogger().Infof("trigger: faasscheduler.ShutdownHandler")
+	httpserver.SetShutDownStatus()
 	utils.SafeCloseChannel(stopCh)
 	time.Sleep(shutdownWaitTime)
 	log.GetLogger().Infof("faasschedulerLibruntime exit")
@@ -155,6 +193,10 @@ func setupFunctionSchedulerLibruntime(fsClient api.LibruntimeAPI) error {
 	signalmanager.GetSignalManager().SetKillFunc(fsClient.Kill)
 
 	instancepool.SetGlobalSdkClient(fsClient)
+	datasystemclient.InitDataSystemLibruntime(&types.DataSystemConfig{
+		TimeoutMs: config.GlobalConfig.DataSystemConfig.InitTimeoutMs,
+		Clusters:  config.GlobalConfig.DataSystemConfig.InitClusters,
+	}, fsClient, stopCh)
 	functionscaler.InitGlobalScheduler(stopCh)
 	registry.ProcessETCDList()
 	trafficlimit.SetFunctionLimitRate(config.GlobalConfig.FunctionLimitRate)

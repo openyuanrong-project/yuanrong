@@ -229,6 +229,7 @@ func TestHandleCreateError(t *testing.T) {
 		concurrentNum:    1,
 		currentRsvInsNum: 1,
 		targetRsvInsNum:  4,
+		logger:           log.GetLogger(),
 	}
 
 	convey.Convey("HandleCreateError", t, func() {
@@ -251,6 +252,7 @@ func TestReplicaScalerProcess(t *testing.T) {
 		},
 		scaleDownHandler: func(i int, cb ScaleDownCallback) {
 		},
+		logger: log.GetLogger(),
 	}
 	convey.Convey("HandleInsThdUpdate", t, func() {
 		rs.HandleInsThdUpdate(0, 1)

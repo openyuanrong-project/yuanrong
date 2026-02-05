@@ -36,6 +36,7 @@ import (
 	"yuanrong.org/kernel/pkg/functionscaler/metrics"
 	"yuanrong.org/kernel/pkg/functionscaler/scaler"
 	"yuanrong.org/kernel/pkg/functionscaler/scheduler"
+	"yuanrong.org/kernel/pkg/functionscaler/scheduler/concurrencyscheduler"
 	"yuanrong.org/kernel/pkg/functionscaler/scheduler/microservicescheduler"
 	"yuanrong.org/kernel/pkg/functionscaler/scheduler/roundrobinscheduler"
 	"yuanrong.org/kernel/pkg/functionscaler/selfregister"
@@ -92,7 +93,7 @@ func NewScaledInstanceQueue(config *InsQueConfig, metricsCollector metrics.Colle
 		deleteInstanceFunc: config.DeleteInstanceFunc,
 		signalInstanceFunc: config.SignalInstanceFunc,
 		Cond:               sync.NewCond(&sync.Mutex{}),
-		isFuncOwner:        selfregister.GlobalSchedulerProxy.CheckFuncOwner(funcSpec.FuncKey),
+		isFuncOwner:        selfregister.GlobalSchedulerProxy.IsFuncOwner(funcSpec.FuncKey),
 	}
 	go instanceQueue.startScaleUpWorker()
 	return instanceQueue
@@ -229,6 +230,16 @@ func (si *ScaledInstanceQueue) HandleFuncSpecUpdate(funcSpec *types.FunctionSpec
 	}
 }
 
+// HandleInstanceSync recover session record in scheduler
+func (si *ScaledInstanceQueue) HandleInstanceSync(fn utils.RecoverSessionCallback) {
+	if sc, ok := si.instanceScheduler.(*concurrencyscheduler.ScaledConcurrencyScheduler); ok {
+		sc.RecoverSessionRecordFromDataSystem(fn)
+	}
+	if sc, ok := si.instanceScheduler.(*concurrencyscheduler.ReservedConcurrencyScheduler); ok {
+		sc.RecoverSessionRecordFromDataSystem(fn)
+	}
+}
+
 // HandleInsConfigUpdate updates instance configuration
 func (si *ScaledInstanceQueue) HandleInsConfigUpdate(insConfig *instanceconfig.Configuration) {
 	si.instanceScaler.HandleInsConfigUpdate(insConfig)
@@ -253,7 +264,7 @@ func (si *ScaledInstanceQueue) HandleFaultyInstance(instance *types.Instance) {
 
 // HandleAliasUpdate -
 func (si *ScaledInstanceQueue) HandleAliasUpdate() {
-	if !selfregister.GlobalSchedulerProxy.CheckFuncOwner(si.funcKey) {
+	if !selfregister.GlobalSchedulerProxy.IsFuncOwner(si.funcKey) {
 		log.GetLogger().Infof("no %s funcOwner, skip update alias to instance", si.funcKey)
 		return
 	}
@@ -388,9 +399,9 @@ func (si *ScaledInstanceQueue) createInstance() (instance *types.Instance, creat
 	functionSignature := si.funcSig
 	si.Cond.L.Unlock()
 	startTime := time.Now()
-	instance, createErr = si.createInstanceFunc("", si.instanceType, si.resKey, nil)
+	instance, createErr = si.createInstanceFunc("", "", si.instanceType, si.resKey, nil)
 	if createErr != nil {
-		log.GetLogger().Errorf("failed to create instance for function %s error %s", si.funcKeyWithRes,
+		log.GetLogger().Errorf("failed to create instance for function %s, error: %s", si.funcKeyWithRes,
 			createErr.Error())
 	} else {
 		si.instanceScaler.UpdateCreateMetrics(time.Now().Sub(startTime))
@@ -457,9 +468,10 @@ func (si *ScaledInstanceQueue) scaleDownInstance(callback scaler.ScaleDownCallba
 
 func (si *ScaledInstanceQueue) deleteInstance(instance *types.Instance) {
 	log.GetLogger().Infof("deleting instance %s for function %s", instance.InstanceID, si.funcKeyWithRes)
-	if _, isWiseCloudScaler := si.instanceScaler.(*scaler.WiseCloudScaler); isWiseCloudScaler {
-		log.GetLogger().Warnf("skipping deleting instance %s for function %s", instance.InstanceID,
+	if scaler, isWiseCloudScaler := si.instanceScaler.(*scaler.WiseCloudScaler); isWiseCloudScaler {
+		log.GetLogger().Warnf("deleting nuwa instance %s for function %s", instance.InstanceID,
 			si.funcKeyWithRes)
+		go scaler.DelNuwaPod(instance)
 		return
 	}
 	if err := si.deleteInstanceFunc(instance); err != nil {
@@ -481,8 +493,8 @@ func (si *ScaledInstanceQueue) cleanInstances() {
 }
 
 // HandleFuncOwnerChange -
-func (si *ScaledInstanceQueue) HandleFuncOwnerChange() {
-	isFuncOwner := selfregister.GlobalSchedulerProxy.CheckFuncOwner(si.funcKey)
+func (si *ScaledInstanceQueue) HandleFuncOwnerChange(fn utils.RecoverSessionCallback) {
+	isFuncOwner := selfregister.GlobalSchedulerProxy.IsFuncOwner(si.funcKey)
 	si.Cond.L.Lock()
 	if si.isFuncOwner == isFuncOwner {
 		si.Cond.L.Unlock()
@@ -496,6 +508,10 @@ func (si *ScaledInstanceQueue) HandleFuncOwnerChange() {
 	// reassign in instanceScheduler first then reset instanceScaler
 	si.instanceScheduler.HandleFuncOwnerUpdate(isFuncOwner)
 	si.instanceScaler.SetEnable(isFuncOwner)
+	// after owner change, need recover session info from datasystem
+	if isFuncOwner {
+		si.HandleInstanceSync(fn)
+	}
 }
 
 // HandleRatioUpdate -

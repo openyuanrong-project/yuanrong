@@ -18,175 +18,226 @@
 package timewheel
 
 import (
-	"math"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestSimpleTimeWheelBasic(t *testing.T) {
-	timeWheel := NewSimpleTimeWheel(5*time.Millisecond, 10)
-	defer timeWheel.Stop()
-	time.Sleep(11 * time.Millisecond)
-	taskName := "TestSimpleTimeWheelBasic_" + "task-1"
-	ch, err := timeWheel.AddTask(taskName, 500*time.Millisecond, -1)
-	addTime := time.Now()
-	if err != nil {
-		t.Errorf("failed to add task error %s", err)
-	}
-	var triggerTime time.Time
-	select {
-	case <-time.NewTimer(750 * time.Millisecond).C:
-		t.Errorf("timeout waiting for timeWheel to trigger after %d", time.Now().Sub(addTime).Milliseconds())
-	case <-ch:
-		triggerTime = time.Now()
-		interval := int(math.Floor(float64(triggerTime.Sub(addTime).Milliseconds())))
-		assert.Equal(t, true, interval >= 450 && interval <= 750)
+func TestNewSimpleTimeWheel(t *testing.T) {
+	// Test normal creation
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	if tw == nil {
+		t.Error("Expected SimpleTimeWheel to be created")
 	}
 
-	err = timeWheel.DelTask(taskName)
-	if err != nil {
-		t.Errorf("failed to delete task error %s", err)
+	// Test with pace below minimum
+	tw = NewSimpleTimeWheel(1*time.Millisecond, 10)
+	// Should use minPace instead
+	if tw == nil {
+		t.Error("Expected SimpleTimeWheel to be created")
 	}
-	select {
-	case <-time.NewTimer(200 * time.Millisecond).C:
-	case <-ch:
-		t.Errorf("trigger should not fire")
+	// Test with slotNum below minimum
+	tw = NewSimpleTimeWheel(10*time.Millisecond, 0)
+	// Should use minSlotNum instead
+	if tw == nil {
+		t.Error("Expected SimpleTimeWheel to be created")
 	}
 }
 
-func TestSimpleTimeWheel_Wait(t *testing.T) {
-	readyCh := make(chan struct{})
-	readyList := []string{"TestSimpleTimeWheel_Wait_task1", "TestSimpleTimeWheel_Wait_task2"}
+func TestSimpleTimeWheel_AddTask(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	defer tw.Stop()
 
-	wheel := &SimpleTimeWheel{
-		readyCh:   readyCh,
-		readyList: readyList,
+	// Test adding a valid task
+	err := tw.AddTask("task1", 100*time.Millisecond, 1)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
 	}
 
-	go func() {
-		readyCh <- struct{}{}
-	}()
+	// Test adding duplicate task
+	err = tw.AddTask("task1", 100*time.Millisecond, 1)
+	if err == nil {
+		t.Error("Expected error for duplicate task")
+	}
 
-	result := wheel.Wait()
-	assert.Equal(t, readyList, result, "The readyList should be returned")
-	close(readyCh)
-	result = wheel.Wait()
-	assert.Nil(t, result, "The result should be nil when channel is closed")
+	// Test adding task with interval smaller than perimeter
+	err = tw.AddTask("task2", 50*time.Millisecond, 1) // 50ms < 100ms (10*10ms)
+	if err == nil {
+		t.Error("Expected error for invalid interval")
+	}
 }
 
-func TestSimpleTimeWheelCombination(t *testing.T) {
-	timeWheel := NewSimpleTimeWheel(5*time.Millisecond, 10)
-	defer timeWheel.Stop()
-	var (
-		err          error
-		task1Ch      <-chan struct{}
-		task2Ch      <-chan struct{}
-		task3Ch      <-chan struct{}
-		task2AddTime time.Time
-		task3AddTime time.Time
-	)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	task1Name := "TestSimpleTimeWheelCombination_" + "task-1"
-	task2Name := "TestSimpleTimeWheelCombination_" + "task-2"
-	task3Name := "TestSimpleTimeWheelCombination_" + "task-3"
-	go func() {
-		task1Ch, err = timeWheel.AddTask(task1Name, time.Duration(500)*time.Millisecond, -1)
-		if err != nil {
-			t.Errorf("failed to add task error %s", err)
-		}
-		wg.Done()
-	}()
-	wg.Add(1)
-	go func() {
-		task2Ch, err = timeWheel.AddTask(task2Name, time.Duration(500)*time.Millisecond, -1)
-		task2AddTime = time.Now()
-		if err != nil {
-			t.Errorf("failed to add task error %s", err)
-		}
-		wg.Done()
-	}()
-	wg.Add(1)
-	go func() {
-		task3Ch, err = timeWheel.AddTask(task3Name, time.Duration(500)*time.Millisecond, -1)
-		task3AddTime = time.Now()
-		if err != nil {
-			t.Errorf("failed to add task error %s", err)
-		}
-		wg.Done()
-	}()
-	wg.Wait()
-	err = timeWheel.DelTask(task1Name)
+func TestSimpleTimeWheel_DelTask(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	defer tw.Stop()
+
+	// Add a task
+	tw.AddTask("task1", 100*time.Millisecond, 1)
+
+	// Delete existing task
+	err := tw.DelTask("task1")
 	if err != nil {
-		t.Errorf("failed to delete task error %s", err)
+		t.Errorf("Expected no error, got %v", err)
 	}
-	done := 0
-	timer := time.NewTimer(900 * time.Millisecond)
-	defer timer.Stop()
-	for done != 2 {
+
+	// Delete non-existing task
+	err = tw.DelTask("nonexistent")
+	if err != nil {
+		t.Errorf("Expected no error for non-existent task, got %v", err)
+	}
+}
+
+func TestSimpleTimeWheel_TaskTrigger(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	defer tw.Stop()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Add a task that should trigger once
+	err := tw.AddTask("task1", 100*time.Millisecond, 1)
+	if err != nil {
+		t.Fatalf("Failed to add task: %v", err)
+	}
+
+	go func() {
+		defer wg.Done()
+		tasks, err := tw.Wait()
+		if err != nil {
+			t.Errorf("Error waiting for tasks: %v", err)
+			return
+		}
+		if len(tasks) != 1 || tasks[0] != "task1" {
+			t.Errorf("Expected task1, got %v", tasks)
+		}
+	}()
+
+	// Wait for task to be triggered
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Task was not triggered within expected time")
+	}
+}
+
+func TestSimpleTimeWheel_RepeatingTask(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	defer tw.Stop()
+
+	// Add a task that should trigger 3 times
+	err := tw.AddTask("task1", 100*time.Millisecond, 3)
+	if err != nil {
+		t.Fatalf("Failed to add task: %v", err)
+	}
+
+	// Wait for all triggers
+	triggerCount := 0
+	timeout := time.After(500 * time.Millisecond)
+	for triggerCount < 3 {
 		select {
-		case <-timer.C:
-			t.Errorf("timeout waiting for timeWheel to trigger")
-		case <-task1Ch:
-			t.Errorf("trigger should not fire")
-		case <-task2Ch:
-			interval := int(math.Floor(float64(time.Now().Sub(task2AddTime).Milliseconds())))
-			if interval < 450 || interval > 800 {
-				t.Errorf("task2's trigger interval %d is out of range [450, 800]", interval)
+		case tasks := <-tw.(*SimpleTimeWheel).readyCh:
+			if len(*tasks) == 1 && (*tasks)[0] == "task1" {
+				triggerCount++
 			}
-			done++
-		case <-task3Ch:
-			interval := int(math.Floor(float64(time.Now().Sub(task3AddTime).Milliseconds())))
-			if interval < 450 || interval > 800 {
-				t.Errorf("task3's trigger interval %d is out of range [450, 800]", interval)
-			}
-			done++
+		case <-timeout:
+			t.Errorf("Expected 3 triggers, got %d within timeout", triggerCount)
+			return
 		}
+	}
+
+	if triggerCount != 3 {
+		t.Errorf("Expected 3 triggers, got %d", triggerCount)
+	}
+}
+
+func TestSimpleTimeWheel_EndlessTask(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	defer tw.Stop()
+
+	// Add a task that runs endlessly
+	err := tw.AddTask("task1", 100*time.Millisecond, -1)
+	if err != nil {
+		t.Fatalf("Failed to add task: %v", err)
+	}
+
+	// Wait for at least 2 triggers
+	triggerCount := 0
+	timeout := time.After(300 * time.Millisecond)
+	for triggerCount < 2 {
+		select {
+		case tasks := <-tw.(*SimpleTimeWheel).readyCh:
+			if len(*tasks) == 1 && (*tasks)[0] == "task1" {
+				triggerCount++
+			}
+		case <-timeout:
+			if triggerCount < 2 {
+				t.Errorf("Expected at least 2 triggers, got %d within timeout", triggerCount)
+			}
+			return
+		}
+	}
+}
+
+func TestSimpleTimeWheel_UpdateTask(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	defer tw.Stop()
+
+	// Add a task
+	err := tw.AddTask("task1", 100*time.Millisecond, 1)
+	if err != nil {
+		t.Fatalf("Failed to add task: %v", err)
+	}
+
+	// Update the task
+	err = tw.UpdateTask("task1", 200*time.Millisecond, 2)
+	if err != nil {
+		t.Errorf("Failed to update task: %v", err)
+	}
+
+	// Update non-existing task (should add it)
+	err = tw.UpdateTask("task2", 100*time.Millisecond, 1)
+	if err != nil {
+		t.Errorf("Failed to update/add non-existing task: %v", err)
 	}
 }
 
 func TestSimpleTimeWheel_Stop(t *testing.T) {
-	timeWheel := NewSimpleTimeWheel(2*time.Millisecond, 10)
-	timeWheel.Stop()
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+
+	// Stop the time wheel
+	tw.Stop()
+
+	// Try to add a task after stopping
+	err := tw.AddTask("task1", 100*time.Millisecond, 1)
+	// This should not panic, but the behavior might vary based on implementation
+	_ = err
 }
 
-func TestNewSimpleTimeWheel(t *testing.T) {
-	timeWheel := NewSimpleTimeWheel(minPace-1, 0)
-	defer timeWheel.Stop()
-	assert.NotNil(t, timeWheel)
+func TestSimpleTimeWheel_WaitAfterStop(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	tw.Stop()
+
+	// Wait should return nil, nil after stop
+	tasks, err := tw.Wait()
+	if tasks != nil || err != nil {
+		t.Errorf("Expected nil, nil after stop, got %v, %v", tasks, err)
+	}
 }
 
-func TestSimpleTimeWheelBasic1(t *testing.T) {
-	timeWheel := NewSimpleTimeWheel(10*time.Millisecond, 10)
-	defer timeWheel.Stop()
-	time.Sleep(11 * time.Millisecond)
-	task1Name := "TestSimpleTimeWheelBasic1_" + "task-1"
-	ch, err := timeWheel.AddTask(task1Name, 1000*time.Millisecond, -1)
-	addTime := time.Now()
-	if err != nil {
-		t.Errorf("failed to add task error %s", err)
-	}
-	var triggerTime time.Time
-	select {
-	case <-time.NewTimer(10000 * time.Millisecond).C:
-		t.Errorf("timeout waiting for timeWheel to trigger %s", time.Now().Format(time.RFC3339Nano))
-	case <-ch:
-		triggerTime = time.Now()
-		interval := int(math.Floor(float64(triggerTime.Sub(addTime).Milliseconds())))
-		t.Logf("show invterval %d\n", interval)
-		assert.Equal(t, true, interval >= 800 && interval <= 1400)
-	}
+func TestSimpleTimeWheel_InvalidTaskInterval(t *testing.T) {
+	tw := NewSimpleTimeWheel(10*time.Millisecond, 10)
+	defer tw.Stop()
 
-	err = timeWheel.DelTask(task1Name)
-	if err != nil {
-		t.Errorf("failed to delete task error %s", err)
-	}
-	select {
-	case <-time.NewTimer(1000 * time.Millisecond).C:
-	case <-ch:
-		t.Errorf("trigger should not fire")
+	// Try to add a task with invalid interval
+	err := tw.AddTask("task1", 50*time.Millisecond, 1) // 50ms < 100ms perimeter
+	if err == nil {
+		t.Error("Expected error for invalid task interval")
 	}
 }

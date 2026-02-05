@@ -24,8 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 
+	"yuanrong.org/kernel/pkg/common/faas_common/urnutils"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
-	"yuanrong.org/kernel/pkg/functionscaler/dynamicconfigmanager"
 )
 
 func TestUnixSocketMethod(t *testing.T) {
@@ -42,6 +42,65 @@ func TestUnixSocketMethod(t *testing.T) {
 		}
 	}
 	assert.Equal(t, true, found)
+}
+
+func TestOtelSharedVolume(t *testing.T) {
+	osd := otelShared{}
+	vb := volumeBuilder{
+		volumes: make([]corev1.Volume, 0),
+		mounts:  make(map[container][]corev1.VolumeMount),
+	}
+	osd.configVolume(&vb, "otel")
+	found := false
+	for _, vm := range vb.mounts[containerDelegate] {
+		if vm.Name == otelShardDirVolumeName && vm.MountPath == "otel" {
+			found = true
+		}
+	}
+	expectVolumeSource := corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}
+	var actualVolumeSource corev1.VolumeSource
+	for _, volume := range vb.volumes {
+		if volume.Name == otelShardDirVolumeName {
+			actualVolumeSource = volume.VolumeSource
+		}
+	}
+	assert.Equal(t, true, found)
+	assert.Equal(t, expectVolumeSource, actualVolumeSource)
+}
+
+func TestServiceAccountTokenVolume(t *testing.T) {
+	sa := serviceAccountToken{}
+	vb := volumeBuilder{
+		volumes: make([]corev1.Volume, 0),
+		mounts:  make(map[container][]corev1.VolumeMount),
+	}
+	sa.configVolume(&vb)
+	found := false
+	for _, vm := range vb.mounts[containerDelegate] {
+		if vm.Name == "oidc-token" && vm.MountPath == "/var/run/secrets/tokens" {
+			found = true
+		}
+	}
+	expirationSeconds := int64(7200)
+	defaultMode := int32(urnutils.DefaultMode)
+	expectVolumeSource := corev1.VolumeSource{
+		Projected: &corev1.ProjectedVolumeSource{
+			Sources: []corev1.VolumeProjection{{ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+				Audience:          "agentrunservice",
+				ExpirationSeconds: &expirationSeconds,
+				Path:              "oidc-token",
+			}}},
+			DefaultMode: &defaultMode,
+		},
+	}
+	var actualVolumeSource corev1.VolumeSource
+	for _, volume := range vb.volumes {
+		if volume.Name == "oidc-token" {
+			actualVolumeSource = volume.VolumeSource
+		}
+	}
+	assert.Equal(t, true, found)
+	assert.Equal(t, expectVolumeSource, actualVolumeSource)
 }
 
 func TestCgroupMemoryMethod(t *testing.T) {
@@ -109,34 +168,6 @@ func TestDockerRootDirMethod(t *testing.T) {
 	found = false
 	for _, vm := range vb.mounts[containerRuntimeManager] {
 		if vm.Name == "docker-rootdir" && vm.MountPath == "/var/lib/docker" {
-			found = true
-		}
-	}
-	assert.Equal(t, true, found)
-}
-
-func TestDynamicConfigMethod(t *testing.T) {
-	dc := dynamicConfig{
-		crName: "testDynamicConfig",
-		enable: true,
-	}
-	vb := volumeBuilder{
-		volumes: make([]corev1.Volume, 0),
-		mounts:  make(map[container][]corev1.VolumeMount),
-	}
-	dc.configVolume(&vb)
-	found := false
-	for _, v := range vb.volumes {
-		if v.Name == dynamicconfigmanager.DynamicConfigMapName &&
-			v.VolumeSource.ConfigMap.LocalObjectReference.Name == dc.crName+dynamicconfigmanager.DynamicConfigSuffix {
-			found = true
-		}
-	}
-	assert.Equal(t, true, found)
-	found = false
-	for _, vm := range vb.mounts[containerDelegate] {
-		if vm.Name == dynamicconfigmanager.DynamicConfigMapName &&
-			vm.MountPath == dynamicconfigmanager.DefaultDynamicConfigPath {
 			found = true
 		}
 	}

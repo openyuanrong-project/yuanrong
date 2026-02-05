@@ -26,8 +26,8 @@ const (
 	RoundRobinLVS
 	// ConsistentHashGeneric represents type of Generic Consistent Hash
 	ConsistentHashGeneric
-	// ConcurrentConsistentHashGeneric represents type of concurrent Consistent
-	ConcurrentConsistentHashGeneric
+	// SimpleHashGeneric represents type of simple Generic Consistent Hash
+	SimpleHashGeneric
 )
 
 // Request -
@@ -45,7 +45,6 @@ const defaultCHGenericConcurrency = 100
 // LoadBalance is the interface of loadbalance algorithm
 type LoadBalance interface {
 	Next(name string, move bool) interface{} // move parameter controls whether the hash loop moves
-	Previous(name string, move bool) interface{}
 	Add(node interface{}, weight int)
 	Remove(node interface{})
 	RemoveAll()
@@ -60,8 +59,8 @@ func LBFactory(t LBType) LoadBalance {
 		return &WNGINX{}
 	case ConsistentHashGeneric:
 		return NewCHGeneric()
-	case ConcurrentConsistentHashGeneric:
-		return NewConcurrentCHGeneric(defaultCHGenericConcurrency)
+	case SimpleHashGeneric:
+		return NewSimpleCHGeneric()
 	default:
 		return NewCHGeneric()
 	}

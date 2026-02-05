@@ -22,7 +22,6 @@ import (
 	"github.com/valyala/fasthttp"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/autogc"
-	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	"yuanrong.org/kernel/pkg/common/faas_common/signals"
 	"yuanrong.org/kernel/pkg/common/faas_common/trafficlimit"
@@ -176,11 +175,9 @@ func RecoverModuleScheduler(stateData []byte, stopCh <-chan struct{}) error {
 func startServer(errChan chan error) (*fasthttp.Server, error) {
 	var httpServer *fasthttp.Server
 	var err error
-	if config.GlobalConfig.InstanceOperationBackend == constant.BackendTypeFG {
-		httpServer, err = httpserver.StartHTTPServer(errChan)
-		if err != nil {
-			return nil, fmt.Errorf("start fast http server error:%s", err.Error())
-		}
+	httpServer, err = httpserver.StartHTTPServer(errChan)
+	if err != nil {
+		return nil, fmt.Errorf("start fast http server error:%s", err.Error())
 	}
 	err = healthcheck.StartHealthCheck(errChan)
 	if err != nil {

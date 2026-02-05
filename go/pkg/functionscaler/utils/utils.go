@@ -49,11 +49,12 @@ const (
 	// DefaultMapSize is default size of map
 	DefaultMapSize = 16
 	// DefaultSliceSize is default size of slice
-	DefaultSliceSize   = 16
-	defaultCPUValue    = 0
-	defaultMemValue    = 0
-	resourceCPUName    = "CPU"
-	resourceMemoryName = "Memory"
+	DefaultSliceSize     = 16
+	defaultCPUValue      = 0
+	defaultMemValue      = 0
+	resourceCPUName      = "CPU"
+	resourceMemoryName   = "Memory"
+	validInnerFuncKeyLen = 3
 	// ValidFuncKeyLen is the valid length of funcKey
 	ValidFuncKeyLen = 3
 	// FuncKeyDelimiter is the delimiter for parsing inner funcKey from funcKey
@@ -66,11 +67,19 @@ const (
 	namespaceLabelKey      = "POD_NAMESPACE"
 	deploymentNameLabelKey = "POD_DEPLOYMENT_NAME"
 	podNameLabelKey        = "POD_NAME"
+	// CrKeySep is a CrName separator of CrKey, crKey example: default:12268ce-478c-8ae7-3bd7d6c6033-hello-agent-latest
+	CrKeySep            = ":"
+	crKeyElementsCounts = 2
+	namespaceIndex      = 0
+	crNameIndex         = 1
 )
 
 var (
 	labelRegexp = regexp.MustCompile(`-invoke-label-(.*?)-ephemeral-storage-`)
 )
+
+// RecoverSessionCallback -
+type RecoverSessionCallback func(sessInfo *types.SessionInfo, instance *types.Instance)
 
 // GetNpuInstanceType -
 func GetNpuInstanceType(delegateContainer string) (bool, string) {
@@ -156,13 +165,40 @@ func AppendInstanceTypeToInstanceResource(resSpec *resspeckey.ResourceSpecificat
 	resSpec.CustomResourcesSpec["instanceType"] = npuInstanceType
 }
 
-// IsFaaSManager checks if a funcKey is t
-func IsFaaSManager(funcKey string) bool {
-	items := strings.Split(funcKey, InnerFuncKeyDelimiter)
-	if len(items) != ValidFuncKeyLen {
+// IsFaaSManager checks if a innerFuncKey is FaaSManager, innerFuncKey example: 0-system-faasmanager
+func IsFaaSManager(innerFuncKey string) bool {
+	items := strings.Split(innerFuncKey, InnerFuncKeyDelimiter)
+	if len(items) != validInnerFuncKeyLen {
 		return false
 	}
 	return items[funcNameIndexInFuncKey] == types.FaasManagerFuncName
+}
+
+var systemFuncNames = map[string]struct{}{
+	types.FaasManagerFuncName:    {},
+	types.FaasSchedulerFuncName:  {},
+	types.FaasFrontendFuncName:   {},
+	types.FaasControllerFuncName: {},
+}
+
+// IsFaaSInstance -
+func IsFaaSInstance(funcKey string) bool {
+	items := strings.Split(funcKey, FuncKeyDelimiter)
+	if len(items) != ValidFuncKeyLen {
+		return false
+	}
+	innerItems := strings.Split(items[1], InnerFuncKeyDelimiter)
+	if len(innerItems) != validInnerFuncKeyLen {
+		return false
+	}
+
+	if items[0] == "0" {
+		_, ok := systemFuncNames[innerItems[funcNameIndexInFuncKey]]
+		if ok {
+			return false
+		}
+	}
+	return true
 }
 
 // GetConcurrentNum gets a valid concurrentNum
@@ -214,9 +250,13 @@ func AddNodeSelector(nodeSelectorMap map[string]string, schedulingOptions *types
 	}
 	if resSpec.CustomResources == nil || len(resSpec.CustomResources) == 0 {
 		if nodeSelectorMap != nil && len(nodeSelectorMap) != 0 {
-			for k, v := range nodeSelectorMap {
-				schedulingOptions.Extension[utils.NodeSelectorKey] = fmt.Sprintf(`{"%s": "%s"}`, k, v)
+			nodeSelectorVal, err := json.Marshal(nodeSelectorMap)
+			if err != nil {
+				log.GetLogger().Warnf("failed to marshal "+
+					"nodeSelectorMap %v, err %s", nodeSelectorMap, err.Error())
+				return
 			}
+			schedulingOptions.Extension[utils.NodeSelectorKey] = string(nodeSelectorVal)
 		}
 	}
 }
@@ -399,4 +439,14 @@ func IntMax(a, b int) int {
 		return b
 	}
 	return a
+}
+
+// ParseFromCrKey Parse namespace and crName from crKey
+func ParseFromCrKey(crKey string) (string, string, error) {
+	elements := strings.Split(crKey, CrKeySep)
+	crLen := len(elements)
+	if crLen != crKeyElementsCounts {
+		return "", "", fmt.Errorf("failed to parse crName from: %s, invalid length: %d", crKey, crLen)
+	}
+	return elements[namespaceIndex], elements[crNameIndex], nil
 }

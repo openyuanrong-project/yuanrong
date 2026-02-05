@@ -17,10 +17,6 @@
 // Package types -
 package types
 
-import (
-	"yuanrong.org/kernel/runtime/libruntime/api"
-)
-
 // HTTPResponse is general http response
 type HTTPResponse struct {
 	Code    int    `json:"code"`
@@ -342,6 +338,7 @@ type FuncMetaData struct {
 	FunctionDescription string            `json:"description" valid:"stringlength(1|1024)"`
 	FunctionURN         string            `json:"functionUrn"`
 	TenantID            string            `json:"tenantId"`
+	AgentID             string            `json:"agentId" valid:",optional"`
 	Tags                map[string]string `json:"tags" valid:",optional"`
 	FunctionUpdateTime  string            `json:"functionUpdateTime" valid:",optional"`
 	FunctionVersionURN  string            `json:"functionVersionUrn"`
@@ -473,6 +470,35 @@ type ExtendedMetaData struct {
 	PreStop                PreStop                `json:"pre_stop"`
 	RaspConfig             RaspConfig             `json:"rasp_config"`
 	ServeDeploySchema      ServeDeploySchema      `json:"serveDeploySchema" valid:"optional"`
+	ImagePullConfig        ImagePullConfig        `json:"imagePullConfig,omitempty"`
+	UserOtelConfig         UserOtelConfig         `json:"userOtelConfig,omitempty"`
+}
+
+// UserOtelConfig -
+type UserOtelConfig struct {
+	Enable        bool              `json:"enable" valid:"optional"`
+	InitContainer OtelInitContainer `json:"initContainer"`
+	OtelEnv       map[string]string `json:"otelEnv"`
+}
+
+// OtelInitContainer -
+type OtelInitContainer struct {
+	Image           string          `json:"image"`
+	Command         []string        `json:"command"`
+	ShardDir        string          `json:"shardDir"`
+	ResourceRequest ResourceRequire `json:"ResourceRequest"`
+	ResourceLimit   ResourceRequire `json:"ResourceLimit"`
+}
+
+// ResourceRequire -
+type ResourceRequire struct {
+	Cpu    int `json:"cpu"`
+	Memory int `json:"memory"`
+}
+
+// ImagePullConfig image pull config
+type ImagePullConfig struct {
+	Secrets []string `json:"secrets,omitempty"`
 }
 
 // CustomGracefulShutdown define the option of custom container's runtime graceful shutdown
@@ -561,6 +587,39 @@ type NetworkController struct {
 	TriggerAccessVpcs    []VpcInfo `json:"trigger_access_vpcs" valid:",optional"`
 }
 
+// PATServiceRequest -
+type PATServiceRequest struct {
+	ID             string   `json:"id,omitempty"`
+	Namespace      string   `json:"namespace"`
+	DomainID       string   `json:"domainID,omitempty"`
+	ProjectID      string   `json:"projectID,omitempty"`
+	VpcID          string   `json:"vpcID,omitempty"`
+	SubnetID       string   `json:"subnetID,omitempty"`
+	TenantCidr     string   `json:"tenantCidr,omitempty"`
+	HostVMCidr     string   `json:"hostVMCidr,omitempty"`
+	Gateway        string   `json:"gateway,omitempty"`
+	SecurityGroups []string `json:"securityGroups,omitempty"`
+	Xrole          string   `json:"xrole,omitempty"`
+}
+
+// PatResponseInfo create pat response
+type PatResponseInfo struct {
+	PatPods []NATConfigure `json:"patPods"`
+}
+
+// NATConfigure pat service config
+type NATConfigure struct {
+	Namespace      string `json:"namespace"`
+	PatContainerIP string `json:"patContainerIP"`
+	PatVMIP        string `json:"patVmIP"`
+	PatPortIP      string `json:"patPortIP"`
+	PatMacAddr     string `json:"patMacAddr"`
+	PatGateway     string `json:"patGateway"`
+	PatPodName     string `json:"patPodName"`
+	TenantCidr     string `json:"tenantCidr"`
+	SubMetaDigest  string `json:"subMetaDigest"`
+}
+
 // VpcInfo contains the information of VPC access restriction
 type VpcInfo struct {
 	VpcName string `json:"vpc_name,omitempty"`
@@ -569,17 +628,18 @@ type VpcInfo struct {
 
 // VpcConfig include info of function vpc
 type VpcConfig struct {
-	ID         string `json:"id,omitempty"`
-	DomainID   string `json:"domain_id,omitempty"`
-	Namespace  string `json:"namespace,omitempty"`
-	VpcName    string `json:"vpc_name,omitempty"`
-	VpcID      string `json:"vpc_id,omitempty"`
-	SubnetName string `json:"subnet_name,omitempty"`
-	SubnetID   string `json:"subnet_id,omitempty"`
-	TenantCidr string `json:"tenant_cidr,omitempty"`
-	HostVMCidr string `json:"host_vm_cidr,omitempty"`
-	Gateway    string `json:"gateway,omitempty"`
-	Xrole      string `json:"xrole,omitempty"`
+	ID             string   `json:"id,omitempty"`
+	DomainID       string   `json:"domain_id,omitempty"`
+	Namespace      string   `json:"namespace,omitempty"`
+	VpcName        string   `json:"vpc_name,omitempty"`
+	VpcID          string   `json:"vpc_id,omitempty"`
+	SubnetName     string   `json:"subnet_name,omitempty"`
+	SubnetID       string   `json:"subnet_id,omitempty"`
+	TenantCidr     string   `json:"tenant_cidr,omitempty"`
+	HostVMCidr     string   `json:"host_vm_cidr,omitempty"`
+	Gateway        string   `json:"gateway,omitempty"`
+	Xrole          string   `json:"xrole,omitempty"`
+	SecurityGroups []string `json:"security_groups,omitempty"`
 }
 
 // Layer define layer info
@@ -797,69 +857,12 @@ type InstanceInfo struct {
 	Address      string
 }
 
-// InstanceResponse is the response returned by faas scheduler's CallHandler
-type InstanceResponse struct {
-	InstanceAllocationInfo
-	ErrorCode     int     `json:"errorCode"`
-	ErrorMessage  string  `json:"errorMessage"`
-	SchedulerTime float64 `json:"schedulerTime"`
-}
-
-// BatchInstanceResponse is the batch response returned by faas scheduler's CallHandler
-type BatchInstanceResponse struct {
-	InstanceAllocSucceed map[string]InstanceAllocationSucceedInfo `json:"instanceAllocSucceed"`
-	InstanceAllocFailed  map[string]InstanceAllocationFailedInfo  `json:"instanceAllocFailed"`
-	LeaseInterval        int64                                    `json:"leaseInterval"`
-	SchedulerTime        float64                                  `json:"schedulerTime"`
-}
-
 // RolloutResponse -
 type RolloutResponse struct {
 	AllocRecord  map[string][]string `json:"allocRecord"`
 	RegisterKey  string              `json:"registerKey"`
 	ErrorCode    int                 `json:"errorCode"`
 	ErrorMessage string              `json:"errorMessage"`
-}
-
-// InstanceAllocationSucceedInfo is the response returned by faas scheduler's CallHandler
-type InstanceAllocationSucceedInfo struct {
-	FuncKey    string `json:"funcKey"`
-	FuncSig    string `json:"funcSig"`
-	InstanceID string `json:"instanceID"`
-	ThreadID   string `json:"threadID"`
-}
-
-// InstanceAllocationFailedInfo contains err info for allocation failed info
-type InstanceAllocationFailedInfo struct {
-	ErrorCode    int    `json:"errorCode"`
-	ErrorMessage string `json:"errorMessage"`
-}
-
-// InstanceAllocationInfo contains instance router info and lease returned to function accessor
-type InstanceAllocationInfo struct {
-	FuncKey       string `json:"funcKey"`
-	FuncSig       string `json:"funcSig"`
-	InstanceID    string `json:"instanceID"`
-	ThreadID      string `json:"threadID"`
-	InstanceIP    string `json:"instanceIP"`
-	InstancePort  string `json:"instancePort"`
-	NodeIP        string `json:"nodeIP"`
-	NodePort      string `json:"nodePort"`
-	LeaseInterval int64  `json:"leaseInterval"`
-	CPU           int64  `json:"cpu"`
-	Memory        int64  `json:"memory"`
-	ForceInvoke   bool   `json:"forceInvoke"`
-}
-
-// ExtraParams for interface CreateInstance
-type ExtraParams struct {
-	DesignatedInstanceID string
-	Label                []string
-	Resources            map[string]float64
-	CustomResources      map[string]float64
-	CreateOpt            map[string]string
-	CustomExtensions     map[string]string
-	ScheduleAffinities   []api.Affinity
 }
 
 // NuwaRuntimeInfo contains ers workload info for function
@@ -873,23 +876,14 @@ type NuwaRuntimeInfo struct {
 	EnvLabel               string `json:"envLabel"`
 }
 
-// InstanceSessionConfig -
-type InstanceSessionConfig struct {
-	SessionID   string `json:"sessionID"`
-	SessionTTL  int    `json:"sessionTTL"`
-	Concurrency int    `json:"concurrency"`
-}
-
 // CallHandlerResponse is the response returned by faas manager's CallHandler
 type CallHandlerResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-// LeaseEvent -
-type LeaseEvent struct {
-	Type           string `json:"type"`
-	RemoteClientID string `json:"remoteClientId"`
-	Timestamp      int64  `json:"timestamp"`
-	TraceID        string `json:"traceId"`
+// ResponseWriter -
+type ResponseWriter interface {
+	SSEWrite([]byte) (int, error)
+	ClientDisconnectChan() <-chan struct{}
 }
