@@ -9,7 +9,7 @@
    installation
    deploy_processes/index
    deploy_on_k8s/index
-   build_and_deploy
+   job_app_guide/index
    service_app_guide
 ```
 
@@ -28,5 +28,5 @@ openYuanrong 支持在 Linux 主机上以进程方式部署，也支持在 Kuber
 
 openYuanrong 支持使用 Python、C++ 及 Java 多语言开发分布式应用，了解如何运行 openYuanrong 应用请参考：
 
-* [部署作业类应用](./build_and_deploy.md)：部署使用单机程序分布式并行化接口开发的应用。
+* [部署作业类应用](./job_app_guide/index.md)：部署使用单机程序分布式并行化接口开发的应用。
 * [部署服务类应用](./service_app_guide.md)：部署使用函数服务接口开发的应用。

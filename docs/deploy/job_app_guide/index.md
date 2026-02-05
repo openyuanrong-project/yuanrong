@@ -1,5 +1,14 @@
 # 部署 openYuanrong 作业类应用
 
+```{eval-rst}
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :hidden:
+
+   api/index
+```
+
 本章节向您介绍如何构建使用单机程序分布式并行化接口开发的作业类应用并在 openYuanrong 集群中部署。
 
 ## 环境依赖
@@ -12,11 +21,29 @@
 
 openYuanrong 函数可能运行在集群中的任意节点，因此这些依赖需要在每个 openYuanrong 节点存在并保持一致。在生产环境中，建议预先安装相关的依赖。
 
-## Python 应用
+## 使用 REST API 提交作业
+
+部署集群后（在 VM 或 Kubernetes 上），您就可以运行作业应用程序了！
+
+![](../../images/running_job_ways.png)
+
+提交到作业 API 的内容包括：
+
+- 一个入口命令，例如 python my_script.py
+
+- 一个运行时环境，用于指定应用程序的文件和包依赖项。
+
+作业可以由位于集群外部的远程客户端提交。
+
+提交作业后，它将运行一次直到完成或失败，而与原始提交者的连接无关。重试或使用不同参数进行的不同运行应由提交者处理。作业与集群的生命周期绑定，若集群崩溃，则该集群上所有正在运行的作业都将被终止。
+
+## 本地运行作业类应用
+
+### Python 应用
 
 Python 是解释性语言，无需编译过程。您在 openYuanrong 集群中部署 Python 应用时，需要保证集群中所有节点都已经安装应用所需的依赖。
 
-## C++ 应用
+### C++ 应用
 
 C++ 应用需要编译一个二进制 Driver 程序，以及包含所有 openYuanrong 函数的动态库。部署时，将动态库拷贝到 openYuanrong 集群所有节点的相同路径下，并选择如下方式之一配置该路径。
 
@@ -67,7 +94,7 @@ target_link_libraries(cpp-demo-dll yr-api)
 
 构建成功将生成二进制文件 `cpp-demo` 和 动态库文件 `libcpp-demo-dll.so`。以使用 `/opt/openyuanrong/function/demo` 作为代码路径为例，需要拷贝 `libcpp-demo-dll.so` 文件到集群所有节点该路径下。在 `build` 目录下执行命令 `./cpp-demo --codePath=/opt/openyuanrong/function/demo` 即可运行应用。
 
-## Java 应用
+### Java 应用
 
 Java 应用构建的 jar 包可根据需要自行选择是否包含依赖。部署时，将 jar 包和依赖拷贝到 openYuanrong 集群所有节点的相同路径下，并选择如下方式之一指定该路径。
 
