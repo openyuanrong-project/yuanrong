@@ -2530,7 +2530,7 @@ cdef class Fnruntime:
             if ret.second.IsTimeout():
                 raise TimeoutError(ret.second.Msg().decode())
             raise ValueError(
-                f"failed to invoke instance, "
+                f"failed to get instance by name: {cinstanceID}, "
                 f"code: {ret.second.Code()}, module code {ret.second.MCode()}, msg: {ret.second.Msg().decode()}")
         return function_meta_from_cpp(ret.first)
 

@@ -601,6 +601,8 @@ class InvokeOptions:
 
     is_delete_remote_tensor: bool = False
 
+    get_if_exists: bool = False
+
     def check_options_valid(self):
         """
         Check whether the options are valid.
