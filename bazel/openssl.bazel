@@ -43,8 +43,8 @@ configure_make(
     lib_name = LIB_NAME,
     lib_source = ":all_srcs",
     out_shared_libs = [
-        "libssl.so.1.1",
-        "libcrypto.so.1.1",
+        "libssl.so.3",
+        "libcrypto.so.3",
     ],
     targets = MAKE_TARGETS,
     args = ["-j"],
@@ -62,8 +62,8 @@ cc_library(
     hdrs = glob(["install/include/**/*.h"]),
     strip_include_prefix = "install/include",
     srcs = [
-        "install/lib/libssl.so.1.1",
-        "install/lib/libcrypto.so.1.1",
+        "install/lib/libssl.so.3",
+        "install/lib/libcrypto.so.3",
     ],
     visibility = ["//visibility:public"],
     alwayslink = True,

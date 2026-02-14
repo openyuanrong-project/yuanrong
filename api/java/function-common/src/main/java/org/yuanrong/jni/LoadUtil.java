@@ -55,11 +55,10 @@ public class LoadUtil {
     private static final String[] LOADING_SEQUENCE = {
         "libsecurec.so",
         "libtbb.so.2",
-        "libcrypto.so.1.1",
-        "libssl.so.1.1",
+        "libcrypto.so.3",
+        "libssl.so.3",
         "libds-spdlog.so.1.12.0",
         "libzmq.so.5.2.5",
-        "libcrypto.so.1.1",
         "libaddress_sorting.so.42.0.0",
         "libdatasystem.so",
         "libspdlog.so.1.12.0",

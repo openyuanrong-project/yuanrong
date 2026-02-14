@@ -178,6 +178,7 @@ function build_python_sdk() {
     cd $API_DIR/python
     rm -rf build/ dist/ *.egg-info
     SETUP_TYPE= $PYTHON3_SDK_BIN_PATH setup.py bdist_wheel
+    mkdir -p ${OUTPUT_DIR}
     cp -ar $API_DIR/python/dist/*whl $BASE_DIR/output/
     chmod 750 $BASE_DIR/output/*.whl
     mkdir -p $OUTPUT_BASE/runtime/sdk/python/

@@ -316,6 +316,7 @@ genrule(
         "//:grpc_strip",
         "@datasystem_sdk//:shared",
         "@metrics_sdk//:shared",
+        "@boringssl//:shared",
     ],
     outs = ["native_yr_api_sdk.jar"],
     cmd = """
@@ -341,14 +342,15 @@ genrule(
     NATIVE_LIB=$$(echo $(locations @datasystem_sdk//:shared))
     NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations @metrics_sdk//:shared))
     NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations //:grpc_strip))
+    NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations @boringssl//:shared))
     NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so))
     LIB_REQUIRED=(
         "libtbb.so.2"
         "libds-spdlog.so.1.12.0"
         "libzmq.so.5.2.5"
         "libsecurec.so"
-        "libssl.so.1.1"
-        "libcrypto.so.1.1"
+        "libssl.so.3"
+        "libcrypto.so.3"
         "libaddress_sorting.so.42.0.0"
         "libdatasystem.so"
         "libgrpc_dynamic.so.1.65.4"

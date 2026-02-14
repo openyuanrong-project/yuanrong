@@ -220,6 +220,7 @@ genrule(
         cp -rf $$BASE_DIR/external/boost/boost/*.hpp $$CPP_SDK_DIR/include/boost
         cp -rf $$BASE_DIR/external/boost/boost/*.h $$CPP_SDK_DIR/include/boost
         cp -rf $$BASE_DIR/external/nlohmann_json/single_include/nlohmann/json.hpp $$CPP_SDK_DIR/include
+        cp -rf $$BASE_DIR/external/boringssl/install/lib/lib*.so* $$CPP_SDK_DIR/lib
         chmod +w $(locations :cpp_strip) $(locations //:grpc_strip) &&
         chrpath -d $(locations :cpp_strip) $(locations //:grpc_strip) &&
         cp -rf $(locations :cpp_strip) $(locations //:grpc_strip) $$CPP_SDK_DIR/lib/ &&

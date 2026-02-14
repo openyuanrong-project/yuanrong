@@ -6,7 +6,7 @@ gogo-protobuf,v1.3.2,functionsystem,https://gitee.com/mirrors_gogo/protobuf/repo
 grpc,v1.65.4,runtime;functionsystem,https://gitee.com/mirrors/grpc/repository/archive/v1.65.4.tar.gz,dd60131b74bd1ecb3ffd29a31a6d68d6bb009106bd22c4be140e40f5d2baf2f6,
 jemalloc,5.3.0,functionsystem,https://gitee.com/mirrors/jemalloc/repository/archive/5.3.0.zip,fcd383b168b72904f777e500631996366a633d1c40714f1601b7e739eb054613,
 cjson,v3.11.3,metrics;logs,https://gitee.com/mirrors/nlohmann-json/repository/archive/v3.11.3.zip,0deac294b2c96c593d0b7c0fb2385a2f4594e8053a36c52b11445ef4b9defebb,
-openssl,1.1.1wa,runtime;litebus;functionsystem;metrics,https://gitee.com/openeuler/openssl/releases/download/OpenSSL_1_1_1wa/openssl-1.1.1wa.tar.gz,b23d541fe5b44a50e73c2d542eee89541d92e01568d27b06091ea1f074655789,
+openssl,openssl-3.0.12,runtime;litebus;functionsystem;metrics,https://gitee.com/mirrors/openssl/repository/archive/openssl-3.0.12.zip,25a761cc2941a858b211afc5c3b0aa132ef0d94f86dab3b194e1bb90c6eefb2c,
 protobuf,v3.25.5,functionsystem,https://gitee.com/mirrors/protobuf_source/repository/archive/v3.25.5.tar.gz,2ed51794f7a1f9da3e4d8ede931ff55206e33b5e49b876966c7b2af523913e54,
 re2,2024-07-02,functionsystem,https://gitee.com/mirrors/re2/repository/archive/2024-07-02.zip,20f5af5320da5a704125eaec5965ddc0cfa86fb420575a9f9f04c5cef905ba93,
 spdlog,v1.12.0,runtime;functionsystem;litebus;logs,https://gitee.com/mirror-luyi/spdlog/repository/archive/v1.12.0.zip,a0a22ed8e4932cf5f7abc354fc96d20217a8b45471e732d5e672cc01979fe588,
