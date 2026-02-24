@@ -6,6 +6,7 @@ yr.fnruntime.Producer.send
 .. py:method:: Producer.send(self, element: Element, int timeout_ms: int = None) -> None
 
     Producer 发送数据，数据会首先放入缓冲中，根据配置的自动 flush 策略（发送间隔一段时间或者缓冲写满）去刷新缓冲。
+    
     参数：
         - **element** (Element_) – 要发送的 Element 数据。
         - **timeout_ms** (int, optional) – 超时时间，以毫秒为单位。默认值为 ``None``。
