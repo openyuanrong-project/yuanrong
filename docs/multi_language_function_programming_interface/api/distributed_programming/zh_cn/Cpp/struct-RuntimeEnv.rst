@@ -117,9 +117,10 @@ RuntimeEnv
                   		{"index_url", "http://mirrors.tools.nobody.com/pypi/simple/"}
                   	}}
                   });
+                  
               (2). 通过指定 obs 地址，复用 site-packages，跳过 pip 安装包。
 
-              .. code-block:: cpp
+              .. code-block:: text
 
                  YR::InvokeOptions opts;
                  YR::RuntimeEnv runtimeEnv;
@@ -139,6 +140,7 @@ RuntimeEnv
                  // DELEGATE_DOWNLOAD 配置参考 InvokeOptions 结构体章节内容
                  opts.customExtensions["DELEGATE_DOWNLOAD"] = "{\"storage_type\":\"s3\",\"hostName\":\"obs.xxxx.com\",\"bucketId\":\"bucketId\",\"objectId\":\"objectid\",\"sha256\":\"xxxxx\",
                  \"temporaryAccessKey\":\"HST3UXZO1UWEXG6ZGUPV\",\"temporarySecretKey\":\"xxxxxx\",\"securityToken\":\"xxxxxxxx\"}";
+              
               (3). 通过指定 obs 地址，复用 site-packages，增量安装 PyPI 包。
 
               .. code-block:: cpp
