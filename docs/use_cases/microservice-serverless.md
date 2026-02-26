@@ -308,9 +308,9 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/functions -H 'Content-Typ
 
 #### 准备资源池
 
-运行微服务前，需要先在 openYuanrong 集群中初始化一个和服务资源（cpu、memory 等）配置（见前一步骤创建的 create_func.json 文件）匹配的资源池。
+运行微服务前，需要先在 openYuanrong 集群中初始化一个和服务资源（cpu、memory 等）, 如果您在部署 openYuanrong 时已经创建资源池，可跳过该步骤。
 
-在 `microservice-demo` 目录下新建 create_pool.json 文件，内容如下，作为创建资源池的请求参数，参数含义详见 [API 说明](../deploy/deploy_on_k8s/api/create_pod_pool.md)
+在 `microservice-demo` 目录下新建 `create_pool.json` 文件，内容如下，作为创建资源池的请求参数，参数含义详见 [API 说明](../deploy/deploy_on_k8s/api/create_pod_pool.md)
 
 ```json
 {

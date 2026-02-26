@@ -119,7 +119,6 @@ cp -a yuanrong-datasystem/output/yr-datasystem-v0.0.0.tar.gz yuanrong-functionsy
 
 ```shell
 cd /opt/openyuanrong/yuanrong-functionsystem
-chmod +x run.sh
 ./run.sh build
 ```
 
@@ -141,8 +140,7 @@ chmod +x run.sh
 函数系统的主要编译产物为多个二进制程序与公共的动态库，同时将搭配一些依赖和运行配置。因此您可以使用`pack`命令完成函数系统的构建产物打包。打包产物和打包内容将统一存放在`output`文件夹中。
 
 ```bash
-cd /opt/openyuanrong
-chmod +x run.sh
+cd /opt/openyuanrong/yuanrong-functionsystem
 ./run.sh pack
 ```
 

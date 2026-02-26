@@ -81,7 +81,7 @@ cd openyuanrong
     --set global.obsManagement.s3SecretKey=${Your Minio SecretKey}  .
   ```
 
-- 部署 openYuanrong 并创建默认规格为（3 核 cpu，6GB 内存）的 Pod 资源池，建议用于开发有状态函数及无状态函数。
+- 部署 openYuanrong 并创建默认规格为（3 核 cpu，6GB 内存）的 Pod 资源池，建议用于运行作业类应用。
 
   ```shell
   helm install openyuanrong --set global.etcd.etcdAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
@@ -97,7 +97,7 @@ cd openyuanrong
     --set global.pool.limitMemory=6144Mi .
   ```
 
-- 部署 openYuanrong 并创建默认规格为 600 毫核 cpu，512MB 内存的 Pod 资源池，建议用于开发函数服务。
+- 部署 openYuanrong 并创建默认规格为 600 毫核 cpu，512MB 内存的 Pod 资源池，建议用于运行服务类应用。
 
   ```shell
   helm install openyuanrong --set global.etcd.etcdAddress=${Your ETCD ADDRESS}:${Your ETCD Port} \
