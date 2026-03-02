@@ -55,6 +55,3 @@ scripts/package/.build/
 # thirdparty
 thirdparty/
 go/pkg/mod/
-functionsystem/
-datasystem/
-metrics/
