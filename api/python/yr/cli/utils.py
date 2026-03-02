@@ -15,15 +15,19 @@
 # limitations under the License.
 
 import errno
+import json
 import logging
 import os
 import random
 import socket
+import ssl
 import string
 import sys
 import time
+import urllib.request
 from contextlib import closing
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -187,3 +191,68 @@ def wait_pid_exit(pid: int, deadline: float, interval: int = 2) -> bool:
             return True
         time.sleep(interval)
     return False
+
+
+def fetch_url(
+    url: str,
+    timeout: float = 2.0,
+    ssl_context: Optional[ssl.SSLContext] = None,
+    as_json: bool = False,
+) -> Optional[any]:
+    try:
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})  # noqa: S310
+        with urllib.request.urlopen(req, timeout=timeout, context=ssl_context) as resp:  # noqa: S310
+            content = resp.read().decode("utf-8", errors="replace")
+            return json.loads(content) if as_json else content.strip()
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        logger.warning("  Failed to fetch %s: %s", url, exc)
+        return None
+
+
+def service_discovery_from_function_master(
+    function_master_addr: str,
+    ssl_context: Optional[ssl.SSLContext] = None,
+) -> dict[str, any]:
+    """Get service discovery info from function_master's /masterinfo endpoint."""
+
+    url = f"{function_master_addr}/global-scheduler/masterinfo"
+    data = fetch_url(url, timeout=3.0, as_json=True, ssl_context=ssl_context)
+    if not isinstance(data, dict):
+        raise ValueError(f"Invalid service discovery response from {url}")
+
+    # Example response:
+    # {
+    #     "master_address": "10.88.0.4:22770",
+    #     "meta_store_address": "10.88.0.4:32379",
+    #     "schedule_topo": {
+    #         "members": [
+    #         {
+    #             "address": "10.88.0.4:22772",
+    #             "name": "56de329657e6-21"
+    #         }
+    #         ]
+    #     }
+    # }
+    services = {
+        "function_master": data["master_address"],
+        "meta_store": data["meta_store_address"],
+        "function_proxy": [child["address"] for child in data["schedule_topo"]["members"]],
+    }
+    logger.info(f"Discovered services: {services}")
+    return services
+
+
+def services_to_overrides(services: dict[str, str]) -> list[str]:
+    """Convert service discovery info to a list of command-line overrides."""
+    overrides = []
+    if "function_master" in services:
+        ip, port = services["function_master"].split(":")
+        overrides.append(f"values.function_master.ip='{ip}'")
+        overrides.append(f"values.function_master.global_scheduler_port='{port}'")
+    if "meta_store" in services:
+        ip, port = services["meta_store"].split(":")
+        overrides.append(
+            f'values.etcd.address=[{{ip="{ip}",peer_port="{port}",port="{port}"}}]'
+        )  # peer_port is unnecessary so we just set it to the same as port
+    overrides.append("ds_worker.args.master_address=''")
+    return overrides

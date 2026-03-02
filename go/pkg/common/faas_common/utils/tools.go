@@ -29,7 +29,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"math/rand"
 	"net"
 	"os"
 	"path"
@@ -85,9 +84,11 @@ const (
 	funcNameValueIndex      = 8
 	versionValueIndex       = 10
 	instanceIDValueIndex    = 13
-	functionSchedulerKeyLen = 14
 	moduleSchedulerKeyLen   = 7
+	functionSchedulerKeyLen = 7
+	snInstanceKeyLen        = 14
 	functionNameIndex       = 6
+	leaseIndex              = 7
 	defaultVersion          = "latest"
 	defaultTenant           = "0"
 	defaultFunctionName     = "faas-scheduler"
@@ -512,28 +513,9 @@ func FileMD5(filePath string) (string, error) {
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// ShuffleOneArray -
-func ShuffleOneArray(arr []string) []string {
-	arrLength := len(arr)
-	if arrLength <= 1 {
-		return arr
-	}
-	copyArr := make([]string, arrLength)
-	copy(copyArr, arr)
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(arrLength, func(i, j int) { copyArr[i], copyArr[j] = copyArr[j], copyArr[i] })
-	return copyArr
-}
-
 // IsCAEFunc judge whether it is a CAE function
 func IsCAEFunc(businessType string) bool {
 	return businessType == constant.BusinessTypeCAE
-}
-
-// IsWebSocketFunc return true if the business type is websocket or cae with enable remote debug
-func IsWebSocketFunc(businessType string, enableRemoteDebug bool) bool {
-	return businessType == constant.BusinessTypeWebSocket ||
-		(businessType == constant.BusinessTypeCAE && enableRemoteDebug)
 }
 
 var directFunctions = map[string]struct{}{
@@ -561,7 +543,7 @@ func IsStringInArray(str string, arr []string) bool {
 // job-9e54951c-task-77156757-fb16-4b4a-ad61-6646c7d1c57c-d4ad6c74-0/3f079541-15fc-4009-8c41-50b2b2936772
 func GetFunctionInstanceInfoFromEtcdKey(path string) (*types.InstanceInfo, error) {
 	elements := strings.Split(path, "/")
-	if len(elements) != functionSchedulerKeyLen {
+	if len(elements) != snInstanceKeyLen {
 		return nil, fmt.Errorf("unexpected etcd path format: %s", path)
 	}
 	return &types.InstanceInfo{
@@ -573,10 +555,44 @@ func GetFunctionInstanceInfoFromEtcdKey(path string) (*types.InstanceInfo, error
 	}, nil
 }
 
-// GetModuleSchedulerInfoFromEtcdKey /sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf
-func GetModuleSchedulerInfoFromEtcdKey(path string) (*types.InstanceInfo, error) {
+// GetSchedulerInfoFromEtcdKey /sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf
+func GetSchedulerInfoFromEtcdKey(path string) (*types.InstanceInfo, error) {
 	elements := strings.Split(path, "/")
 	if len(elements) != moduleSchedulerKeyLen {
+		return nil, fmt.Errorf("unexpected etcd path format: %s", path)
+	}
+	return &types.InstanceInfo{
+		TenantID:     defaultTenant,
+		FunctionName: defaultFunctionName,
+		Version:      defaultVersion,
+		InstanceName: elements[functionNameIndex],
+	}, nil
+}
+
+// GetInstanceNameFromSchedulerLeaseEtcdKey /sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf/{leaseId}
+func GetInstanceNameFromSchedulerLeaseEtcdKey(path string) (string, bool) {
+	elements := strings.Split(path, "/")
+	if len(elements) != moduleSchedulerKeyLen+1 {
+		return "", false
+	}
+
+	return elements[functionNameIndex], true
+}
+
+// ParseLeaseFromSchedulerLeaseEtcdKey /sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf/{leaseId}
+func ParseLeaseFromSchedulerLeaseEtcdKey(path string) string {
+	elements := strings.Split(path, "/")
+	if len(elements) != moduleSchedulerKeyLen+1 {
+		return ""
+	}
+
+	return elements[leaseIndex]
+}
+
+// GetFunctionSchedulerInfoFromEtcdKey /sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf
+func GetFunctionSchedulerInfoFromEtcdKey(path string) (*types.InstanceInfo, error) {
+	elements := strings.Split(path, "/")
+	if len(elements) != functionSchedulerKeyLen {
 		return nil, fmt.Errorf("unexpected etcd path format: %s", path)
 	}
 	return &types.InstanceInfo{

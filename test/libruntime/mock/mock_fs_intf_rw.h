@@ -40,6 +40,7 @@ public:
     MOCK_METHOD(bool, Available, (), (override));
     MOCK_METHOD(bool, Abnormal, (), (override));
     MOCK_METHOD(bool, IsHealth, (), (override));
+    MOCK_METHOD(bool, IsSameDstAddr, (const std::string &dstIp, const int &dstPort), (override));
 };
 }  // namespace test
 }  // namespace YR

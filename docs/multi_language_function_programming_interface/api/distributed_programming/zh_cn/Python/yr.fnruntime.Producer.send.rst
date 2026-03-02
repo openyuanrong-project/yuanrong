@@ -5,7 +5,7 @@ yr.fnruntime.Producer.send
 
 .. py:method:: Producer.send(self, element: Element, int timeout_ms: int = None) -> None
 
-    Producer 发送数据，数据会首先放入缓冲中，根据配置的自动 flush 策略（发送间隔一段时间或者缓冲写满）去刷新缓冲，或者通过手动调用 flush 操作让数据对消费者可见。
+    Producer 发送数据，数据会首先放入缓冲中，根据配置的自动 flush 策略（发送间隔一段时间或者缓冲写满）去刷新缓冲。
     
     参数：
         - **element** (Element_) – 要发送的 Element 数据。

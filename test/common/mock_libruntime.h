@@ -132,6 +132,8 @@ public:
 
     MOCK_METHOD3(WaitAsync, void(const std::string &objectId, WaitAsyncCallback callback, void *userData));
 
+    MOCK_METHOD3(GetEvent, void(const std::string &objectId, GetEventCallback callback, void *userData));
+
     MOCK_METHOD3(Init, ErrorInfo(std::shared_ptr<FSClient> fsClient, DatasystemClients &datasystemClients,
                                  FinalizeCallback cb));
 
@@ -255,6 +257,7 @@ public:
     MOCK_METHOD0(GetResources, std::pair<ErrorInfo, std::vector<YR::Libruntime::ResourceUnit>>());
     MOCK_METHOD0(IsHealth, bool());
     MOCK_METHOD0(IsDsHealth, bool());
+    MOCK_METHOD1(StreamWrite, ErrorInfo(const std::string &streamMessage));
 };
 }  // namespace Libruntime
 }  // namespace YR

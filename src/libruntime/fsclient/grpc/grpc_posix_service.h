@@ -36,7 +36,8 @@ public:
     GrpcPosixService(const std::string &instanceID, const std::string &runtimeID, const std::string &listeningIpAddr,
                      int selfPort, const std::shared_ptr<TimerWorker> &timerWorker,
                      const std::shared_ptr<absl::Notification> &notification,
-                     const std::shared_ptr<FSIntfManager> &fsIntfManager, std::shared_ptr<Security> security)
+                     const std::shared_ptr<FSIntfManager> &fsIntfManager, std::shared_ptr<Security> security,
+                     bool enableDirectCall = false, bool enableEvent = false)
         : instanceID(instanceID),
           runtimeID(runtimeID),
           listeningIpAddr(listeningIpAddr),
@@ -44,7 +45,9 @@ public:
           timerWorker(timerWorker),
           notification(notification),
           fsIntfMgr(fsIntfManager),
-          security_(security)
+          security_(security),
+          enableEvent_(enableEvent),
+          enableDirectCall_(enableDirectCall)
     {
     }
     ~GrpcPosixService() override
@@ -70,6 +73,11 @@ public:
     inline void RegisterRTHandler(const std::unordered_map<BodyCase, MsgHdlr> &rtMsgHdlr)
     {
         this->rtMsgHdlrs = rtMsgHdlr;
+    }
+
+    inline void RegisterEventHdlrs(const std::unordered_map<BodyCase, MsgHdlr> &eventMsgHdlrs)
+    {
+        this->eventMsgHdlrs = eventMsgHdlrs;
     }
 
     std::shared_ptr<grpc::ServerCredentials> GetCreds()
@@ -120,6 +128,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<YR::utility::Timer>> disconnectCallbackTimers ABSL_GUARDED_BY(mu);
     std::unordered_map<BodyCase, MsgHdlr> fsMsgHdlrs;
     std::unordered_map<BodyCase, MsgHdlr> rtMsgHdlrs;
+    std::unordered_map<BodyCase, MsgHdlr> eventMsgHdlrs;
     std::function<void(const std::string &)> resendCb;
     std::function<void(const std::string &)> disconnectedCb;
     int rtDisconnectedTimeout = RT_DISCONNECT_TIMEOUT_MS;
@@ -127,6 +136,8 @@ private:
     std::atomic<bool> stopped{false};
     std::atomic<bool> fsConnected{false};
     std::shared_ptr<Security> security_;
+    bool enableEvent_{false};
+    bool enableDirectCall_{false};
 };
 
 }  // namespace Libruntime

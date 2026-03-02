@@ -15,38 +15,22 @@ html {
     border-color: #d3d3d3;
 }
 
-/* custom.css */
-
-/* 1. 定义按钮的样式 (浅蓝底黑字) */
-#top-right-btn {
-    /* 背景和文字 */
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    font-weight: 500;
-    
-    /* 尺寸和形状 */
-    padding: 4px 10px !important;
-    border-radius: 6px !important;
-    border: 1px solid #000000 !important;
-    text-decoration: none;
-
-    font-size: 0.875rem !important;
-    font-weight: 500;
-    
-    /* 关键定位属性 */
-    position: fixed !important; /* 1. 固定定位：滚动页面它也不动 */
-    top: 15px;                  /* 2. 距离屏幕顶部 15px */
-    right: 10px;                /* 3. 距离屏幕右侧 15px */
-    
-    /* 层级 */
-    z-index: 9999;              /* 4. 确保在最顶层，不被其他内容挡住 */
-
-    /* 垂直居中微调 (可选) */
-    transform: translateY(0);
+/* 覆盖 PyData 主题的默认内容宽度 */
+.bd-container {
+    max-width: none !important;
 }
 
-/* 2. 鼠标悬停效果 */
-#top-right-btn:hover {
-    background-color: #ffffff !important;
-    color: #000000 !important;
+/* 或者设置一个更大的固定宽度（可选） */
+/* .bd-container { max-width: 1400px !important; } */
+
+/* 确保主内容区撑满 */
+.bd-main .bd-content .bd-article-container {
+    max-width: none;
 }
+
+/* 可选：隐藏右侧 ToC 边栏（如果你希望内容完全占据右侧空间） */
+/* .bd-toc { display: none !important; } */
+
+
+
+

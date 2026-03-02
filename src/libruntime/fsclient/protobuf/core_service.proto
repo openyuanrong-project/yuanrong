@@ -232,3 +232,9 @@ message KillResponse {
   common.ErrorCode code    = 1;
   string           message = 2;
 }
+
+message EventRequest {
+  string           requestID  = 1;
+  string           message    = 2;
+  string           instanceID = 3;
+}

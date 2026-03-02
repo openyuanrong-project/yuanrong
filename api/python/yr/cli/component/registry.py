@@ -65,7 +65,7 @@ DEPENDS_ON_OVERRIDES_BY_MODE: dict[StartMode, dict[str, list[str]]] = {
         "dashboard": ["function_master"],
         "ds_master": ["etcd"],
         "ds_worker": ["etcd"],
-        "collector": ["dashboard"],
+        "collector": ["ds_worker"],
         "meta_service": ["etcd"],
         "etcd": [],
     },

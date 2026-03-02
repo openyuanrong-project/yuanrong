@@ -29,6 +29,7 @@ void MemoryStore::Init(std::shared_ptr<ObjectStore> _dsObjectStore,
     std::lock_guard<std::mutex> lock(mu);
     dsObjectStore = _dsObjectStore;
     waitingObjectManager = _waitingObjectManager;
+    timerWorker_ = std::make_shared<TimerWorker>();
 }
 
 ErrorInfo MemoryStore::GenerateKey(std::string &key, const std::string &prefix, bool isPut)
@@ -419,6 +420,11 @@ std::vector<int> MemoryStore::QueryGlobalReference(const std::vector<std::string
         globalRef[shouldQueryFromDSIndex[i]] = dsGlobalRef[i];
     }
     return globalRef;
+}
+
+ErrorInfo MemoryStore::ReleaseGRefs(const std::string &remoteId)
+{
+    return dsObjectStore->ReleaseGRefs(remoteId);
 }
 
 void MemoryStore::Clear()
@@ -958,6 +964,86 @@ bool MemoryStore::AddReadyCallbackWithData(const std::string &id, ObjectReadyCal
     }
     objDetail->callbacksWithData.push_back(callback);
     return true;
+}
+
+void MemoryStore::AddEventCallbackWithData(const std::string &id, EventCallbackWithData callback)
+{
+    std::deque<std::shared_ptr<std::string>> tempBuffers;
+    {
+        std::unique_lock<std::mutex> lock(eventMu);
+        auto it = reqEventCallbackMap_.find(id);
+        if (it == reqEventCallbackMap_.end()) {
+            EventCallbackInfo eventCallbackInfo;
+            eventCallbackInfo.eventCallback = callback;
+            reqEventCallbackMap_.emplace(id, eventCallbackInfo);
+        } else {
+            it->second.eventCallback = callback;
+            tempBuffers = std::move(it->second.buffers);
+        }
+    }
+    for (const auto &eventBuffer : tempBuffers) {
+        this->DoEventCallback(callback, id, *eventBuffer);
+    }
+}
+
+bool MemoryStore::AddEventData(const std::string &reqId, const std::string &eventData)
+{
+    YRLOG_DEBUG("Begin to add event data, size is {}, reqId is {}", eventData.size(), reqId);
+    std::unique_lock<std::mutex> lock(eventMu);
+    // if the callback function has not been registered, the data will be cached in the buffers,
+    // when AddEventCallbackWithData method is called, the buffers will be called back in sequence.
+    auto it = reqEventCallbackMap_.find(reqId);
+    if (it == reqEventCallbackMap_.end()) {
+        EventCallbackInfo eventCallbackInfo;
+        eventCallbackInfo.buffers.push_back(std::make_shared<std::string>(eventData));
+        reqEventCallbackMap_.emplace(reqId, eventCallbackInfo);
+        return false;
+    }
+    if (it->second.eventCallback == nullptr) {
+        it->second.buffers.push_back(std::make_shared<std::string>(eventData));
+        return false;
+    }
+    auto callback = it->second.eventCallback;
+    lock.unlock();
+    DoEventCallback(callback, reqId, eventData);
+    return true;
+}
+
+void MemoryStore::DoEventCallback(EventCallbackWithData callback, const std::string &reqId,
+                                  const std::string &eventData)
+{
+    std::shared_ptr<Buffer> eventDataBuf = std::make_shared<NativeBuffer>(eventData.size());
+    eventDataBuf->MemoryCopy(eventData.data(), eventData.size());
+    callback(ErrorInfo(), eventDataBuf);
+    if (eventData == YR::Libruntime::EVENT_EOF) {
+        YRLOG_DEBUG("Receive event EOF, begin to erase eventCallback.");
+        std::unique_lock<std::mutex> lock(eventMu);
+        auto it = reqEventCallbackMap_.find(reqId);
+        if (it != reqEventCallbackMap_.end()) {
+            if (it->second.timer != nullptr) {
+                it->second.timer->cancel();
+            }
+            reqEventCallbackMap_.erase(it);
+        }
+    }
+}
+
+void MemoryStore::AddEventTimer(const std::string &reqId, int timeoutSec)
+{
+    auto eventTimer = timerWorker_->CreateTimer(
+        timeoutSec, EVENT_TIMER_EXEC_TIMES, [this, reqId] { this->AddEventData(reqId, YR::Libruntime::EVENT_EOF); });
+    std::unique_lock<std::mutex> lock(eventMu);
+    auto it = reqEventCallbackMap_.find(reqId);
+    if (it == reqEventCallbackMap_.end()) {
+        EventCallbackInfo eventCallbackInfo;
+        eventCallbackInfo.timer = eventTimer;
+        reqEventCallbackMap_.emplace(reqId, eventCallbackInfo);
+    } else {
+        if (it->second.timer != nullptr) {
+            it->second.timer->cancel();
+        }
+        it->second.timer = eventTimer;
+    }
 }
 
 bool MemoryStore::AddReturnObject(const std::vector<DataObject> &returnObjs)

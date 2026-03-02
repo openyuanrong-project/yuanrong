@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,42 +18,12 @@
 package utils
 
 import (
-	"fmt"
 	"net"
 	"strconv"
-	"strings"
 
-	"yuanrong.org/kernel/pkg/common/faas_common/constant"
-	"yuanrong.org/kernel/pkg/common/faas_common/k8sclient"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
-	"yuanrong.org/kernel/pkg/functionscaler/config"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
 )
-
-const (
-	defaultLabelLength = 3
-)
-
-// DeleteConfigMapByFuncInfo -
-func DeleteConfigMapByFuncInfo(funcSpec *types.FunctionSpecification) {
-	if config.GlobalConfig.Scenario != types.ScenarioWiseCloud {
-		return
-	}
-	configmapName := GetConfigmapName(funcSpec.FuncMetaData.FuncName, funcSpec.FuncMetaData.Version)
-	nameSpace := config.GlobalConfig.NameSpace
-	if nameSpace == "" {
-		nameSpace = constant.DefaultNameSpace
-	}
-	err := k8sclient.GetkubeClient().DeleteK8sConfigMap(nameSpace, configmapName)
-	if err != nil {
-		log.GetLogger().Errorf("delete configmap error, error is ", err.Error())
-	}
-}
-
-// GetConfigmapName -
-func GetConfigmapName(functionName string, functionVersion string) string {
-	return strings.ToLower(fmt.Sprintf("%s-%s", strings.ReplaceAll(functionName, "_", "-"), functionVersion))
-}
 
 // IsNeedRaspSideCar -
 func IsNeedRaspSideCar(funcSpec *types.FunctionSpecification) bool {

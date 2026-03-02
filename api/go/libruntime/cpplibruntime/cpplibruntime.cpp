@@ -460,6 +460,7 @@ CErrorInfo CInit(CLibruntimeConfig *config)
     librtCfg.funcExecSubmitHook = FuncExecSubmitHook;
     librtCfg.maxConcurrencyCreateNum = config->maxConcurrencyCreateNum;
     librtCfg.enableSigaction = config->enableSigaction;
+    librtCfg.enableEvent = config->enableEvent != 0;
     auto err = LibruntimeManager::Instance().Init(librtCfg);
     return ErrorInfoToCError(err);
 }
@@ -652,6 +653,9 @@ static InvokeOptions BuildInvokeOptions(CInvokeOptions *cInvokeOpts)
     }
     if (cInvokeOpts->trafficLimited != 0) {
         invokeOpts.trafficLimited = true;
+    }
+    if (cInvokeOpts->forceInvoke != 0) {
+        invokeOpts.forceInvoke = true;
     }
     for (int i = 0; i < cInvokeOpts->size_invokeLabels; i++) {
         invokeOpts.invokeLabels.emplace(cInvokeOpts->invokeLabels[i].key, cInvokeOpts->invokeLabels[i].value);
@@ -911,6 +915,26 @@ void CWaitAsync(char *objectId, void *userData)
         userData);
 }
 
+void CGetEvent(char *objectId, void *userData)
+{
+    auto [lrt, err] = getLibRuntime();
+    if (!err.OK()) {
+        return;  // 以后把报错抛出去
+    }
+    lrt->GetEvent(
+        objectId,
+        [](std::shared_ptr<DataObject> data, const ErrorInfo &err, void *userData) {
+            auto cErr = ErrorInfoToCError(err);
+            CBuffer cBuf = {0};
+            if (err.OK()) {
+                cErr = ErrorInfoToCError(ToCBuffer(data->buffer, &cBuf));
+            }
+            auto cObjectId = const_cast<char *>(data->id.c_str());
+            GoGetEventCallback(cObjectId, cBuf, &cErr, userData);
+        },
+        userData);
+}
+
 CErrorInfo CKill(char *instanceId, int sigNo, CBuffer cData)
 {
     std::shared_ptr<NativeBuffer> data;
@@ -1134,6 +1158,16 @@ CErrorInfo CDecreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRem
     auto [err1, failedIds] = decreRet;
     StringsToCStrings(failedIds, cFailedIds, size_cFailedIds);
     return ErrorInfoToCError(err1);
+}
+
+CErrorInfo CReleaseGRefs(char *cRemoteId)
+{
+    auto [lrt, err] = getLibRuntime();
+    if (!err.OK()) {
+        return ErrorInfoToCError(err);
+    }
+    err = lrt->ReleaseGRefs(cRemoteId);
+    return ErrorInfoToCError(err);
 }
 
 CErrorInfo CKVWrite(char *key, CBuffer data, CSetParam param)

@@ -35,6 +35,7 @@ ErrorInfo ConvertStringToInsResp(InstanceResponse &resp, const std::string &bufS
         info.instanceId = jsonData["instanceID"].get<std::string>();
         info.leaseId = jsonData["threadID"].get<std::string>();
         info.tLeaseInterval = jsonData["leaseInterval"].get<int>();
+        info.forceInvoke = jsonData.value("forceInvoke", false);
         resp.info = info;
         resp.errorCode = jsonData["errorCode"].get<int>();
         resp.errorMessage = jsonData["errorMessage"].get<std::string>();
@@ -153,8 +154,8 @@ void InsManager::AddRequestResourceInfo(std::shared_ptr<InvokeSpec> spec)
     GetOrAddRequestResourceInfo(resource);
 }
 
-std::pair<std::string, std::string> InsManager::ScheduleInsWithDevice(const RequestResource &resource,
-                                                                      std::shared_ptr<RequestResourceInfo> resourceInfo)
+InstanceSummary InsManager::ScheduleInsWithDevice(const RequestResource &resource,
+                                                  std::shared_ptr<RequestResourceInfo> resourceInfo)
 {
     absl::ReaderMutexLock infoLock(&resourceInfo->mtx);
     int64_t minCost = resource.opts.maxInvokeLatency;
@@ -182,25 +183,25 @@ std::pair<std::string, std::string> InsManager::ScheduleInsWithDevice(const Requ
         absl::WriterMutexLock insInfoLock(&insInfo->mtx);
         insInfo->unfinishReqNum++;
     }
-    return std::make_pair(minCostInstance, "");
+    return InstanceSummary{minCostInstance, ""};
 }
 
 // return std::pair<insId, leaseId>
-std::pair<std::string, std::string> InsManager::GetAvailableIns(const RequestResource &resource)
+InstanceSummary InsManager::GetAvailableIns(const RequestResource &resource)
 {
     if (!runFlag) {
-        return std::make_pair("", "");
+        return InstanceSummary{"", ""};
     }
     auto resourceInfo = GetRequestResourceInfo(resource);
     if (resourceInfo == nullptr) {
-        return std::make_pair("", "");
+        return InstanceSummary{"", ""};
     }
     if (!resource.opts.device.name.empty()) {
         return ScheduleInsWithDevice(resource, resourceInfo);
     }
     absl::WriterMutexLock infoLock(&resourceInfo->mtx);
     if (resourceInfo->avaliableInstanceInfos.begin() == resourceInfo->avaliableInstanceInfos.end()) {
-        return std::make_pair("", "");
+        return InstanceSummary{"", ""};
     }
     auto insInfo = *resourceInfo->avaliableInstanceInfos.begin();
     absl::WriterMutexLock insInfoLock(&insInfo.second->mtx);
@@ -216,7 +217,7 @@ std::pair<std::string, std::string> InsManager::GetAvailableIns(const RequestRes
                 .time_since_epoch()
                 .count();
     }
-    return std::make_pair(insInfo.second->instanceId, insInfo.second->leaseId);
+    return InstanceSummary{insInfo.second->instanceId, insInfo.second->leaseId, insInfo.second->forceInvoke};
 }
 
 std::pair<bool, std::vector<std::string>> InsManager::NeedCancelCreatingIns(const RequestResource &resource,

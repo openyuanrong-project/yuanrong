@@ -74,6 +74,7 @@ func InitRuntime() error {
 		RuntimePublicKeyContextPath:     conf.RuntimePublicKeyContextPath,
 		RuntimePrivateKeyContextPath:    conf.RuntimePrivateKeyContextPath,
 		DsPublicKeyContextPath:          conf.DsPublicKeyContextPath,
+		EnableEvent:                     conf.EnableEvent,
 	}
 	if err := libruntime.Init(runtimeConf); err != nil {
 		fmt.Printf("failed to init libruntime, error %s\n", err.Error())

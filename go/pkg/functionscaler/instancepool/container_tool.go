@@ -69,6 +69,9 @@ func initContainerAdd(funcSpec *types.FunctionSpecification) ([]byte, error) {
 	if utils.IsNeedRaspSideCar(funcSpec) {
 		initContainers = []types.DelegateInitContainerConfig{makeRaspInitContainer(funcSpec)}
 	}
+	if funcSpec.ExtendedMetaData.UserOtelConfig.Enable {
+		initContainers = []types.DelegateInitContainerConfig{makeOtelInitContainer(funcSpec)}
+	}
 	configData, err := json.Marshal(initContainers)
 	if err != nil {
 		return nil, err

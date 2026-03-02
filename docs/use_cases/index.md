@@ -8,6 +8,7 @@
 
    llm_on_multiple_machines
    accelerate_llm_instance_scaling
+   microservice-serverless
 ```
 
 openYuanrong 可作为 AI 智算的基础设施，用于开发 AI 推理、强化学习等应用，也可作为通用计算的基础设施，开发大数据分析、HPC（高性能计算）等应用。
@@ -36,3 +37,7 @@ openYuanrong 通过开源和兼容方式提供了常用 AI 领域应用框架，
 2. **极速弹性**：基于快照的冷启动加速能力让函数应用实例可毫秒级别全自动扩缩容响应业务流量，无需预置大量资源保障业务峰值需求，资源利用率大幅提升。
 
 3. **多样负载共池**：openYuanrong 集群支持微服务、大数据分析、HPC 等分布式应用共资源池部署，高效通信和交换数据，实现高性能。
+
+### 通用计算场景案例
+
+- [迁移 SpringBoot 容器微服务到 openYuanrong](./microservice-serverless.md)

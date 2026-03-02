@@ -46,7 +46,7 @@ from yr.object_ref import ObjectRef
 from yr import log
 from yr.common.utils import GaugeData, UInt64CounterData, DoubleCounterData
 from yr.device import DataType, DeviceBufferParam, DataInfo
-from yr.runtime import (ExistenceOpt, WriteMode, CacheType, ConsistencyType, SetParam, MSetParam, CreateParam,
+from yr.base_runtime import (ExistenceOpt, WriteMode, CacheType, ConsistencyType, SetParam, MSetParam, CreateParam,
                         GetParam, GetParams, AlarmInfo, AlarmSeverity)
 from yr import runtime_env
 from yr.exception import YRInvokeError
@@ -973,6 +973,7 @@ cdef parse_invoke_opts(CInvokeOptions & opts, opt: yr.InvokeOptions, group_info:
     opts.instancePriority = opt.instance_priority
     opts.scheduleTimeoutMs = opt.schedule_timeout_ms
     opts.isDeleteRemoteTensor = opt.is_delete_remote_tensor
+    opts.debug.enable = opt.debug.enable
 
 cdef class Producer:
     """
@@ -2526,13 +2527,10 @@ cdef class Fnruntime:
             c_libruntime.get().SetTenantIdWithPriority()
             ret = c_libruntime.get().GetInstance(cname, cns, ctimeout)
         if not ret.second.OK():
-            if ret.second.Code() == CErrorCode.ERR_INSTANCE_NOT_FOUND or ret.second.Code() == CErrorCode.ERR_INSTANCE_EXITED:
-                with nogil:
-                    c_libruntime.get().Kill(cinstanceID, sigNo)
             if ret.second.IsTimeout():
                 raise TimeoutError(ret.second.Msg().decode())
             raise ValueError(
-                f"failed to invoke instance, "
+                f"failed to get instance by name: {cinstanceID}, "
                 f"code: {ret.second.Code()}, module code {ret.second.MCode()}, msg: {ret.second.Msg().decode()}")
         return function_meta_from_cpp(ret.first)
 

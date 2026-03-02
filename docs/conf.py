@@ -60,6 +60,7 @@ exclude_patterns = [
     "multi_language_function_programming_interface/api/distributed_programming/Java",
     "multi_language_function_programming_interface/api/distributed_programming/Python",
     "multi_language_function_programming_interface/api/function_service/Java",
+    "multi_language_function_programming_interface/api/function_service/Cpp",
     "multi_language_function_programming_interface/development_guide/function_service/response-stream.md",
 
     ""
@@ -112,6 +113,7 @@ html_theme_options = {
     "show_navbar_depth": 1,
     "max_navbar_depth": 7,
     "collapse_navigation": True,
+    "home_page_in_toc": True,
     "check_switcher": False,
     "extra_footer": """
         Built with
@@ -123,16 +125,19 @@ html_theme_options = {
     """,
     "navbar_start": [
         "navbar-logo",
-        "version-switcher",
-        "navbar-links"
+        "version-switcher"
     ],
     "switcher": {
-        "json_url": "https://pages.openeuler.openatom.cn/openyuanrong/docs/versions.json",
+        "json_url": "http://docs.openyuanrong.org/versions.json",
         "version_match": os.getenv("BUILD_VERSION", "latest"),
     },
     "logo": {
         "image_light": "_static/image-light.png",
         "image_dark": "_static/image-dark.png"
+    },
+    "secondary_sidebar_items": {
+        "**": ["page-toc"],
+        "index": []
     },
 }
 

@@ -99,6 +99,8 @@ using CreateResourceGroupRequest = ::core_service::CreateResourceGroupRequest;
 using CreateResourceGroupResponse = ::core_service::CreateResourceGroupResponse;
 using CreateResourceGroupCallBack = std::function<void(const CreateResourceGroupResponse &)>;
 
+using EventRequest = ::core_service::EventRequest;
+
 using CallRequest = ::runtime_service::CallRequest;
 using CallResponse = ::runtime_service::CallResponse;
 using CallCallBack = std::function<void(const CallResponse &)>;
@@ -129,6 +131,7 @@ const int SHUTDOWN_THREAD_POOL_SIZE = 1;
 const int SIGNAL_THREAD_POOL_SIZE = 10;
 const int HEARTBEAT_THREAD_POOL_SIZE = 1;
 const int RESP_RECV_THREAD_POOL_SIZE = 1;
+const int EVENT_THREAD_POOL_SIZE = 1;
 const int SLEEP_INTERVAL_BEFORE_TRACEPOINT_MS = 1000;
 
 class MessgeSpec {
@@ -208,6 +211,21 @@ public:
     }
 };
 
+class EventMessageSpec : public MessgeSpec {
+public:
+    EventMessageSpec() : MessgeSpec(){};
+    explicit EventMessageSpec(const std::shared_ptr<::runtime_rpc::StreamingMessage> &msg) : MessgeSpec(msg) {}
+    ~EventMessageSpec() override = default;
+    EventRequest &Mutable()
+    {
+        return *msg->mutable_eventreq();
+    }
+    const EventRequest &Immutable() const
+    {
+        return msg->eventreq();
+    }
+};
+
 using CallHandler = std::function<void(const std::shared_ptr<CallMessageSpec> &)>;
 using CallCallBack = std::function<void(const CallResponse &)>;
 using NotifyHandler = std::function<NotifyResponse(const NotifyRequest &)>;
@@ -222,6 +240,8 @@ using SignalHandler = std::function<SignalResponse(const SignalRequest &)>;
 using SignalCallBack = std::function<void(const SignalResponse &)>;
 using HeartbeatHandler = std::function<HeartbeatResponse(const HeartbeatRequest &)>;
 using HeartbeatCallBack = std::function<void(const HeartbeatResponse &)>;
+using EventHandler = std::function<void(const std::shared_ptr<EventMessageSpec> &)>;
+using EventCallBack = std::function<void(const std::shared_ptr<EventMessageSpec> &)>;
 
 using CreateCallBack = std::function<void(const NotifyRequest &)>;
 using CreateRespCallback = std::function<void(const CreateResponse &)>;
@@ -240,6 +260,7 @@ struct FSIntfHandlers {
     ShutdownHandler shutdown = nullptr;
     SignalHandler signal = nullptr;
     HeartbeatHandler heartbeat = nullptr;
+    EventHandler event = nullptr;
 };
 
 class FSIntf {
@@ -281,9 +302,13 @@ public:
     void HandleShutdownRequest(const ShutdownRequest &req, ShutdownCallBack callback);
     void HandleSignalRequest(const SignalRequest &req, SignalCallBack callback);
     void HandleHeartbeatRequest(const HeartbeatRequest &req, HeartbeatCallBack callback);
+    void HandleEventRequest(const std::shared_ptr<EventMessageSpec> &req);
     int WaitRequestEmpty(uint64_t gracePeriodSec);
     void SetInitialized();
+    virtual void EventAsync(const std::shared_ptr<EventMessageSpec> &req, int timeoutSec = -1) {}
     virtual bool IsHealth() = 0;
+    virtual void UpdateEventServerInfo(const std::string &ip, int port, const std::string &instaceId) {}
+    virtual int GetSelfPort() const { return -1; }
 
 protected:
     void Clear();
@@ -305,6 +330,7 @@ private:
     ThreadPool signalExecutor;
     ThreadPool heartbeatExecutor;
     ThreadPool responseReceiver;
+    ThreadPool eventExecutor;
 
     absl::Mutex mu;
     absl::CondVar cv_;

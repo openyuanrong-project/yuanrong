@@ -26,18 +26,11 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.error
-import urllib.request
 from collections import deque
 from pathlib import Path
 from typing import Optional
 
 import tomli_w
-
-try:
-    import tomllib
-except ImportError:
-    from pip._vendor import tomli as tomllib
 
 from yr.cli.component.base import ComponentConfig, ComponentLauncher
 from yr.cli.component.registry import LAUNCHER_CLASSES, PREPEND_CHAR_OVERRIDES, get_depends_on_overrides
@@ -50,30 +43,16 @@ from yr.cli.const import (
     SESSION_LATEST_PATH,
     StartMode,
 )
-from yr.cli.utils import wait_pid_exit
+from yr.cli.utils import fetch_url, wait_pid_exit
 
 logger = logging.getLogger(__name__)
 print_logger = logging.getLogger("print")
 
-# Sections from values.toml that should be propagated into the
-# generated "join cluster" config snippet for agents.
-JOIN_VALUES_INCLUDE_SECTIONS: list[str] = [
-    "meta_store",
-    "fs",
-    "etcd",
-    "ds_master",
-    "function_master",
-]
-
-# Per-section fields that should be excluded when exporting join
-# config. Keys are section names and values are sets of field names to
-# drop from that section.
-JOIN_VALUES_EXCLUDE_FIELDS: dict[str, set[str]] = {
-    # Agents do not need the binary path for ds_master.
-    "ds_master": {"bin_path"},
-    "etcd": {"bin_path"},
-    "function_master": {"bin_path"},
-    "fs": {"log.path"},
+# Only keep address-related fields in join hints.
+JOIN_VALUES_EXPORT_FIELDS: dict[str, tuple[str, ...]] = {
+    "etcd": ("address",),
+    "ds_master": ("ip", "port"),
+    "function_master": ("ip", "global_scheduler_port"),
 }
 
 
@@ -147,45 +126,29 @@ def _to_toml_literal(value: any) -> str:
     return one_line
 
 
-def _filter_join_values(current_cfg: dict[str, any], default_cfg: dict[str, any]) -> dict[str, any]:
-    """Filter values.toml for join instructions (include sections + exclude fields)."""
+def _filter_join_values(current_cfg: dict[str, any]) -> dict[str, any]:
+    """Keep only required address fields for join instructions."""
     filtered_values: dict[str, any] = {}
-    for section in JOIN_VALUES_INCLUDE_SECTIONS:
-        section_cfg = current_cfg.get(section, {}) or {}
+    for section, fields in JOIN_VALUES_EXPORT_FIELDS.items():
+        section_cfg = current_cfg.get(section)
         if not isinstance(section_cfg, dict):
-            filtered_values[section] = section_cfg
             continue
 
-        section_dict: dict[str, any] = dict(section_cfg)
-        excludes = JOIN_VALUES_EXCLUDE_FIELDS.get(section, set())
-        for path in excludes:
-            if "." in path:
-                delete_by_path(section_dict, path)
-            else:
-                section_dict.pop(path, None)
-        filtered_values[section] = section_dict
-
-    def get_custom_values_only(custom: dict[str, any], default: dict[str, any]) -> dict[str, any]:
-        custom_only = {}
-        for key, custom_val in custom.items():
-            default_val = default.get(key)
-            if default_val is None or type(custom_val) is not type(default_val):
-                custom_only[key] = custom_val
-                continue
-            if isinstance(custom_val, dict) and isinstance(default_val, dict):
-                sub_result = get_custom_values_only(custom_val, default_val)
-                if sub_result:
-                    custom_only[key] = sub_result
-            elif custom_val != default_val:
-                custom_only[key] = custom_val
-
-        return custom_only
-
-    return get_custom_values_only(filtered_values, default_cfg)
+        section_out: dict[str, any] = {}
+        for field in fields:
+            if field in section_cfg:
+                section_out[field] = section_cfg[field]
+        if section_out:
+            filtered_values[section] = section_out
+    return filtered_values
 
 
-def _format_join_help(filtered_values: dict[str, any]) -> str:
+def _format_join_help(filtered_values: dict[str, any], http_scheme: str) -> str:
     join_values = {"values": filtered_values}
+    function_master_ip = filtered_values.get("function_master", {}).get("ip", "FUNCTION_MASTER_IP")
+    function_master_port = filtered_values.get("function_master", {}).get(
+        "global_scheduler_port", "FUNCTION_MASTER_PORT"
+    )
 
     join_cmd_parts: list[str] = ["yr start"]
     for key, value in _flatten_dot_keys("values", filtered_values):
@@ -202,6 +165,12 @@ OR
 mkdir -p /etc/yuanrong/ && cat << EOF > /etc/yuanrong/config.toml && yr start
 {tomli_w.dumps(join_values)}
 EOF
+
+OR
+
+yr start --master_address {http_scheme}://{function_master_ip}:{function_master_port}
+
+NOTE: If you have your own config file or additional -s overrides, merge them with the generated config and include the merged --config/-s options in the yr start command.
 """
 
 
@@ -236,15 +205,29 @@ class SessionManager:
                     "restart_count": comp.restart_count,
                 }
 
-        etcd_ip, etcd_port = _parse_addr(config["etcd"]["args"]["listen-client-urls"])
-        _, etcd_peer_port = _parse_addr(config["etcd"]["args"]["listen-peer-urls"])
-        ds_master_ip, ds_master_port = _parse_addr(config["ds_master"]["args"]["master_address"])
-        fm_ip, fm_port = _parse_addr(config["function_master"]["args"]["ip"])
-        _, fp_port = _parse_addr(config["function_proxy"]["args"]["address"])
-        _, ds_worker_port = _parse_addr(config["ds_worker"]["args"]["worker_address"])
-        frontend_port = (
-            config["values"]["frontend"].get("port") if config["mode"][self.mode.value].get("frontend") else None
-        )
+        etcd_ip = etcd_port = etcd_peer_port = etcd_addresses = None
+        if config["mode"][self.mode.value].get("etcd", False):
+            etcd_ip, etcd_port = _parse_addr(config["etcd"]["args"]["listen-client-urls"])
+            _, etcd_peer_port = _parse_addr(config["etcd"]["args"]["listen-peer-urls"])
+            etcd_addresses = config["values"]["etcd"]["address"]
+        ds_master_ip = ds_master_port = None
+        if config["mode"][self.mode.value].get("ds_master", False):
+            ds_master_ip, ds_master_port = _parse_addr(config["ds_master"]["args"]["master_address"])
+        fm_ip = fm_port = None
+        if config["mode"][self.mode.value].get("function_master", False):
+            fm_ip, fm_port = _parse_addr(config["function_master"]["args"]["ip"])
+        fp_port = fp_grpc_port = None
+        if config["mode"][self.mode.value].get("function_proxy", False):
+            _, fp_port = _parse_addr(config["function_proxy"]["args"]["address"])
+            fp_grpc_port = config["function_proxy"]["args"]["grpc_listen_port"]
+        ds_worker_port = None
+        if config["mode"][self.mode.value].get("ds_worker", False):
+            _, ds_worker_port = _parse_addr(config["ds_worker"]["args"]["worker_address"])
+        frontend_port = config["frontend"].get("port") if config["mode"][self.mode.value].get("frontend") else None
+        agent_ip = None
+        if config["mode"][self.mode.value].get("function_agent", False):
+            agent_ip = config["function_agent"]["args"]["ip"]
+
         self.session_data["mode"] = self.mode.value
         self.session_data["cluster_info"] = {
             "for-join": {
@@ -253,13 +236,13 @@ class SessionManager:
                 "etcd.ip": etcd_ip,
                 "etcd.port": etcd_port,
                 "etcd.peer_port": etcd_peer_port,
-                "etcd.addresses": config["values"]["etcd"]["address"],
+                "etcd.addresses": etcd_addresses,
                 "ds_master.ip": ds_master_ip,
                 "ds_master.port": ds_master_port,
                 "function_proxy.port": fp_port,
-                "function_proxy.grpc_port": config["function_proxy"]["args"]["grpc_listen_port"],
+                "function_proxy.grpc_port": fp_grpc_port,
                 "ds_worker.port": ds_worker_port,
-                "agent.ip": config["function_agent"]["args"]["ip"],
+                "agent.ip": agent_ip,
                 "frontend.port": frontend_port,
             },
             "daemon": {
@@ -312,7 +295,7 @@ class SystemLauncher:
         self.mode = mode
         self.resolver = ConfigResolver(config_path, cli_dir, mode, overrides, render)
         self.session_manager = SessionManager(
-            self.resolver.runtime_context["time"],
+            self.resolver.runtime_context["time"] if mode else "",
             mode,
             self.resolver.runtime_context["deploy_path"] / "session.json" if mode else session_file,
         )
@@ -406,22 +389,6 @@ class SystemLauncher:
                 os.close(startup_result_wfd)
             except OSError:
                 logger.debug("Failed to signal startup result to parent")
-
-    @staticmethod
-    def _fetch_url(
-        url: str,
-        timeout: float = 2.0,
-        ssl_context: Optional[ssl.SSLContext] = None,
-        as_json: bool = False,
-    ) -> Optional[any]:
-        try:
-            req = urllib.request.Request(url, headers={"Accept": "application/json"})  # noqa: S310
-            with urllib.request.urlopen(req, timeout=timeout, context=ssl_context) as resp:  # noqa: S310
-                content = resp.read().decode("utf-8", errors="replace")
-                return json.loads(content) if as_json else content.strip()
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-            logger.warning("  Failed to fetch %s: %s", url, exc)
-            return None
 
     @staticmethod
     def _print_resource_info(unit: dict[str, any]) -> None:
@@ -581,13 +548,14 @@ class SystemLauncher:
             for comp_name, comp_info in session.get("components", {}).items():
                 pid = comp_info.get("pid")
                 status = "RUNNING"
+                restart_count = comp_info.get("restart_count", 0)
                 if pid:
                     try:
                         os.kill(pid, 0)
                     except ProcessLookupError:
                         healthy = False
                         status = "STOPPED"
-                print_logger.info(f"  {comp_name:<18} {status} (PID: {pid})")
+                print_logger.info(f"  {comp_name:<20} {status} (PID: {pid}) (Restart Count: {restart_count})")
         else:
             print_logger.info("System Status: STOPPED")
             healthy = False
@@ -891,13 +859,13 @@ class SystemLauncher:
         """Print component status from session data (for parent process)."""
         logger.info("Component Status:")
         logger.info("-" * 60)
-        logger.info(f"{'Component':<15} {'PID':<8} {'Status':<12}")
+        logger.info(f"{'Component':<20} {'PID':<8} {'Status':<12}")
         logger.info("-" * 60)
 
         for comp_name, comp_info in session.get("components", {}).items():
             pid = comp_info.get("pid", "N/A")
             status = comp_info.get("status", "unknown")
-            logger.info(f"{comp_name:<15} {pid:<8} {status:<12}")
+            logger.info(f"{comp_name:<20} {pid:<8} {status:<12}")
         logger.info("-" * 60)
         if self.mode == StartMode.MASTER:
             self._print_join_info()
@@ -1038,12 +1006,13 @@ class SystemLauncher:
 
     def _print_join_info(self) -> None:
         values_cfg: dict[str, any] = self.resolver.rendered_config["values"]
-        default_values_cfg_path: dict[str, any] = (
-            Path(self.resolver.runtime_context["yr_package_path"]) / "cli" / "values.toml"
-        )
-        default_values_cfg = tomllib.loads(default_values_cfg_path.read_text())["values"]
-        filtered_values = _filter_join_values(values_cfg, default_values_cfg)
-        print_logger.info(_format_join_help(filtered_values))
+        fs_tls_cfg = values_cfg.get("fs", {}).get("tls", {})
+        fs_tls_enabled = False
+        if isinstance(fs_tls_cfg, dict):
+            fs_tls_enabled = bool(fs_tls_cfg.get("enable") or fs_tls_cfg.get("enabled"))
+        http_scheme = "https" if fs_tls_enabled else "http"
+        filtered_values = _filter_join_values(values_cfg)
+        print_logger.info(_format_join_help(filtered_values, http_scheme))
 
     def _get_tls_client_paths_from_args(self, args: list[str]) -> Optional[tuple[Optional[str], str, str]]:
         ssl_enable = self._extract_arg_value(args, "--ssl_enable")
@@ -1071,23 +1040,57 @@ class SystemLauncher:
         """Fetch and display cluster resource status from the global scheduler."""
         print_logger.info("Cluster Status:")
 
+        self._print_topology(base_url, ssl_context=ssl_context)
+
         # Display agent count
-        agent_count = self._fetch_url(f"{base_url}/queryagentcount", ssl_context=ssl_context)
+        agent_count = fetch_url(f"{base_url}/queryagentcount", ssl_context=ssl_context)
         if agent_count is not None:
             print_logger.info(f"  ReadyAgentsCount: {agent_count}")
 
         # Fetch and display resource information
-        data = self._fetch_url(f"{base_url}/resources", ssl_context=ssl_context, as_json=True)
+        data = fetch_url(f"{base_url}/resources", ssl_context=ssl_context, as_json=True)
+        if isinstance(data, dict):
+            resource_unit = data.get("resource")
+            if isinstance(resource_unit, dict):
+                self._print_resource_info(resource_unit)
+                self._print_resource_metrics(resource_unit)
+                self._print_fragments(resource_unit)
+
+    def _print_topology(self, base_url: str, ssl_context: Optional[ssl.SSLContext] = None) -> None:
+        """Fetch and display cluster topology from the global scheduler."""
+        data = fetch_url(f"{base_url}/masterinfo", ssl_context=ssl_context, as_json=True)
         if not isinstance(data, dict):
             return
 
-        resource_unit = data.get("resource")
-        if not isinstance(resource_unit, dict):
+        master_address = data.get("master_address")
+        meta_store_address = data.get("meta_store_address")
+
+        if master_address or meta_store_address:
+            print_logger.info("  Endpoints:")
+            if master_address:
+                print_logger.info(f"    function_master: {master_address}")
+            if meta_store_address:
+                print_logger.info(f"    meta_store: {meta_store_address}")
+
+        topo = data.get("schedule_topo")
+        if not isinstance(topo, dict):
             return
 
-        self._print_resource_info(resource_unit)
-        self._print_resource_metrics(resource_unit)
-        self._print_fragments(resource_unit)
+        members = topo.get("members")
+        if not isinstance(members, list) or not members:
+            return
+
+        print_logger.info("  Topology:")
+        for member in members:
+            if isinstance(member, dict):
+                address = member.get("address", "")
+                name = member.get("name", "")
+                if name and address:
+                    print_logger.info(f"    - {name}: {address}")
+                elif address:
+                    print_logger.info(f"    - {address}")
+                elif name:
+                    print_logger.info(f"    - {name}")
 
     def _print_resource_metrics(self, unit: dict[str, any]) -> None:
         for key in ("capacity", "allocatable", "actualUse"):
@@ -1142,6 +1145,6 @@ def write_old_current_master_info(session_data: dict[str, any]) -> None:
             master_info = master_info + f"frontend_port:{session_data['cluster_info']['for-join']['frontend.port']},"
         if len(session_data["cluster_info"]["for-join"]["etcd.addresses"]) > 1:
             for addr in session_data["cluster_info"]["for-join"]["etcd.addresses"]:
-                master_info += f"etcd_addr_list:{addr},"
+                master_info += f"etcd_addr_list:{addr.get('ip')},"
         master_info += "\n"
         f.write(master_info)

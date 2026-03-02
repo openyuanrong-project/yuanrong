@@ -19,13 +19,11 @@ package localauth
 
 import (
 	"sync"
-
-	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 )
 
 var (
-	algorithm = "aeswithkey"
-	once      sync.Once
+	algorithm     = "aeswithkey"
+	once          sync.Once
 )
 
 func initCrypto() error {
@@ -34,25 +32,19 @@ func initCrypto() error {
 
 // Decrypt decrypts a cypher text using a certain algorithm
 func Decrypt(src string) ([]byte, error) {
-	return []byte(src), nil
+	var text []byte
+	return text, nil
 }
 
 // Encrypt encrypts a cypher text using a certain algorithm
 func Encrypt(src string) (string, error) {
-	return src, nil
+	var ciperText string
+	return ciperText, nil
 }
 
 // DecryptKeys decrypts a set of aKey and sKey
 func DecryptKeys(inputAKey string, inputSKey string) ([]byte, []byte, error) {
-	aKey, err := Decrypt(inputAKey)
-	if err != nil {
-		log.GetLogger().Errorf("failed to decrypt AKey, error: %s", err.Error())
-		return nil, nil, err
-	}
-	sKey, err := Decrypt(inputSKey)
-	if err != nil {
-		log.GetLogger().Errorf("failed to decrypt SKey, error: %s", err.Error())
-		return nil, nil, err
-	}
+	var aKey []byte
+	var sKey []byte
 	return aKey, sKey, nil
 }

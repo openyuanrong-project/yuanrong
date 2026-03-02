@@ -48,6 +48,7 @@ public:
     virtual ErrorInfo Start() = 0;
     void Init();
     virtual bool IsHealth() = 0;
+    virtual bool IsSameDstAddr(const std::string &dstIp, const int &dstPort) = 0;
     void Stop() override;
     bool Available() override;
     bool Abnormal() override;

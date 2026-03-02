@@ -26,7 +26,7 @@ FSClient::FSClient(std::shared_ptr<FSIntf> fsIntface) : fsIntf(fsIntface) {}
 ErrorInfo FSClient::Start(const std::string &ipAddr, int port, FSIntfHandlers handlers, ClientType type, bool isDriver,
                           std::shared_ptr<Security> security, std::shared_ptr<ClientsManager> clientsMgr,
                           const std::string &jobID, const std::string &instanceID, const std::string &runtimeID,
-                          const std::string &functionName, const SubscribeFunc &reSubscribeCb)
+                          const std::string &functionName, const SubscribeFunc &reSubscribeCb, bool enableEvent)
 {
     this->ipAddr = ipAddr;
     this->port = port;
@@ -37,7 +37,7 @@ ErrorInfo FSClient::Start(const std::string &ipAddr, int port, FSIntfHandlers ha
             case ClientType::GRPC_SERVER:
             case ClientType::GRPC_CLIENT: {
                 fsIntf = std::make_shared<FSIntfImpl>(ipAddr, port, handlers, isDriver, security, clientsMgr,
-                                                      type == ClientType::GRPC_CLIENT);
+                                                      type == ClientType::GRPC_CLIENT, enableEvent);
                 break;
             }
             case ClientType::GW_CLIENT: {
@@ -157,5 +157,26 @@ bool FSClient::IsHealth()
     }
     return fsIntf->IsHealth();
 }
+
+void FSClient::UpdateEventServerInfo(const std::string &ip, int port, const std::string &instanceId)
+{
+    this->fsIntf->UpdateEventServerInfo(ip, port, instanceId);
+}
+
+void FSClient::EventAsync(const std::shared_ptr<EventMessageSpec> &req, int timeoutSec)
+{
+    this->fsIntf->EventAsync(req, timeoutSec);
+}
+
+std::string FSClient::GetEventServerIP()
+{
+    return this->ipAddr;
+}
+
+int FSClient::GetEventServerPort()
+{
+    return this->fsIntf->GetSelfPort();
+}
+
 }  // namespace Libruntime
 }  // namespace YR

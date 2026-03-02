@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 
 	"yuanrong.org/kernel/runtime/libruntime/api"
 
@@ -51,9 +51,9 @@ type Configuration struct {
 	FunctionLimitRate            int                              `json:"functionLimitRate"`
 	RouterETCDConfig             etcd3.EtcdConfig                 `json:"routerEtcd" valid:"required"`
 	MetaETCDConfig               etcd3.EtcdConfig                 `json:"metaEtcd" valid:"required"`
+	DataSystemEtcd               etcd3.EtcdConfig                 `json:"dataSystemEtcd" valid:"optional"`
 	SchedulerNum                 int                              `json:"schedulerNum" valid:"optional"`
 	DockerRootPath               string                           `json:"dockerRootPath"`
-	RawStsConfig                 raw.StsConfig                    `json:"rawStsConfig,omitempty"`
 	ClusterID                    string                           `json:"clusterID" valid:"optional"`
 	ClusterName                  string                           `json:"clusterName" valid:"optional"`
 	DiskMonitorEnable            bool                             `json:"diskMonitorEnable"`
@@ -90,6 +90,10 @@ type Configuration struct {
 	MetricsHTTPSEnable           bool                             `json:"metricsHttpsEnable" valid:"optional"`
 	PprofAddr                    string                           `json:"pprofAddr" valid:"optional"`
 	SchedulerDiscovery           *SchedulerDiscovery              `json:"schedulerDiscovery" valid:"optional"`
+	EnableSessionRecover         bool                             `json:"enableSessionRecover" valid:"optional"`
+	DataSystemConfig             DataSystemConfig                 `json:"dataSystemConfig" valid:"optional"`
+	CustomContainerEnv           map[string]string                `json:"customContainerEnv" valid:"optional"`
+	HttpServerPort               string                           `json:"httpServerPort" valid:",optional"`
 }
 
 // AutoScaleConfig -
@@ -97,6 +101,15 @@ type AutoScaleConfig struct {
 	SLAQuota      int `json:"slaQuota" valid:"required"`
 	ScaleDownTime int `json:"scaleDownTime" valid:"required"`
 	BurstScaleNum int `json:"burstScaleNum" valid:"required"`
+}
+
+// DataSystemConfig data system client put config
+type DataSystemConfig struct {
+	InitTimeoutMs   int      `json:"initTimeoutMs" validate:"required"`
+	InitClusters    []string `json:"initClusters"`
+	CurrentCluster  string   `json:"currentCluster" validate:"required"`
+	UploadWriteMode int      `json:"uploadWriteMode" validate:"required"`
+	UploadTTLSec    uint32   `json:"uploadTTLSec" validate:"required"`
 }
 
 // ScaleRetryConfig -
@@ -128,8 +141,10 @@ type FunctionSpecification struct {
 	FuncCtx           context.Context        `json:"-"`
 	CancelFunc        context.CancelFunc     `json:"-"`
 	FuncKey           string                 `json:"-"`
+	NameSpace         string                 `json:"-"`
 	FuncMetaSignature string                 `json:"-"`
 	FuncSecretName    string                 `json:"-"`
+	MetaFromCR        bool                   `json:"-"`
 	FuncMetaData      types.FuncMetaData     `json:"funcMetaData" valid:",optional"`
 	S3MetaData        types.S3MetaData       `json:"s3MetaData" valid:",optional"`
 	CodeMetaData      types.CodeMetaData     `json:"codeMetaData" valid:",optional"`
@@ -138,38 +153,6 @@ type FunctionSpecification struct {
 	ResourceMetaData  types.ResourceMetaData `json:"resourceMetaData" valid:",optional"`
 	InstanceMetaData  types.InstanceMetaData `json:"instanceMetaData" valid:",optional"` // new add
 	ExtendedMetaData  types.ExtendedMetaData `json:"extendedMetaData" valid:",optional"`
-}
-
-// PATServiceRequest -
-type PATServiceRequest struct {
-	ID         string `json:"id,omitempty"`
-	DomainID   string `json:"domain_id,omitempty"`
-	Namespace  string `json:"namespace,omitempty"`
-	VpcName    string `json:"vpc_name,omitempty"`
-	AppXrole   string `json:"app_xrole,omitempty"`
-	VpcID      string `json:"vpc_id,omitempty"`
-	SubnetName string `json:"subnet_name,omitempty"` // is duplicated with common types, note it
-	SubnetID   string `json:"subnet_id,omitempty"`
-	TenantCidr string `json:"tenant_cidr,omitempty"`
-	HostVMCidr string `json:"host_vm_cidr,omitempty"`
-	Gateway    string `json:"gateway,omitempty"`
-	Xrole      string `json:"xrole,omitempty"`
-}
-
-// NATConfigure include nat configure info for worker
-type NATConfigure struct {
-	ContainerCidr  string              `json:"containerCidr"`
-	HostVMCidr     string              `json:"hostVmCidr"`
-	PatContainerIP string              `json:"patContainerIP"` // ip tunnel
-	PatVMIP        string              `json:"patVmIP"`
-	PatPortIP      string              `json:"patPortIP"`
-	PatMacAddr     string              `json:"patMacAddr"`
-	PatGateway     string              `json:"patGateway"` // ping
-	PatPodName     string              `json:"patPodName"`
-	TenantCidr     string              `json:"tenantCidr"`    // ip route
-	NatSubnetList  map[string][]string `json:"natSubnetList"` // ip route
-	IsDeleted      bool                `json:"isDeleted"`
-	IsNewCreated   bool                `json:"isNewCreated"`
 }
 
 // PullTriggerRequestInfo include info of pullTrigger Option Create
@@ -201,6 +184,7 @@ type NetworkConfig struct {
 	RouteConfig    RouteConfig    `json:"routeConfig"`
 	TunnelConfig   TunnelConfig   `json:"tunnelConfig"`
 	FirewallConfig FirewallConfig `json:"firewallConfig"`
+	ProberConfig   ProberConfig   `json:"proberConfig"`
 }
 
 // RouteConfig is the config describes how to setup route
@@ -228,15 +212,29 @@ type FirewallConfig struct {
 // ProberConfig is a config in createOption which describes how to perform certain prober action for instance
 type ProberConfig struct {
 	Protocol         string `json:"protocol"`
+	SubMetaDigest    string `json:"subMetaDigest,omitempty"`
 	Address          string `json:"address"`
+	Gateway          string `json:"gateway,omitempty"`
 	Interval         int    `json:"interval"`
 	Timeout          int    `json:"timeout"`
 	FailureThreshold int    `json:"failureThreshold"`
 }
 
+// DelegateNetworkConfig configures network in kernel
+type DelegateNetworkConfig struct {
+	PatInstances []PatInstance `json:"patInstances"`
+}
+
+// PatInstance pat instance message
+type PatInstance struct {
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
 // DelegateContainerConfig configures custom image in kernel
 type DelegateContainerConfig struct {
 	Image                  string                       `json:"image"`
+	ImagePullPolicy        v1.PullPolicy                `json:"imagePullPolicy"`
 	Env                    []v1.EnvVar                  `json:"env"`
 	Command                []string                     `json:"command"`
 	Args                   []string                     `json:"args"`
@@ -245,6 +243,7 @@ type DelegateContainerConfig struct {
 	VolumeMounts           []v1.VolumeMount             `json:"volumeMounts"`
 	CustomGracefulShutdown types.CustomGracefulShutdown `json:"runtime_graceful_shutdown"`
 	Lifecycle              v1.Lifecycle                 `json:"lifecycle"`
+	ServiceAccountName     string                       `json:"serviceAccountName"`
 }
 
 // DelegateContainerSideCarConfig configures custom image sidecar in kernel

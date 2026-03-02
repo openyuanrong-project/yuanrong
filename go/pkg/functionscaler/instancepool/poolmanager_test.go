@@ -236,7 +236,7 @@ func TestPoolManagerReleaseAbnormalInstance(t *testing.T) {
 	}
 	insAlloc, err := poolManager.AcquireInstanceThread(insAcqReq)
 	assert.Equal(t, nil, err)
-	poolManager.ReleaseAbnormalInstance(insAlloc.Instance)
+	poolManager.ReleaseAbnormalInstance(insAlloc.Instance, log.GetLogger())
 }
 
 func TestHandleFunctionUpdate(t *testing.T) {
@@ -373,11 +373,32 @@ func TestHandleInstanceEvent(t *testing.T) {
 	})
 	convey.Convey("update faasManager", t, func() {
 		pm.HandleInstanceEvent(registry.SubEventTypeUpdate, &commonTypes.InstanceSpecification{
-			Function: "123456/0-system-faasmanager/$latest",
+			Function:   "123456/0-system-faasmanager/$latest",
+			InstanceID: "manager-faas-manager-5dcd75b58-74gt8",
 		})
 		convey.So(mockInstancePool.faasManagerInfo, convey.ShouldResemble, faasManagerInfo{
-			funcKey: "123456/0-system-faasmanager/$latest",
+			funcKey:    "123456/0-system-faasmanager/$latest",
+			instanceID: "manager-faas-manager-5dcd75b58-74gt8",
 		})
+
+		pm.HandleInstanceEvent(registry.SubEventTypeDelete, &commonTypes.InstanceSpecification{
+			Function:   "123456/0-system-faasmanager/$latest",
+			InstanceID: "manager-faas-manager-5dcd75b58-74gt9",
+		})
+		convey.So(mockInstancePool.faasManagerInfo, convey.ShouldResemble, faasManagerInfo{
+			funcKey:    "123456/0-system-faasmanager/$latest",
+			instanceID: "manager-faas-manager-5dcd75b58-74gt8",
+		})
+
+		pm.HandleInstanceEvent(registry.SubEventTypeUpdate, &commonTypes.InstanceSpecification{
+			Function:   "123456/0-system-faasmanager/$latest",
+			InstanceID: "manager-faas-manager-5dcd75b58-74gt9",
+		})
+		convey.So(mockInstancePool.faasManagerInfo, convey.ShouldResemble, faasManagerInfo{
+			funcKey:    "123456/0-system-faasmanager/$latest",
+			instanceID: "manager-faas-manager-5dcd75b58-74gt9",
+		})
+
 	})
 	testFunc := &commonTypes.InstanceSpecification{
 		Function:   "123456/0-system-testFunc/$latest",

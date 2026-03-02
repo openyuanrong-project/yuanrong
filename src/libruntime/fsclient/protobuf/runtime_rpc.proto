@@ -115,6 +115,9 @@ message StreamingMessage {
     // Create resource group to reserve multiple bundle of resource
     core_service.CreateResourceGroupRequest  rGroupReq = 32;
     core_service.CreateResourceGroupResponse rGroupRsp = 33;
+
+    // Send stream event data
+    core_service.EventRequest          eventReq     = 34;
   }
   map<string, string> metaData = 100;
 }

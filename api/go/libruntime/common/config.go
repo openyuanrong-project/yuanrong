@@ -65,6 +65,7 @@ type Configuration struct {
 	DsPublicKeyContextPath          string
 	MaxConcurrencyCreateNum         int
 	EnableSigaction                 bool
+	EnableEvent                     bool
 }
 
 func initConfig() {
@@ -91,6 +92,7 @@ func initConfig() {
 			flag.BoolVar(&configSingleton.cfg.EnableDsEncrypt, "enableDsEncrypt", false, "")
 			flag.IntVar(&configSingleton.cfg.MaxConcurrencyCreateNum, "maxConcurrencyCreateNum",
 				defaultMaxConcurrencyCreateNum, "")
+			flag.BoolVar(&configSingleton.cfg.EnableEvent, "enableEvent", false, "")
 			flag.Parse()
 			setConfigSingletonCfg(&configSingleton.cfg.RuntimeID, "YR_RUNTIME_ID")
 			setConfigSingletonCfg(&configSingleton.cfg.InstanceID, "INSTANCE_ID")

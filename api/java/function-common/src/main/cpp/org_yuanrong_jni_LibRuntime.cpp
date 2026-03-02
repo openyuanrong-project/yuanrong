@@ -1033,6 +1033,40 @@ JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_nodes(JNIEnv *env, jc
     return jpair;
 }
 
+JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_streamWrite(JNIEnv *env, jclass c,
+                                                                              jstring jstreamMessage,
+                                                                              jstring jrequestId, jstring jinstanceId)
+{
+    auto streamMessage = YR::jni::JNIString::FromJava(env, jstreamMessage);
+    auto requestId = YR::jni::JNIString::FromJava(env, jrequestId);
+    auto instanceId = YR::jni::JNIString::FromJava(env, jinstanceId);
+    auto rtCtx = get_runtime_context_callback(env, c);
+    auto libRuntime = YR::Libruntime::LibruntimeManager::Instance().GetLibRuntime(rtCtx);
+    CHECK_NULL_THROW_NEW_AND_RETURN(env, libRuntime, nullptr, "exception occurred because LibRuntime is null");
+    auto err = libRuntime->StreamWrite(streamMessage, requestId, instanceId);
+    jobject jerr = YR::jni::JNIErrorInfo::FromCc(env, err);
+    if (jerr == nullptr) {
+        YR::jni::JNILibruntimeException::ThrowNew(env, "failed to convert jerr when Libruntime_streamWrite, get null");
+        return nullptr;
+    }
+    return jerr;
+}
+
+JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_getRequestAndInstanceID(JNIEnv *env, jclass c)
+{
+    auto rtCtx = get_runtime_context_callback(env, c);
+    auto libRuntime = YR::Libruntime::LibruntimeManager::Instance().GetLibRuntime(rtCtx);
+    CHECK_NULL_THROW_NEW_AND_RETURN(env, libRuntime, nullptr, "exception occurred because LibRuntime is null");
+    auto [requestId, instanceId] = libRuntime->GetRequestAndInstanceID();
+    jstring jrequestId = YR::jni::JNIString::FromCc(env, requestId);
+    jstring jinstanceId = YR::jni::JNIString::FromCc(env, instanceId);
+    jobject jpair = YR::jni::JNIPair::CreateJPair(env, jrequestId, jinstanceId);
+    env->DeleteLocalRef(jrequestId);
+    env->DeleteLocalRef(jinstanceId);
+    return jpair;
+}
+
+
 #ifdef __cplusplus
 }
 #endif

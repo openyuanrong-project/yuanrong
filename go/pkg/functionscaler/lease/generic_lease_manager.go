@@ -84,21 +84,29 @@ func (il *instanceLeaseHolder) pollLease() {
 			return
 		}
 		il.RUnlock()
-		readyList := il.timeWheel.Wait()
-		for _, allocationID := range readyList {
-			log.GetLogger().Warnf("lease %s expires, now release", allocationID)
-			il.Lock()
-			if err := il.timeWheel.DelTask(allocationID); err != nil {
-				log.GetLogger().Errorf("failed to delete task %s in time wheel", allocationID)
-			}
-			callback, exist := il.callbackMap[allocationID]
-			delete(il.intervalMap, allocationID)
-			delete(il.callbackMap, allocationID)
-			il.Unlock()
-			if exist {
-				callback()
-			}
+		readyList, err := il.timeWheel.Wait()
+		if err != nil {
+			log.GetLogger().Warnf("time wheel wait, %s", err.Error())
 		}
+		if len(readyList) == 0 {
+			continue
+		}
+		go func() {
+			for _, allocationID := range readyList {
+				log.GetLogger().Warnf("lease %s expires, now release", allocationID)
+				il.Lock()
+				if err := il.timeWheel.DelTask(allocationID); err != nil {
+					log.GetLogger().Errorf("failed to delete task %s in time wheel", allocationID)
+				}
+				callback, exist := il.callbackMap[allocationID]
+				delete(il.intervalMap, allocationID)
+				delete(il.callbackMap, allocationID)
+				il.Unlock()
+				if exist {
+					callback()
+				}
+			}
+		}()
 	}
 }
 
@@ -109,7 +117,7 @@ func (il *instanceLeaseHolder) createLease(insAlloc *types.InstanceAllocation, i
 	if !il.enable {
 		return errInstanceLeaseHolderNotEnable
 	}
-	_, err := il.timeWheel.AddTask(insAlloc.AllocationID, interval, 1)
+	err := il.timeWheel.AddTask(insAlloc.AllocationID, interval, 1)
 	if err != nil {
 		return err
 	}
@@ -128,11 +136,7 @@ func (il *instanceLeaseHolder) extendLease(insAlloc *types.InstanceAllocation) e
 	if !exist {
 		return errors.New("lease doesn't exist or released")
 	}
-	err := il.timeWheel.DelTask(insAlloc.AllocationID)
-	if err != nil {
-		return err
-	}
-	_, err = il.timeWheel.AddTask(insAlloc.AllocationID, interval, 1)
+	err := il.timeWheel.UpdateTask(insAlloc.AllocationID, interval, 1)
 	if err != nil {
 		return err
 	}

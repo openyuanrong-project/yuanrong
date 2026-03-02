@@ -21,6 +21,10 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
+	"yuanrong.org/kernel/runtime/libruntime/api"
+
 	"yuanrong.org/kernel/pkg/common/faas_common/instanceconfig"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
@@ -43,6 +47,8 @@ type ReplicaScaler struct {
 	scaleUpHandler   ScaleUpHandler
 	scaleDownHandler ScaleDownHandler
 	sync.RWMutex
+
+	logger api.FormatLogger
 }
 
 // NewReplicaScaler will create a ReplicaScaler
@@ -55,8 +61,9 @@ func NewReplicaScaler(funcKeyWithRes string, metricsCollector metrics.Collector,
 		enable:           false,
 		scaleUpHandler:   scaleUpHandler,
 		scaleDownHandler: scaleDownHandler,
+		logger:           log.GetLogger().With(zap.Any("funcKey", funcKeyWithRes)),
 	}
-	log.GetLogger().Infof("create replica scaler for function %s, isManaged is %v", replicaScaler.funcKeyWithRes)
+	replicaScaler.logger.Infof("create replica scaler")
 	return replicaScaler
 }
 
@@ -116,7 +123,7 @@ func (rs *ReplicaScaler) HandleFuncSpecUpdate(funcSpec *types.FunctionSpecificat
 	rs.Lock()
 	rs.concurrentNum = utils.GetConcurrentNum(funcSpec.InstanceMetaData.ConcurrentNum)
 	rs.Unlock()
-	log.GetLogger().Infof("config concurrentNum to %d for replica scaler %s", rs.concurrentNum, rs.funcKeyWithRes)
+	rs.logger.Infof("config concurrentNum to %d for replica scaler", rs.concurrentNum)
 	// some error may be cleared after function update
 	rs.handleScale()
 }
@@ -130,8 +137,7 @@ func (rs *ReplicaScaler) HandleInsConfigUpdate(insConfig *instanceconfig.Configu
 	rs.Lock()
 	prevTargetRsvInsNum := rs.targetRsvInsNum
 	rs.targetRsvInsNum = replicaNum
-	log.GetLogger().Infof("config reserved num from %d to %d for replica scaler %s", prevTargetRsvInsNum,
-		replicaNum, rs.funcKeyWithRes)
+	rs.logger.Infof("config reserved num from %d to %d for replica scaler", prevTargetRsvInsNum, replicaNum)
 	if !rs.enable {
 		rs.Unlock()
 		return
@@ -142,7 +148,7 @@ func (rs *ReplicaScaler) HandleInsConfigUpdate(insConfig *instanceconfig.Configu
 
 // HandleCreateError handles instance create error
 func (rs *ReplicaScaler) HandleCreateError(createError error) {
-	log.GetLogger().Infof("handle create error %s for function %s", createError, rs.funcKeyWithRes)
+	rs.logger.Infof("handle create error %s", createError)
 	if utils.IsUnrecoverableError(createError) {
 		if utils.IsNoNeedToRePullError(createError) {
 			rs.Lock()
@@ -199,47 +205,46 @@ func (rs *ReplicaScaler) handleScale() {
 	rs.RLock()
 	enable := rs.enable
 	scaleNum := rs.targetRsvInsNum - rs.currentRsvInsNum
-	rs.RUnlock()
-	log.GetLogger().Infof("parameters for handle scale of function %s targetRsvInsNum %d currentRsvInsNum %d "+
-		"pendingRsvInsNum %d scaleNum %d", rs.funcKeyWithRes, rs.targetRsvInsNum, rs.currentRsvInsNum,
-		rs.pendingRsvInsNum, scaleNum)
+	rs.logger.Infof("parameters for handle scale of function targetRsvInsNum %d currentRsvInsNum %d "+
+		"pendingRsvInsNum %d scaleNum %d", rs.targetRsvInsNum, rs.currentRsvInsNum, rs.pendingRsvInsNum, scaleNum)
 	if !enable || config.GlobalConfig.DisableReplicaScaler {
-		log.GetLogger().Warnf("replicaScaler of function %s disable, targetNum is %d, currentNum is %d, pendingNum "+
-			"is %d, funcKey is %s", rs.funcKeyWithRes, rs.targetRsvInsNum, rs.currentRsvInsNum, rs.pendingRsvInsNum)
+		rs.logger.Warnf("replicaScaler disable, targetNum is %d, currentNum is %d, pendingNum is %d",
+			rs.targetRsvInsNum, rs.currentRsvInsNum, rs.pendingRsvInsNum)
+		rs.RUnlock()
 		return
 	}
+	rs.RUnlock()
 	if scaleNum > 0 {
 		rs.Lock()
 		if rs.pendingRsvInsNum >= 0 {
 			scaleNum -= rs.pendingRsvInsNum
 			if scaleNum <= 0 {
+				rs.logger.Warnf("scaleNum <= 0, no need to scale up, "+
+					"targetNum is %d, currentNum is %d, pendingNum is %d",
+					rs.targetRsvInsNum, rs.currentRsvInsNum, rs.pendingRsvInsNum)
 				rs.Unlock()
-				log.GetLogger().Warnf("scaleNum <= 0, no need to scale up, "+
-					"targetNum is %d, currentNum is %d, pendingNum is %d, funcKey is %s",
-					rs.targetRsvInsNum, rs.currentRsvInsNum, rs.pendingRsvInsNum, rs.funcKeyWithRes)
 				return
 			}
 		}
 		rs.pendingRsvInsNum += scaleNum
 		rs.Unlock()
-		log.GetLogger().Infof("calculate scale up instance number for function %s is %d", rs.funcKeyWithRes, scaleNum)
+		rs.logger.Infof("calculate scale up instance number is %d", scaleNum)
 		rs.scaleUpHandler(scaleNum, rs.handlePendingInsNumDecrease)
 	} else if scaleNum < 0 {
 		rs.Lock()
 		if rs.pendingRsvInsNum <= 0 {
 			scaleNum -= rs.pendingRsvInsNum
 			if scaleNum >= 0 {
+				rs.logger.Warnf("scaleNum >= 0, no need to scale down, "+
+					"targetNum is %d, currentNum is %d, pendingNum is %d",
+					rs.targetRsvInsNum, rs.currentRsvInsNum, rs.pendingRsvInsNum)
 				rs.Unlock()
-				log.GetLogger().Warnf("scaleNum >= 0, no need to scale down, "+
-					"targetNum is %d, currentNum is %d, pendingNum is %d, funcKey is %s",
-					rs.targetRsvInsNum, rs.currentRsvInsNum, rs.pendingRsvInsNum, rs.funcKeyWithRes)
 				return
 			}
 		}
 		rs.pendingRsvInsNum += scaleNum
 		rs.Unlock()
-		log.GetLogger().Infof("calculate scale down instance number for function %s is %d", rs.funcKeyWithRes,
-			-scaleNum)
+		rs.logger.Infof("calculate scale down instance number is %d", -scaleNum)
 		rs.scaleDownHandler(-scaleNum, rs.handlePendingInsNumIncrease)
 	}
 }

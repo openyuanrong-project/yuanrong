@@ -38,6 +38,7 @@ struct InstanceAllocation {
     std::string instanceId;
     std::string leaseId;
     int tLeaseInterval;
+    bool forceInvoke;
 };
 
 struct InstanceResponse {

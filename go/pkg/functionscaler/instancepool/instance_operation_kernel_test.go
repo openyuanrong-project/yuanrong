@@ -21,15 +21,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/agiledragon/gomonkey"
+	"github.com/agiledragon/gomonkey/v2"
+	. "github.com/agiledragon/gomonkey/v2"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+
 	"yuanrong.org/kernel/runtime/libruntime/api"
 
+	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	commonconstant "yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/localauth"
 	"yuanrong.org/kernel/pkg/common/faas_common/resspeckey"
@@ -41,6 +48,7 @@ import (
 	wisecloudTypes "yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/types"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
 	"yuanrong.org/kernel/pkg/functionscaler/signalmanager"
+	"yuanrong.org/kernel/pkg/functionscaler/sts"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
 	"yuanrong.org/kernel/pkg/functionscaler/utils"
 )
@@ -61,6 +69,39 @@ func TestCreateInstanceForKernel(t *testing.T) {
 			convey.So(err, convey.ShouldBeNil)
 			convey.So(instance, convey.ShouldNotBeNil)
 		})
+	})
+}
+
+func TestKillInstanceAndIgnoreNotFoundError(t *testing.T) {
+	convey.Convey("Test killInstanceAndIgnoreNotFoundError", t, func() {
+		mockClient := &mockUtils.FakeLibruntimeSdkClient{}
+		mockErr := fmt.Errorf("")
+
+		defer gomonkey.ApplyMethodFunc(mockClient, "Kill", func(instanceID string, signal int, payload []byte) error {
+			return mockErr
+		}).Reset()
+		SetGlobalSdkClient(&mockUtils.FakeLibruntimeSdkClient{})
+		cases := []struct {
+			mockErr error
+			isOk    bool
+		}{
+			{
+				mockErr: fmt.Errorf("internal error"),
+				isOk:    false,
+			}, {
+				mockErr: fmt.Errorf("instance not found, the instance may have been killed"),
+				isOk:    true,
+			}, {
+				mockErr: nil,
+				isOk:    true,
+			},
+		}
+		for _, c := range cases {
+			mockErr = c.mockErr
+			err := killInstanceAndIgnoreNotFoundError("111")
+			convey.So(err == nil, convey.ShouldEqual, c.isOk)
+		}
+		SetGlobalSdkClient(nil)
 	})
 }
 
@@ -104,6 +145,185 @@ func TestDealWithVPCError(t *testing.T) {
 			convey.So(createErr, convey.ShouldEqual, err)
 		})
 	})
+}
+
+func TestPrepareCreateOptions(t *testing.T) {
+	config.GlobalConfig.Scenario = types.ScenarioWiseCloud
+	config.GlobalConfig.RegionName = "12324234"
+	funcSpec := &types.FunctionSpecification{
+		FuncKey: "12345678901234561234567890123456/0-system-faasExecutor/$latest",
+		InstanceMetaData: commonTypes.InstanceMetaData{
+			ConcurrentNum: 100,
+		},
+		S3MetaData: commonTypes.S3MetaData{
+			AppID: "123",
+		},
+		FuncMetaData: commonTypes.FuncMetaData{
+			Layers: []*commonTypes.Layer{
+				{ObjectID: "123"},
+			},
+			Runtime: commonconstant.PosixCustomRuntimeType,
+			Handler: "start",
+		},
+		ExtendedMetaData: commonTypes.ExtendedMetaData{
+			CustomContainerConfig: commonTypes.CustomContainerConfig{
+				UID: 123,
+			},
+		},
+		StsMetaData: commonTypes.StsMetaData{
+			EnableSts:    true,
+			ServiceName:  "testService",
+			MicroService: "testMicroService",
+		},
+		FuncSecretName: "yyrk123-testFunc-latest-1257561201",
+	}
+	config.GlobalConfig.HostAliases = []v1.HostAlias{
+		{IP: "10.29.111.111", Hostnames: []string{"host1"}},
+		{IP: "10.29.111.112", Hostnames: []string{"host2"}},
+		{IP: "10.29.111.113", Hostnames: []string{"host3"}},
+	}
+	config.GlobalConfig.FunctionConfig = []types.FunctionDefaultConfig{
+		{
+			ConfigName: "configName-0",
+			Mount:      v1.VolumeMount{Name: "agc-config-file", MountPath: "/opt/config/afc-config-file"},
+		},
+		{
+			ConfigName: "configName-1",
+			Mount:      v1.VolumeMount{Name: "agc-config-file1", MountPath: "/opt/config/afc-config-file1"},
+		},
+	}
+	config.GlobalConfig.ClusterID = "0"
+	insType := types.InstanceType("scaled")
+	resKey := resspeckey.ResSpecKey{}
+	os.Setenv("DOCKER_ROOT_DIR", "/var/lib/docker")
+	convey.Convey("success", t, func() {
+		defer ApplyFunc(sts.GetEnvMap, func(configs map[string]string) (map[string]string, error) {
+			return map[string]string{"a": "b"}, nil
+		}).Reset()
+		os.Setenv("CUSTOM_CONTAINER_IMAGE_PULL_POLICY", "")
+		createOpt, _ := prepareCreateOptions(createInstanceRequest{
+			funcSpec: funcSpec,
+			nuwaRuntimeInfo: &wisecloudTypes.NuwaRuntimeInfo{
+				WisecloudRuntimeId:     "runtimeId",
+				WisecloudSite:          "site",
+				WisecloudTenantId:      "tenant",
+				WisecloudApplicationId: "application",
+				WisecloudServiceId:     "serviceid",
+				WisecloudEnvironmentId: "environment",
+				EnvLabel:               "label",
+			},
+			resKey:       resKey,
+			instanceType: insType,
+		}, &resspeckey.ResourceSpecification{})
+		convey.So(createOpt[types.ConcurrentNumKey], convey.ShouldEqual, "100")
+		convey.So(createOpt[commonconstant.DelegateContainerKey], convey.ShouldEqual,
+			`{"image":"","imagePullPolicy":"IfNotPresent","env":[{"name":"INVOKE_TYPE","value":"faas"},{"name":"x-system-tenantId"},{"name":"x-system-functionName"},{"name":"x-system-functionVersion"},{"name":"x-system-region","value":"12324234"},{"name":"x-system-clusterID"},{"name":"x-system-NODE_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.hostIP"}}},{"name":"x-system-podName","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}},{"name":"POD_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.podIP"}}},{"name":"HOST_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.hostIP"}}},{"name":"PodName","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}},{"name":"POD_ID","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.uid"}}},{"name":"POD_NAME","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}}],"command":null,"args":null,"uid":123,"gid":0,"volumeMounts":[{"name":"agc-config-file","mountPath":"/opt/config/afc-config-file"},{"name":"agc-config-file1","mountPath":"/opt/config/afc-config-file1"}],"runtime_graceful_shutdown":{"maxShutdownTimeout":0},"lifecycle":{},"serviceAccountName":"default"}`)
+		convey.So(createOpt[commonconstant.DelegateLayerDownloadKey], convey.ShouldEqual,
+			`[{"bucketUrl":"","objectId":"123","bucketId":"","appId":"","etag":"","link":"","name":"","sha256":"","dependencyType":""}]`)
+		convey.So(createOpt[commonconstant.DelegatePodLabels], convey.ShouldEqual,
+			`{"funcName":"","instanceType":"scaled","isPoolPod":"false","serviceID":"","standard":"0-0-fusion","tenantID":"12345678901234561234567890123456","version":""}`)
+		convey.So(createOpt[commonconstant.DelegatePodInitLabels], convey.ShouldEqual,
+			`{"securityGroup":"12345678901234561234567890123456"}`)
+		convey.So(createOpt[commonconstant.DelegateVolumesKey], convey.ShouldEqual,
+			`[{"name":"agc-config-file","configMap":{"name":"configName-0","defaultMode":420}},{"name":"agc-config-file1","configMap":{"name":"configName-1","defaultMode":420}},{"name":"cgroup-memory","hostPath":{"path":"/sys/fs/cgroup/memory/kubepods/burstable"}},{"name":"docker-socket","hostPath":{"path":"/var/run/docker.sock"}},{"name":"docker-rootdir","hostPath":{"path":"/var/lib/docker"}},{"name":"runtime-sts-config","secret":{"secretName":"yyrk123-testFunc-latest-1257561201","items":[{"key":"a","path":"a"},{"key":"b","path":"b"},{"key":"c","path":"c"},{"key":"d","path":"d"},{"key":"testMicroService.ini","path":"testMicroService.ini"},{"key":"testMicroService.sts.p12","path":"testMicroService.sts.p12"}],"defaultMode":384}},{"name":"runtime-certs-volume","emptyDir":{"medium":"Memory","sizeLimit":"10Mi"}},{"name":"agent-sts-config","secret":{"secretName":"-agent-sts","items":[{"key":"a","path":"a"},{"key":"b","path":"b"},{"key":"c","path":"c"},{"key":"d","path":"d"},{"key":"ERSDataSystem.ini","path":"ERSDataSystem.ini"},{"key":"ERSDataSystem.sts.p12","path":"ERSDataSystem.sts.p12"}],"defaultMode":416}}]`)
+		convey.So(createOpt[commonconstant.DelegateVolumeMountKey], convey.ShouldEqual,
+			`[{"name":"cgroup-memory","mountPath":"/runtime/memory","subPathExpr":"pod$(POD_ID)"},{"name":"docker-socket","mountPath":"/var/run/docker.sock"},{"name":"docker-rootdir","mountPath":"/var/lib/docker"},{"name":"runtime-certs-volume","mountPath":"/opt/certs/testService/testMicroService/"},{"name":"runtime-sts-config","mountPath":"/opt/certs/testService/testMicroService/testMicroService/apple/a","subPath":"a"},{"name":"runtime-sts-config","mountPath":"/opt/certs/testService/testMicroService/testMicroService/boy/b","subPath":"b"},{"name":"runtime-sts-config","mountPath":"/opt/certs/testService/testMicroService/testMicroService/cat/c","subPath":"c"},{"name":"runtime-sts-config","mountPath":"/opt/certs/testService/testMicroService/testMicroService/dog/d","subPath":"d"},{"name":"runtime-sts-config","mountPath":"/opt/certs/testService/testMicroService/testMicroService.ini","subPath":"testMicroService.ini"},{"name":"runtime-sts-config","mountPath":"/opt/certs/testService/testMicroService/testMicroService.sts.p12","subPath":"testMicroService.sts.p12"}]`)
+		convey.So(createOpt[commonconstant.DelegateHostAliases], convey.ShouldEqual,
+			`{"10.29.111.111":["host1"],"10.29.111.112":["host2"],"10.29.111.113":["host3"]}`)
+		convey.So(createOpt[commonconstant.DelegateBootstrapKey], convey.ShouldEqual, "start")
+
+		os.Setenv("CUSTOM_CONTAINER_IMAGE_PULL_POLICY", "Always")
+		createOpt, _ = prepareCreateOptions(createInstanceRequest{
+			funcSpec: funcSpec,
+			nuwaRuntimeInfo: &wisecloudTypes.NuwaRuntimeInfo{
+				WisecloudRuntimeId:     "runtimeId",
+				WisecloudSite:          "site",
+				WisecloudTenantId:      "tenant",
+				WisecloudApplicationId: "application",
+				WisecloudServiceId:     "serviceid",
+				WisecloudEnvironmentId: "environment",
+				EnvLabel:               "label",
+			},
+			resKey:       resKey,
+			instanceType: insType,
+		}, &resspeckey.ResourceSpecification{})
+		convey.So(createOpt[commonconstant.DelegateContainerKey], convey.ShouldEqual,
+			`{"image":"","imagePullPolicy":"Always","env":[{"name":"INVOKE_TYPE","value":"faas"},{"name":"x-system-tenantId"},{"name":"x-system-functionName"},{"name":"x-system-functionVersion"},{"name":"x-system-region","value":"12324234"},{"name":"x-system-clusterID"},{"name":"x-system-NODE_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.hostIP"}}},{"name":"x-system-podName","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}},{"name":"POD_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.podIP"}}},{"name":"HOST_IP","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"status.hostIP"}}},{"name":"PodName","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}},{"name":"POD_ID","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.uid"}}},{"name":"POD_NAME","valueFrom":{"fieldRef":{"apiVersion":"v1","fieldPath":"metadata.name"}}}],"command":null,"args":null,"uid":123,"gid":0,"volumeMounts":[{"name":"agc-config-file","mountPath":"/opt/config/afc-config-file"},{"name":"agc-config-file1","mountPath":"/opt/config/afc-config-file1"}],"runtime_graceful_shutdown":{"maxShutdownTimeout":0},"lifecycle":{},"serviceAccountName":"default"}`)
+		os.Setenv("CUSTOM_CONTAINER_IMAGE_PULL_POLICY", "")
+	})
+}
+
+func TestGetCustomContainerImagePullPolicy(t *testing.T) {
+	tests := []struct {
+		name     string
+		envValue string
+		expected v1.PullPolicy
+	}{
+		{
+			name:     "PullAlways",
+			envValue: "Always",
+			expected: v1.PullAlways,
+		},
+		{
+			name:     "PullIfNotPresent",
+			envValue: "IfNotPresent",
+			expected: v1.PullIfNotPresent,
+		},
+		{
+			name:     "PullNever",
+			envValue: "Never",
+			expected: v1.PullNever,
+		},
+		{
+			name:     "InvalidValue",
+			envValue: "InvalidValue",
+			expected: v1.PullIfNotPresent, // 预期返回默认值
+		},
+		{
+			name:     "empty",
+			envValue: "",                  // 空字符串表示未设置
+			expected: v1.PullIfNotPresent, // 预期返回默认值
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Setenv("CUSTOM_CONTAINER_IMAGE_PULL_POLICY", tt.envValue)
+			result := getCustomContainerImagePullPolicy()
+			if result != tt.expected {
+				t.Errorf("getCustomContainerImagePullPolicy() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+	os.Setenv("CUSTOM_CONTAINER_IMAGE_PULL_POLICY", "")
+}
+
+func TestGetCustomContainerServiceAccountName(t *testing.T) {
+	tests := []struct {
+		name     string
+		agentID  string
+		expected string
+	}{
+		{
+			name:     "empty agentID",
+			agentID:  "",
+			expected: "default",
+		},
+		{
+			name:     "not empty agentID",
+			agentID:  "test1",
+			expected: "sa-test1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getCustomContainerServiceAccountName(tt.agentID)
+			if result != tt.expected {
+				t.Errorf("getCustomContainerServiceAccountName() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
 }
 
 func TestSetCreateOptionForDownloadData(t *testing.T) {
@@ -190,7 +410,8 @@ func Test_setCreateOptionForNuwaRuntimeInfo(t *testing.T) {
 		args args
 		want map[string]string
 	}{
-		{"case1 map is nil",
+		{
+			"case1 map is nil",
 			args{
 				funcSpec:        &types.FunctionSpecification{},
 				nuwaRuntimeInfo: &wisecloudTypes.NuwaRuntimeInfo{},
@@ -213,7 +434,8 @@ func Test_setCreateOptionForNuwaRuntimeInfo(t *testing.T) {
 				},
 				createOpt: map[string]string{},
 			},
-			map[string]string{"DELEGATE_NUWA_RUNTIME_INFO": `{"wisecloudRuntimeId":"runtimeId","wisecloudSite":"site","wisecloudTenantId":"tenant","wisecloudApplicationId":"application","wisecloudServiceId":"serviceid","wisecloudEnvironmentId":"environment","envLabel":"label"}`}},
+			map[string]string{"DELEGATE_NUWA_RUNTIME_INFO": `{"wisecloudRuntimeId":"runtimeId","wisecloudSite":"site","wisecloudTenantId":"tenant","wisecloudApplicationId":"application","wisecloudServiceId":"serviceid","wisecloudEnvironmentId":"environment","envLabel":"label"}`},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -246,17 +468,20 @@ func Test_setCreateOptionForMountVolume(t *testing.T) {
 						UserID:  1004,
 						GroupID: 1004,
 					},
-					FuncMounts: []commonTypes.FuncMount{commonTypes.FuncMount{
+					FuncMounts: []commonTypes.FuncMount{{
 						MountType:      "ecs",
 						MountResource:  "eb4ebf7a-db82-4602-82ce-7e1e57a8ef46",
 						MountSharePath: "1.1.1.1:/sharerdata",
 						LocalMountPath: "/home/",
 						Status:         "active",
 					}},
-				}}},
+				},
+			}},
 			createOpt: map[string]string{"test": "test"},
-		}, map[string]string{"test": "test",
-			"DELEGATE_MOUNT": `{"mount_user":{"user_id":1004,"user_group_id":1004},"func_mounts":[{"mount_type":"ecs","mount_resource":"eb4ebf7a-db82-4602-82ce-7e1e57a8ef46","mount_share_path":"1.1.1.1:/sharerdata","local_mount_path":"/home/","status":"active"}]}`}},
+		}, map[string]string{
+			"test":           "test",
+			"DELEGATE_MOUNT": `{"mount_user":{"user_id":1004,"user_group_id":1004},"func_mounts":[{"mount_type":"ecs","mount_resource":"eb4ebf7a-db82-4602-82ce-7e1e57a8ef46","mount_share_path":"1.1.1.1:/sharerdata","local_mount_path":"/home/","status":"active"}]}`,
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -312,6 +537,49 @@ func Test_setCreateOptionForRASP(t *testing.T) {
 	})
 }
 
+func Test_setCreateOptionForOtel(t *testing.T) {
+	t.Run("Enable is false", func(t *testing.T) {
+		funcSpec := &types.FunctionSpecification{
+			ExtendedMetaData: commonTypes.ExtendedMetaData{
+				UserOtelConfig: commonTypes.UserOtelConfig{
+					Enable: false,
+				},
+			},
+		}
+		createOpt := make(map[string]string)
+		err := setCreateOptionForOtel(funcSpec, createOpt)
+		assert.NoError(t, err)
+		assert.NotContains(t, createOpt, constant.DelegateInitContainers)
+	})
+
+	t.Run("createOpt is nil", func(t *testing.T) {
+		funcSpec := &types.FunctionSpecification{
+			ExtendedMetaData: commonTypes.ExtendedMetaData{
+				UserOtelConfig: commonTypes.UserOtelConfig{
+					Enable: true,
+				},
+			},
+		}
+		err := setCreateOptionForOtel(funcSpec, nil)
+		assert.Error(t, err)
+		assert.Equal(t, "createOpt is nil", err.Error())
+	})
+
+	t.Run("Success case", func(t *testing.T) {
+		funcSpec := &types.FunctionSpecification{
+			ExtendedMetaData: commonTypes.ExtendedMetaData{
+				UserOtelConfig: commonTypes.UserOtelConfig{
+					Enable: true,
+				},
+			},
+		}
+		createOpt := make(map[string]string)
+		err := setCreateOptionForOtel(funcSpec, createOpt)
+		assert.NoError(t, err)
+		assert.Contains(t, createOpt, constant.DelegateInitContainers)
+	})
+}
+
 func TestSetCreateOptionForContainerSideCar(t *testing.T) {
 	config.GlobalConfig.Scenario = types.ScenarioWiseCloud
 	convey.Convey("Test SetCreateOptionForContainerSideCar", t, func() {
@@ -330,7 +598,6 @@ func TestSetCreateOptionForContainerSideCar(t *testing.T) {
 			createOpt := map[string]string{}
 			err := setCreateOptionForFileBeat(funcSpec, createOpt)
 			convey.So(err, convey.ShouldNotBeNil)
-
 		})
 		convey.Convey("json Marshal config error", func() {
 			patch := ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
@@ -347,7 +614,6 @@ func TestSetCreateOptionForContainerSideCar(t *testing.T) {
 			createOpt := map[string]string{}
 			err := setCreateOptionForFileBeat(funcSpec, createOpt)
 			convey.So(err, convey.ShouldNotBeNil)
-
 		})
 		convey.Convey("success", func() {
 			funcSpec := &types.FunctionSpecification{
@@ -488,6 +754,16 @@ func Test_setCreateOptionForInitContainerEnv(t *testing.T) {
 				convey.ShouldEqual, false)
 			convey.So(strings.Contains(createOpt[commonconstant.DelegateInitEnv], "true"), convey.ShouldEqual, false)
 		})
+		convey.Convey("set otel init env", func() {
+			createOpt := map[string]string{}
+			funcSpec.ExtendedMetaData = commonTypes.ExtendedMetaData{UserOtelConfig: commonTypes.UserOtelConfig{
+				Enable:  true,
+				OtelEnv: map[string]string{otelEndPointEnvKey: "http://otel.test.svc.cluster.local:4318"},
+			}}
+			err := setCreateOptionForInitContainerEnv(funcSpec, createOpt)
+			convey.So(err, convey.ShouldBeNil)
+			convey.So(strings.Contains(createOpt[commonconstant.DelegateInitEnv], otelWhiteList), convey.ShouldEqual, true)
+		})
 		convey.Convey("no generate ranktable file 1", func() {
 			createOpt := map[string]string{}
 			funcSpec.ResourceMetaData = commonTypes.ResourceMetaData{
@@ -520,8 +796,10 @@ func Test_setCreateOptionForLabel(t *testing.T) {
 			createOpt: nil,
 		}, true},
 		{"case2 succeeded to set createOption for label", args{
-			funcSpec: &types.FunctionSpecification{FuncMetaData: commonTypes.FuncMetaData{FuncName: "test",
-				TenantID: "tenantID", Service: "serviceID", Version: "$latest"}},
+			funcSpec: &types.FunctionSpecification{FuncMetaData: commonTypes.FuncMetaData{
+				FuncName: "test",
+				TenantID: "tenantID", Service: "serviceID", Version: "$latest",
+			}},
 			createOpt:    map[string]string{},
 			resSpec:      &resspeckey.ResourceSpecification{CPU: 500, Memory: 500},
 			instanceType: types.InstanceTypeReserved,
@@ -548,7 +826,7 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 	}
 
 	config.GlobalConfig.XpuNodeLabels = []types.XpuNodeLabel{
-		types.XpuNodeLabel{
+		{
 			XpuType:      "huawei.com/ascend-1980",
 			InstanceType: "376T",
 			NodeLabelKey: "node.kubernetes.io/instance-type",
@@ -557,7 +835,7 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 				"physical.kat2ne.48xlarge.8.ei.pod101.ondemand",
 			},
 		},
-		types.XpuNodeLabel{
+		{
 			XpuType:      "huawei.com/ascend-1980",
 			InstanceType: "",
 			NodeLabelKey: "node.kubernetes.io/instance-type",
@@ -566,7 +844,7 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 				"physical.kat2ne.48xlarge.8.ei.pod101.ondemand",
 			},
 		},
-		types.XpuNodeLabel{
+		{
 			XpuType:      "huawei.com/ascend-1980",
 			InstanceType: "280T",
 			NodeLabelKey: "node.kubernetes.io/instance-type",
@@ -651,8 +929,10 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := make(map[string]string)
 			e := setCreateOptionForAscendNPU(getMockFuncSpec(tt.customResource, tt.customResourcesSpec),
-				&resspeckey.ResourceSpecification{CPU: 500, Memory: 500,
-					CustomResources: map[string]int64{"huawei.com/ascend-1980": 8}}, m)
+				&resspeckey.ResourceSpecification{
+					CPU: 500, Memory: 500,
+					CustomResources: map[string]int64{"huawei.com/ascend-1980": 8},
+				}, m)
 			if e != nil {
 				t.Errorf("setCreateOptionForAscendNPU failed, err: %v", e)
 			}
@@ -686,7 +966,6 @@ func TestSetCreateOptionForNodeAffinity(t *testing.T) {
 			fmt.Printf("actual NodeAffinity: %s, expect NodeAffinity: %s", actualNodeAffinity, tt.delegateNodeAffinity)
 		})
 	}
-
 }
 
 func Test_PrepareCreateArguments(t *testing.T) {
@@ -984,8 +1263,10 @@ func TestInitCustomContainerEnvForNpu(t *testing.T) {
 	}
 
 	rawGConfig := config.GlobalConfig
+	expectCustomEnvValue := "testCustomEnvValue"
 	config.GlobalConfig = types.Configuration{
-		RegionName: "12324234",
+		RegionName:         "12324234",
+		CustomContainerEnv: map[string]string{"testCustomEnvKey": expectCustomEnvValue},
 	}
 	defer func() {
 		config.GlobalConfig = rawGConfig
@@ -1031,6 +1312,7 @@ func TestInitCustomContainerEnvForNpu(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			envs := initCustomContainerEnv(getMockFuncSpec(tt.customResource, tt.customResourcesSpec))
 			actualNodeInstanceType := ""
+			actualCustomEnvValue := ""
 			//		actualNodeInstanceTypeFromMeta := ""
 			for _, env := range envs {
 				if env.Name == "X_SYSTEM_NODE_INSTANCE_TYPE" {
@@ -1039,37 +1321,99 @@ func TestInitCustomContainerEnvForNpu(t *testing.T) {
 				if env.Name == "X_SYSTEM_NODE_INSTANCE_TYPE_IN_META_CUSTOM_RESOURCE" {
 					//				actualNodeInstanceTypeFromMeta = env.Value
 				}
+				if env.Name == "testCustomEnvKey" {
+					actualCustomEnvValue = env.Value
+				}
 			}
 			if actualNodeInstanceType != tt.nodeNpuInstanceType {
 				t.Errorf("failed, actual nodeInstanceType is %s, expect nodeInstanceType is %s", actualNodeInstanceType,
 					tt.nodeNpuInstanceType)
 			}
+			if actualCustomEnvValue != expectCustomEnvValue {
+				t.Errorf("failed, actual customEnv is %s, expect customEnv is %s", actualCustomEnvValue, expectCustomEnvValue)
+			}
 		})
-
 	}
 }
 
+func TestInitCustomContainerEnvForOtel(t *testing.T) {
+	funcSpec := &types.FunctionSpecification{
+		ExtendedMetaData: commonTypes.ExtendedMetaData{
+			UserOtelConfig: commonTypes.UserOtelConfig{
+				OtelEnv: map[string]string{otelEndPointEnvKey: "http://example.com:4318"},
+			},
+		},
+	}
+	t.Run("not enable otel", func(t *testing.T) {
+		found := false
+		envs := initCustomContainerEnv(funcSpec)
+		for _, e := range envs {
+			if e.Name == otelEndPointEnvKey {
+				found = true
+			}
+		}
+		if found {
+			t.Errorf("Expected not exists otel env, but exists")
+		}
+	})
+
+	t.Run("enable otel", func(t *testing.T) {
+		found := false
+		funcSpec.ExtendedMetaData.UserOtelConfig.Enable = true
+		envs := initCustomContainerEnv(funcSpec)
+		for _, e := range envs {
+			if e.Name == otelEndPointEnvKey {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("Expected not exists otel env, but exists")
+		}
+	})
+}
+
 func TestSetCreateOptionForVPC(t *testing.T) {
-	convey.Convey("Test TestSetCreateOptionForVPC", t, func() {
-		convey.Convey(" marshal network config error", func() {
+	convey.Convey("TestSetCreateOptionForVPC", t, func() {
+		var natConfig []commonTypes.NATConfigure
+		natConfig = append(natConfig, commonTypes.NATConfigure{
+			Namespace:      "default",
+			PatContainerIP: "10.0.0.100",
+			PatGateway:     "182.0.0.1",
+			PatPodName:     "pat-service-001",
+		})
+		natConfig = append(natConfig, commonTypes.NATConfigure{
+			Namespace:      "default",
+			PatContainerIP: "10.0.0.101",
+			PatGateway:     "182.0.0.1",
+			PatPodName:     "pat-service-002",
+		})
+		natConfigJson, _ := json.Marshal(natConfig)
+		createOption := make(map[string]string, utils.DefaultMapSize)
+		convey.Convey("marshal network config error", func() {
 			patch := ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
 				return []byte{}, errors.New("marshal error")
 			})
 			defer patch.Reset()
-			natConfig := &types.NATConfigure{}
-			setCreateOptionForVPC(nil, natConfig)
+			setCreateOptionForVPC(createOption, natConfig)
+			assert.Equal(t, "", createOption[types.NetworkConfigKey])
 		})
-		convey.Convey(" marshal prober config error", func() {
+		convey.Convey("marshal delegateNetworkConfigData error", func() {
 			patch := ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
 				_, ok := v.([]types.NetworkConfig)
 				if ok {
-					return []byte{}, nil
+					return natConfigJson, nil
 				}
 				return []byte{}, errors.New("marshal error")
 			})
 			defer patch.Reset()
-			natConfig := &types.NATConfigure{}
-			setCreateOptionForVPC(nil, natConfig)
+			setCreateOptionForVPC(createOption, natConfig)
+			assert.Equal(t, string(natConfigJson), createOption[types.NetworkConfigKey])
+			assert.Equal(t, "", createOption[commonconstant.DelegateNetworkConfig])
+		})
+		convey.Convey("setCreateOptionForVPC success", func() {
+			setCreateOptionForVPC(createOption, natConfig)
+			assert.Equal(t, "[{\"routeConfig\":{\"gateway\":\"10.0.0.100\",\"cidr\":\"0.0.0.0/0\"},\"tunnelConfig\":{\"tunnelName\":\"tunl_fgs_vpc\",\"remoteIP\":\"10.0.0.100\",\"mode\":\"ipip\"},\"firewallConfig\":{\"chain\":\"OUTPUT\",\"table\":\"filter\",\"operation\":\"add\",\"target\":\"10.0.0.100\",\"args\":\"-j ACCEPT\"},\"proberConfig\":{\"protocol\":\"ICMP\",\"address\":\"10.0.0.100\",\"gateway\":\"182.0.0.1\",\"interval\":5,\"timeout\":5,\"failureThreshold\":3}},{\"routeConfig\":{\"gateway\":\"10.0.0.101\",\"cidr\":\"0.0.0.0/0\"},\"tunnelConfig\":{\"tunnelName\":\"tunl_fgs_vpc\",\"remoteIP\":\"10.0.0.101\",\"mode\":\"ipip\"},\"firewallConfig\":{\"chain\":\"OUTPUT\",\"table\":\"filter\",\"operation\":\"add\",\"target\":\"10.0.0.101\",\"args\":\"-j ACCEPT\"},\"proberConfig\":{\"protocol\":\"ICMP\",\"address\":\"10.0.0.101\",\"gateway\":\"182.0.0.1\",\"interval\":5,\"timeout\":5,\"failureThreshold\":3}}]", createOption[types.NetworkConfigKey])
+			assert.Equal(t, "{\"patInstances\":[{\"namespace\":\"default\",\"name\":\"pat-service-001\"},{\"namespace\":\"default\",\"name\":\"pat-service-002\"}]}", createOption[commonconstant.DelegateNetworkConfig])
 		})
 	})
 }
@@ -1080,7 +1424,6 @@ func TestGenerateSnErrorFromKernelError(t *testing.T) {
 			kernelErr := errors.New("code:3003,message: ")
 			snError := generateSnErrorFromKernelError(kernelErr)
 			convey.So(snError.Code(), convey.ShouldEqual, statuscode.InternalErrorCode)
-
 		})
 		convey.Convey("errorCode error", func() {
 			initRsp := &types.ExecutorInitResponse{}
@@ -1088,7 +1431,6 @@ func TestGenerateSnErrorFromKernelError(t *testing.T) {
 			kernelErr := errors.New(fmt.Sprintf("code:3003,message: %s", string(data)))
 			snError := generateSnErrorFromKernelError(kernelErr)
 			convey.So(snError.Code(), convey.ShouldEqual, statuscode.InternalErrorCode)
-
 		})
 		convey.Convey("message MarshalJSON error", func() {
 			initRsp := &types.ExecutorInitResponse{
@@ -1134,7 +1476,8 @@ func Test_setCreateOptionForPodInitLabel(t *testing.T) {
 		podInitLabels map[string]string
 		tenantId      string
 	}{
-		{"case1 map is nil",
+		{
+			"case1 map is nil",
 			args{
 				funcSpec: &types.FunctionSpecification{},
 			},
@@ -1151,11 +1494,16 @@ func Test_setCreateOptionForPodInitLabel(t *testing.T) {
 			},
 			"",
 		},
-		{"case2 succeeded to set createOption for label",
+		{
+			"case2 succeeded to set createOption for label",
 			args{
-				funcSpec: &types.FunctionSpecification{FuncMetaData: commonTypes.FuncMetaData{FuncName: "test",
-					TenantID: "tenantID", Service: "serviceID", Version: "$latest"},
-					FuncKey: "12345678901234561234567890123456/test/$latest"},
+				funcSpec: &types.FunctionSpecification{
+					FuncMetaData: commonTypes.FuncMetaData{
+						FuncName: "test",
+						TenantID: "tenantID", Service: "serviceID", Version: "$latest",
+					},
+					FuncKey: "12345678901234561234567890123456/test/$latest",
+				},
 				resSpec:      &resspeckey.ResourceSpecification{CPU: 500, Memory: 500},
 				instanceType: types.InstanceTypeReserved,
 			},
@@ -1341,180 +1689,84 @@ func TestCreateInvokeOptions(t *testing.T) {
 	assert.NotNil(t, opt)
 }
 
-func Test_getStsServerConfig(t *testing.T) {
-	convey.Convey("test getStsServerConfig", t, func() {
-		convey.Convey("baseline", func() {
-			funcSpec := &types.FunctionSpecification{
-				StsMetaData: commonTypes.StsMetaData{
-					EnableSts:    true,
-					ServiceName:  "a",
-					MicroService: "b",
-				},
-			}
-			config.GlobalConfig.RawStsConfig.ServerConfig.Domain = "12345"
-			config.GlobalConfig.RawStsConfig.StsDomainForRuntime = ""
-			serverConfig := getStsServerConfig(funcSpec)
-			convey.So(serverConfig.Domain, convey.ShouldEqual, "12345")
-			convey.So(serverConfig.Path, convey.ShouldEqual, "/opt/huawei/certs/a/b/b.ini")
-			config.GlobalConfig.RawStsConfig.StsDomainForRuntime = "67890"
-			serverConfig = getStsServerConfig(funcSpec)
-			convey.So(serverConfig.Domain, convey.ShouldEqual, "67890")
-			convey.So(serverConfig.Path, convey.ShouldEqual, "/opt/huawei/certs/a/b/b.ini")
-		})
-	})
-}
+func TestCreatePATService(t *testing.T) {
+	convey.Convey("TestCreatePATService", t, func() {
+		funcSpec := &types.FunctionSpecification{}
+		managerInfo := faasManagerInfo{
+			funcKey:    "faas-manager-func-key",
+			instanceID: "faas-manager-instance-id",
+		}
+		extMetaData := commonTypes.ExtendedMetaData{}
+		vpcConfig := &commonTypes.VpcConfig{}
 
-func TestCreatePATService_InvokeError(t *testing.T) {
-	funcSpec := &types.FunctionSpecification{}
-
-	faasManagerInfo := faasManagerInfo{
-		funcKey:    "faas-manager-func-key",
-		instanceID: "faas-manager-instance-id",
-	}
-	extMetaData := commonTypes.ExtendedMetaData{}
-	vpcConfig := &commonTypes.VpcConfig{}
-
-	patches := gomonkey.NewPatches()
-	defer patches.Reset()
-	sdk := &mockUtils.FakeLibruntimeSdkClient{}
-	SetGlobalSdkClient(sdk)
-	patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
-		func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-			invokeOpt api.InvokeOptions) (string, error) {
-			return "", errors.New("invoke error")
-		})
-	natConfig, err := createPATService(funcSpec, faasManagerInfo, extMetaData, vpcConfig)
-
-	assert.NotNil(t, err)
-	assert.Nil(t, natConfig)
-	assert.Equal(t, "failed to create pat service", err.Error())
-	faasManagerInfo.instanceID = ""
-
-	natConfig, err = createPATService(funcSpec, faasManagerInfo, extMetaData, vpcConfig)
-	assert.Nil(t, natConfig)
-	assert.Equal(t, "failed to create pat service", err.Error())
-}
-
-func TestCreatePATService_Success(t *testing.T) {
-	funcSpec := &types.FunctionSpecification{
-		FuncKey: "test-func-key",
-	}
-	faasManagerInfo := faasManagerInfo{
-		funcKey:    "faas-manager-func-key",
-		instanceID: "faas-manager-instance-id",
-	}
-	extMetaData := commonTypes.ExtendedMetaData{}
-	vpcConfig := &commonTypes.VpcConfig{
-		VpcID: "test-vpc-id",
-	}
-
-	patches := gomonkey.NewPatches()
-	defer patches.Reset()
-
-	sdk := &mockUtils.FakeLibruntimeSdkClient{}
-	SetGlobalSdkClient(sdk)
-
-	patches.ApplyFunc(prepareCreatePATServiceArguments,
-		func(extMetaData commonTypes.ExtendedMetaData, vpcConfig *commonTypes.VpcConfig) []api.Arg {
-			return []api.Arg{}
+		convey.Convey("case: no faas manager instance info", func() {
+			_, err := createPATService("f9a27770-4cc1-4ca4-898a-81040a34f99e",
+				funcSpec, faasManagerInfo{}, extMetaData, vpcConfig)
+			assert.NotNil(t, err)
+			assert.Equal(t, "failed to create pat service", err.Error())
 		})
 
-	patches.ApplyFunc(utils.GenerateTraceID, func() string {
-		return "test-trace-id"
-	})
-
-	patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
-		func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-			invokeOpts api.InvokeOptions) (string, error) {
-			return "test-obj-id", nil
+		convey.Convey("case: InvokeByInstanceId error", func() {
+			patches := gomonkey.NewPatches()
+			defer patches.Reset()
+			sdk := &mockUtils.FakeLibruntimeSdkClient{}
+			SetGlobalSdkClient(sdk)
+			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
+				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
+					invokeOpt api.InvokeOptions,
+				) (string, error) {
+					return "", errors.New("invoke error")
+				})
+			natConfig, err := createPATService("", funcSpec, managerInfo, extMetaData, vpcConfig)
+			assert.NotNil(t, err)
+			assert.Nil(t, natConfig)
+			assert.Equal(t, "failed to create pat service", err.Error())
 		})
 
-	patches.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
-		func(_ *mockUtils.FakeLibruntimeSdkClient, objectID string, cb api.GetAsyncCallback) {
-			response := &patSvcCreateResponse{
-				Code:    0,
-				Message: `{"containerCidr":"10.0.0.0/24"}`,
-			}
-			responseData, _ := json.Marshal(response)
-			cb(responseData, nil)
+		convey.Convey("case: GetAsync error", func() {
+			patches := gomonkey.NewPatches()
+			defer patches.Reset()
+			sdk := &mockUtils.FakeLibruntimeSdkClient{}
+			SetGlobalSdkClient(sdk)
+			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
+				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
+					invokeOpts api.InvokeOptions,
+				) (string, error) {
+					return "test-obj-id", nil
+				})
+			patches.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
+				func(_ *mockUtils.FakeLibruntimeSdkClient, objectID string, cb api.GetAsyncCallback) {
+					err := snerror.New(statuscode.NotEnoughNIC, statuscode.VpcErMsg(statuscode.NotEnoughNIC))
+					cb(nil, err)
+				})
+			natConfig, err := createPATService("", funcSpec, managerInfo, extMetaData, vpcConfig)
+			assert.NotNil(t, err)
+			assert.Nil(t, natConfig)
+			assert.Equal(t, statuscode.VpcErMsg(statuscode.NotEnoughNIC), err.Error())
 		})
 
-	_, err := createPATService(funcSpec, faasManagerInfo, extMetaData, vpcConfig)
-
-	assert.Equal(t, err.Error(), "failed to create pat service")
-}
-
-func TestDeleteInstanceWithVPCSuccess(t *testing.T) {
-	funcSpec := &types.FunctionSpecification{
-		FuncKey: "test-func",
-	}
-	managerInfo := faasManagerInfo{
-		funcKey:    "manager-key",
-		instanceID: "manager-instance",
-	}
-	instance := &types.Instance{
-		InstanceID: "test-instance",
-	}
-
-	t.Run("success_case", func(t *testing.T) {
-		sdk := &mockUtils.FakeLibruntimeSdkClient{}
-		SetGlobalSdkClient(sdk)
-
-		var getAsyncCalled bool
-
-		patches := gomonkey.NewPatches()
-		defer patches.Reset()
-
-		patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
-			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpts api.InvokeOptions) (string, error) {
-				return "test-obj-id", nil
-			})
-
-		patches.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
-			func(_ *mockUtils.FakeLibruntimeSdkClient, objectID string, cb api.GetAsyncCallback) {
-				getAsyncCalled = true
-				cb([]byte("success"), nil)
-			})
-
-		deleteInstanceWithVPC(funcSpec, managerInfo, instance)
-
-		assert.NotNil(t, getAsyncCalled, "GetAsync should be called")
-	})
-}
-
-func TestDeleteInstanceWithVPC(t *testing.T) {
-	funcSpec := &types.FunctionSpecification{
-		FuncKey: "test-func",
-	}
-	managerInfo := faasManagerInfo{
-		funcKey:    "manager-key",
-		instanceID: "manager-instance",
-	}
-	instance := &types.Instance{
-		InstanceID: "test-instance",
-	}
-
-	t.Run("get_async_error", func(t *testing.T) {
-		sdk := &mockUtils.FakeLibruntimeSdkClient{}
-		SetGlobalSdkClient(sdk)
-
-		getAsyncCalled := false
-
-		defer gomonkey.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
-			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpt api.InvokeOptions) (string, error) {
-				return "mock-obj-id", nil
-			}).Reset()
-
-		defer gomonkey.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
-			func(_ *mockUtils.FakeLibruntimeSdkClient, objectID string, cb api.GetAsyncCallback) {
-				getAsyncCalled = true
-				cb(nil, errors.New("get async error"))
-			}).Reset()
-
-		deleteInstanceWithVPC(funcSpec, managerInfo, instance)
-		assert.NotNil(t, getAsyncCalled, "GetAsync should be called with error")
+		convey.Convey("case: createPATService success", func() {
+			patches := gomonkey.NewPatches()
+			defer patches.Reset()
+			sdk := &mockUtils.FakeLibruntimeSdkClient{}
+			SetGlobalSdkClient(sdk)
+			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
+				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
+					invokeOpts api.InvokeOptions,
+				) (string, error) {
+					return "test-obj-id", nil
+				})
+			patches.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
+				func(_ *mockUtils.FakeLibruntimeSdkClient, objectID string, cb api.GetAsyncCallback) {
+					result := []byte(`{"code":6030,"message":"{\"patPods\":[{\"namespace\":\"default\",\"patContainerIP\":\"10.0.0.100\",\"patVmIP\":\"10.1.0.100\",\"patPortIP\":\"182.0.0.100\",\"patMacAddr\":\"xxxxx-xxx\",\"patGateway\":\"182.0.0.1\",\"patPodName\":\"pod1\",\"tenantCidr\":\"182.20.0.0/14\",\"subMetaDigest\":\"xxxxxx\"},{\"namespace\":\"default\",\"patContainerIP\":\"10.0.0.101\",\"patVmIP\":\"10.1.0.101\",\"patPortIP\":\"182.0.0.101\",\"patMacAddr\":\"xxxxx-xxx\",\"patGateway\":\"182.0.0.2\",\"patPodName\":\"pod2\",\"tenantCidr\":\"182.20.0.0/14\",\"subMetaDigest\":\"xxxxxx\"}]}"}`)
+					cb(result, nil)
+				})
+			natConfig, err := createPATService("", funcSpec, managerInfo, extMetaData, vpcConfig)
+			assert.Nil(t, err)
+			assert.NotNil(t, natConfig)
+			assert.Equal(t, 2, len(natConfig))
+			assert.Equal(t, "10.0.0.100", natConfig[0].PatContainerIP)
+		})
 	})
 }
 
@@ -1543,7 +1795,8 @@ func TestHandlePullTriggerCreate(t *testing.T) {
 
 		patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpt api.InvokeOptions) (string, error) {
+				invokeOpt api.InvokeOptions,
+			) (string, error) {
 				return "mock-obj-id", nil
 			})
 
@@ -1568,7 +1821,8 @@ func TestHandlePullTriggerCreate(t *testing.T) {
 
 		patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpt api.InvokeOptions) (string, error) {
+				invokeOpt api.InvokeOptions,
+			) (string, error) {
 				getAsyncCalled = true
 				return "", errors.New("invoke error")
 			})
@@ -1587,7 +1841,8 @@ func TestHandlePullTriggerCreate(t *testing.T) {
 
 		patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 			func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-				invokeOpt api.InvokeOptions) (string, error) {
+				invokeOpt api.InvokeOptions,
+			) (string, error) {
 				return "mock-obj-id", nil
 			})
 
@@ -1601,103 +1856,6 @@ func TestHandlePullTriggerCreate(t *testing.T) {
 
 		assert.NotNil(t, getAsyncCalled, "GetAsync should be called")
 	})
-}
-
-func TestReportInstanceWithVPC(t *testing.T) {
-	tests := []struct {
-		name            string
-		funcSpec        *types.FunctionSpecification
-		faasManagerInfo faasManagerInfo
-		instance        *types.Instance
-		natConfig       *types.NATConfigure
-		invokeErr       error
-		getAsyncErr     error
-		expectGetAsync  bool
-	}{
-		{
-			name: "successful_report",
-			funcSpec: &types.FunctionSpecification{
-				FuncKey: "test-func",
-				ExtendedMetaData: commonTypes.ExtendedMetaData{
-					Initializer: commonTypes.Initializer{
-						Handler: "myInitializer",
-					},
-					VpcConfig: &commonTypes.VpcConfig{},
-				},
-			},
-			faasManagerInfo: faasManagerInfo{
-				funcKey:    "faas-key",
-				instanceID: "instance-1",
-			},
-			instance: &types.Instance{
-				InstanceID: "test-instance",
-			},
-			natConfig: &types.NATConfigure{
-				PatPodName: "test-pat-pod",
-			},
-			invokeErr:      nil,
-			getAsyncErr:    nil,
-			expectGetAsync: true,
-		},
-		{
-			name: "empty_faas_manager_info",
-			funcSpec: &types.FunctionSpecification{
-				FuncKey: "test-func",
-			},
-			faasManagerInfo: faasManagerInfo{},
-			instance:        &types.Instance{},
-			natConfig:       &types.NATConfigure{},
-			expectGetAsync:  false,
-		},
-		{
-			name: "invoke_error",
-			funcSpec: &types.FunctionSpecification{
-				FuncKey: "test-func",
-			},
-			faasManagerInfo: faasManagerInfo{
-				funcKey:    "faas-key",
-				instanceID: "instance-1",
-			},
-			instance: &types.Instance{},
-			natConfig: &types.NATConfigure{
-				PatPodName: "test-pat-pod",
-			},
-			invokeErr:      assert.AnError,
-			expectGetAsync: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sdk := &mockUtils.FakeLibruntimeSdkClient{}
-			SetGlobalSdkClient(sdk)
-
-			var getAsyncCalled bool
-			patches := gomonkey.NewPatches()
-			defer patches.Reset()
-
-			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
-				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-					invokeOpt api.InvokeOptions) (string, error) {
-					if tt.invokeErr != nil {
-						return "", tt.invokeErr
-					}
-					assert.Equal(t, tt.faasManagerInfo.funcKey, funcMeta.FuncID)
-					assert.Equal(t, tt.faasManagerInfo.instanceID, instanceID)
-					return "mock-obj-id", nil
-				})
-
-			patches.ApplyMethod(reflect.TypeOf(sdk), "GetAsync",
-				func(_ *mockUtils.FakeLibruntimeSdkClient, objectID string, cb api.GetAsyncCallback) {
-					getAsyncCalled = true
-					cb([]byte("success"), tt.getAsyncErr)
-				})
-
-			reportInstanceWithVPC(tt.funcSpec, tt.faasManagerInfo, tt.instance, tt.natConfig)
-
-			assert.NotNil(t, tt.expectGetAsync, getAsyncCalled, "GetAsync called status mismatch")
-		})
-	}
 }
 
 func TestHandlePullTriggerDelete(t *testing.T) {
@@ -1773,7 +1931,8 @@ func TestHandlePullTriggerDelete(t *testing.T) {
 
 			patches.ApplyMethod(reflect.TypeOf(sdk), "InvokeByInstanceId",
 				func(_ *mockUtils.FakeLibruntimeSdkClient, funcMeta api.FunctionMeta, instanceID string, args []api.Arg,
-					invokeOpt api.InvokeOptions) (string, error) {
+					invokeOpt api.InvokeOptions,
+				) (string, error) {
 					if tt.invokeErr != nil {
 						return "", tt.invokeErr
 					}
@@ -1825,4 +1984,50 @@ func TestHasD910b(t *testing.T) {
 		CustomResourcesSpec: map[string]interface{}{"mock-key": "mock-value"},
 	}
 	assert.False(t, hasD910b(resSpecWithoutD910B), "Expected false when resKey does not have D910B resource")
+}
+
+func TestSetVolumeForDelegateContainer(t *testing.T) {
+	mountUds := false
+	funcSpec := &types.FunctionSpecification{FuncMetaData: commonTypes.FuncMetaData{BusinessType: commonconstant.BusinessTypeAgent}}
+	vb := newVolumeBuilder()
+	setVolumeForDelegateContainer(funcSpec, vb)
+	for _, mounts := range vb.mounts {
+		for _, mount := range mounts {
+			if mount.Name == "datasystem-socket" {
+				mountUds = true
+			}
+		}
+	}
+	assert.True(t, mountUds)
+}
+
+func Test_setCreateOptionForImagePullSecrets(t *testing.T) {
+	convey.Convey("don't need set secret", t, func() {
+		opts := make(map[string]string)
+		setCreateOptionForImagePullSecrets(&types.FunctionSpecification{}, opts)
+		secretRef := opts[constant.ImagePullSecrets]
+		convey.So(len(secretRef), convey.ShouldEqual, 0)
+	})
+	convey.Convey("getTokenFromSWR new request failed", t, func() {
+		opts := make(map[string]string)
+		disableSWR = false
+		patches := gomonkey.ApplyFunc(localauth.Decrypt, func(src string) ([]byte, error) {
+			return []byte("decrypted token"), nil
+		})
+		patches.ApplyFunc(http.NewRequestWithContext,
+			func(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
+				return nil, errors.New("new request failed")
+			})
+		defer patches.Reset()
+		setCreateOptionForImagePullSecrets(&types.FunctionSpecification{
+			FuncMetaData: commonTypes.FuncMetaData{BusinessType: "AGENT"},
+			ExtendedMetaData: commonTypes.ExtendedMetaData{
+				ImagePullConfig: commonTypes.ImagePullConfig{
+					Secrets: []string{"secret1", "secret2"},
+				},
+			},
+		}, opts)
+		secretRef := opts[constant.ImagePullSecrets]
+		convey.So(secretRef, convey.ShouldEqual, "secret1,secret2")
+	})
 }

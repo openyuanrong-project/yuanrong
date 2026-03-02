@@ -265,6 +265,7 @@ struct LibruntimeConfig {
     uint32_t maxConnSize = 10000;
     std::string nodeId;
     std::string nodeIp;
+    bool enableEvent = false;
 private:
     ErrorInfo ValidateKeyParams();
 };

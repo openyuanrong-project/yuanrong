@@ -208,7 +208,8 @@ func initWithParams(cCmd *cobra.Command) {
 	cmdErr(cCmd.Execute())
 	DashboardConfig.FunctionMasterAddr = AddHTTPPrefix(DashboardConfig.FunctionMasterAddr,
 		DashboardConfig.FunctionSystemConfig.SslEnable)
-	DashboardConfig.FrontendAddr = AddHTTPPrefix(DashboardConfig.FrontendAddr, false) + appBasePath
+	DashboardConfig.FrontendAddr = AddHTTPPrefix(DashboardConfig.FrontendAddr,
+		DashboardConfig.FunctionSystemConfig.SslEnable) + appBasePath
 	DashboardConfig.PrometheusAddr = AddHTTPPrefix(DashboardConfig.PrometheusAddr,
 		DashboardConfig.PrometheusConfig.SslEnable)
 	ip := DashboardConfig.Ip

@@ -112,6 +112,7 @@ type CallRequest struct {
 	Method string            `json:"method"`
 	Query  string            `json:"query"`
 	Body   json.RawMessage   `json:"body"`
+	Timeout int64 `json:"timeout"`
 }
 
 // CallResponse -

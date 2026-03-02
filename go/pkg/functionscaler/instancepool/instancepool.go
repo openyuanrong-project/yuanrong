@@ -56,13 +56,12 @@ const (
 	maxInstanceLimit             = 1000
 	killSignalVal                = 1
 	vpcOpCreatePATService        = "CreatePATService"
-	vpcOpReportInstanceID        = "ReportInstanceID"
 	vpcOpDeleteInstanceID        = "DeleteInstanceID"
 	vpcOpCreatePullTrigger       = "CreatePullTrigger"
 	vpcOpDeletePullTrigger       = "DeletePullTrigger"
 	patProberInterval            = 5
 	patProberTimeout             = 5
-	patProberFailureThreshold    = 100
+	patProberFailureThreshold    = 3
 	resourcesCPU                 = "CPU"
 	resourcesMemory              = "Memory"
 	defaultEphemeralStorage      = 512
@@ -113,6 +112,7 @@ const (
 )
 
 type createOption struct {
+	traceID       string
 	callerPodName string
 }
 
@@ -142,17 +142,9 @@ type patSvcCreateResponse struct {
 	Message string `json:"message"`
 }
 
-type vpcInsCreateReport struct {
-	PatPodName string `json:"patPodName"`
-	InstanceID string `json:"instanceID"`
-}
-
-type vpcInsDeleteReport struct {
-	InstanceID string `json:"instanceID"`
-}
-
 type createInstanceRequest struct {
 	createEvent     []byte
+	traceID         string
 	instanceName    string
 	callerPodName   string
 	poolLabel       string
@@ -606,7 +598,14 @@ func (gi *GenericInstancePool) ReleaseInstance(insAlloc *types.InstanceAllocatio
 // HandleFaaSManagerUpdate handles faas manager update
 func (gi *GenericInstancePool) HandleFaaSManagerUpdate(faasManagerInfo faasManagerInfo) {
 	gi.Lock()
+	oldInstanceID := gi.faasManagerInfo.instanceID
 	gi.faasManagerInfo = faasManagerInfo
+	var funcKey string
+	if gi.FuncSpec != nil {
+		funcKey = gi.FuncSpec.FuncKey
+	}
+	log.GetLogger().Infof("succeed to update faas-manager info for func %s, oldInstanceID: %s, "+
+		"newInstanceID: %s", funcKey, oldInstanceID, faasManagerInfo.instanceID)
 	gi.Unlock()
 }
 
@@ -690,7 +689,7 @@ func (gi *GenericInstancePool) HandleFunctionUpdateEvent(funcSpec *types.Functio
 	gi.RLock()
 	if gi.reservedInstanceQueue != nil {
 		for resKey, queue := range gi.reservedInstanceQueue {
-			if queue.GetSchedulerPolicy() != gi.FuncSpec.InstanceMetaData.SchedulePolicy {
+			if queue.GetSchedulerPolicy() != getFuncSpecSchedulePolicy(gi.FuncSpec.InstanceMetaData.SchedulePolicy) {
 				err := gi.resetInstanceScheduler(queue, resKey)
 				if err != nil {
 					log.GetLogger().Errorf("%s failed to reset instance scheduler, from %s to %s, err: %s",
@@ -702,7 +701,7 @@ func (gi *GenericInstancePool) HandleFunctionUpdateEvent(funcSpec *types.Functio
 		}
 	}
 	for resKey, queue := range gi.scaledInstanceQueue {
-		if queue.GetSchedulerPolicy() != gi.FuncSpec.InstanceMetaData.SchedulePolicy {
+		if queue.GetSchedulerPolicy() != getFuncSpecSchedulePolicy(gi.FuncSpec.InstanceMetaData.SchedulePolicy) {
 			err := gi.resetInstanceScheduler(queue, resKey)
 			if err != nil {
 				log.GetLogger().Errorf("%s failed to reset instance scheduler, from %s to %s, err: %s",
@@ -717,6 +716,13 @@ func (gi *GenericInstancePool) HandleFunctionUpdateEvent(funcSpec *types.Functio
 	}
 	gi.RUnlock()
 	// todo 之后再考虑状态函数 函数元信息变更事件, 考虑两种情况，有状态无状态之间切换、有状态函数其他原信息变更
+}
+
+func getFuncSpecSchedulePolicy(schedulePolicy string) string {
+	if schedulePolicy == "" {
+		return types.InstanceSchedulePolicyConcurrency
+	}
+	return schedulePolicy
 }
 
 func (gi *GenericInstancePool) resetInstanceScheduler(instanceQueue *instancequeue.ScaledInstanceQueue,
@@ -786,6 +792,10 @@ func (gi *GenericInstancePool) HandleFaaSSchedulerEvent() {
 
 // HandleInstanceEvent handles instance event
 func (gi *GenericInstancePool) HandleInstanceEvent(eventType registry.EventType, instance *types.Instance) {
+	if eventType == registry.SubEventTypeSynced {
+		gi.handleInstanceSynced()
+		return
+	}
 	instance.FuncKey = gi.FuncSpec.FuncKey
 	logger := log.GetLogger().With(zap.Any("", "HandleInstanceEvent")).
 		With(zap.Any("FuncKey", gi.FuncSpec.FuncKey)).
@@ -1056,6 +1066,37 @@ func (gi *GenericInstancePool) removeInstance(instance *types.Instance, logger a
 	logger.Infof("succeed to remove instance")
 }
 
+func (gi *GenericInstancePool) handleInstanceSynced() {
+	gi.Lock()
+	wg := sync.WaitGroup{}
+	for _, queue := range gi.reservedInstanceQueue {
+		wg.Add(1)
+		go func(queue *instancequeue.ScaledInstanceQueue) {
+			queue.HandleInstanceSync(gi.recoverFuncCall)
+			wg.Done()
+		}(queue)
+	}
+	for _, queue := range gi.scaledInstanceQueue {
+		wg.Add(1)
+		go func(queue *instancequeue.ScaledInstanceQueue) {
+			queue.HandleInstanceSync(gi.recoverFuncCall)
+			wg.Done()
+		}(queue)
+	}
+	gi.Unlock()
+	c := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+	select {
+	case <-c:
+		log.GetLogger().Infof("handle all instance synced success")
+	case <-time.After(time.Minute):
+		log.GetLogger().Warnf("handle all instance synced timeout")
+	}
+}
+
 // HandleInstanceConfigEvent updates instance configuration
 func (gi *GenericInstancePool) HandleInstanceConfigEvent(eventType registry.EventType,
 	insConfig *instanceconfig.Configuration) {
@@ -1281,9 +1322,9 @@ func (gi *GenericInstancePool) createInstanceAndAddCallerPodName(resSpec *resspe
 	return gi.createInstanceFunc("", instanceType, gi.defaultResKey, nil, createOption{callerPodName: callerPodName})
 }
 
-func (gi *GenericInstancePool) createInstance(insName string, instanceType types.InstanceType,
+func (gi *GenericInstancePool) createInstance(traceID string, insName string, instanceType types.InstanceType,
 	resKey resspeckey.ResSpecKey, createEvent []byte) (*types.Instance, error) {
-	return gi.createInstanceFunc(insName, instanceType, resKey, createEvent, createOption{})
+	return gi.createInstanceFunc(insName, instanceType, resKey, createEvent, createOption{traceID: traceID})
 }
 
 func (gi *GenericInstancePool) createInstanceFunc(insName string, instanceType types.InstanceType,
@@ -1327,7 +1368,9 @@ func (gi *GenericInstancePool) createInstanceFunc(insName string, instanceType t
 	}()
 
 	gi.RLock()
+
 	createRequest := createInstanceRequest{
+		traceID:         createOption.traceID,
 		funcSpec:        gi.FuncSpec,
 		poolLabel:       gi.currentPoolLabel,
 		createTimeout:   gi.createTimeout,
@@ -1363,10 +1406,10 @@ func (gi *GenericInstancePool) handleManagedChange() {
 	log.GetLogger().Debugf("HandleFuncOwnerChange for function %s start",
 		gi.FuncSpec.FuncKey)
 	for _, q := range gi.scaledInstanceQueue {
-		q.HandleFuncOwnerChange()
+		q.HandleFuncOwnerChange(gi.recoverFuncCall)
 	}
 	for k, q := range gi.reservedInstanceQueue {
-		q.HandleFuncOwnerChange()
+		q.HandleFuncOwnerChange(gi.recoverFuncCall)
 		if _, ok := gi.insConfig[k]; ok {
 			q.HandleInsConfigUpdate(gi.insConfig[k])
 		}
@@ -1506,4 +1549,17 @@ func (gi *GenericInstancePool) judgeExceedInstance(resKey resspeckey.ResSpecKey,
 	instanceQueue.ScaleDownHandler(scaleDiff, func(i int) {
 		logger.Infof("scale down exceed instance %d succeed", i)
 	})
+}
+
+func (gi *GenericInstancePool) recoverFuncCall(sessInfo *types.SessionInfo, instance *types.Instance) {
+	sessions, exist := gi.instanceSessionMap[instance.InstanceID]
+	if !exist {
+		sessions = make(map[string]struct{}, utils.DefaultMapSize)
+		gi.instanceSessionMap[instance.InstanceID] = sessions
+	}
+	sessions[sessInfo.SessionID] = struct{}{}
+	gi.sessionRecordMap[sessInfo.SessionID] = sessionRecord{
+		instance:   instance,
+		sessionCtx: sessInfo.SessionCtx,
+	}
 }

@@ -28,8 +28,32 @@ std::shared_ptr<FSIntfReaderWriter> FSIntfManager::NewFsIntfClient(const std::st
                                                                    ProtocolType type)
 {
     auto fsIntfRW = TryGet(dstInstance);
-    if (fsIntfRW != nullptr && !fsIntfRW->Available()) {
+    if (fsIntfRW != nullptr && fsIntfRW->Available()) {
         return fsIntfRW;
+    }
+    std::shared_ptr<FSIntfReaderWriter> rw;
+    switch (type) {
+        case ProtocolType::GRPC: {
+            rw =
+                std::make_shared<FSIntfGrpcClientReaderWriter>(srcInstance, dstInstance, runtimeID, clientsMgr, option);
+            break;
+        }
+        default:
+            YRLOG_WARN("protocol type {} is not supported.", static_cast<int>(type));
+            return nullptr;
+    }
+    return rw;
+}
+
+std::shared_ptr<FSIntfReaderWriter> FSIntfManager::NewEventIntfClient(const std::string &srcInstance,
+                                                                   const std::string &dstInstance,
+                                                                   const std::string &runtimeID,
+                                                                   const ReaderWriterClientOption &option,
+                                                                   ProtocolType type)
+{
+    auto evenetIntfRW = TryGetEventIntfs(dstInstance);
+    if (evenetIntfRW != nullptr && evenetIntfRW->Available()) {
+        return evenetIntfRW;
     }
     std::shared_ptr<FSIntfReaderWriter> rw;
     switch (type) {
@@ -111,10 +135,73 @@ void FSIntfManager::Remove(const std::string &instanceID)
             intfNeedStop = iter->second;
             (void)this->rtIntfs.erase(instanceID);
         }
+        if (auto iter = this->eventIntfs.find(instanceID); iter != this->eventIntfs.end()) {
+            intfNeedStop = iter->second;
+            (void)this->eventIntfs.erase(instanceID);
+        }
     }
     if (intfNeedStop) {
         intfNeedStop->Stop();
     }
+}
+
+std::shared_ptr<FSIntfReaderWriter> FSIntfManager::TryGetEventIntfs(const std::string &instanceID)
+{
+    absl::ReaderMutexLock lock(&this->eventMu);
+    if (this->eventIntfs.find(instanceID) == this->eventIntfs.end()) {
+        return nullptr;
+    }
+    return eventIntfs[instanceID];
+}
+
+std::shared_ptr<FSIntfReaderWriter> FSIntfManager::GetEventIntfs(const std::string &instanceID)
+{
+    bool needErase = false;
+    std::shared_ptr<FSIntfReaderWriter> intf;
+    std::shared_ptr<FSIntfReaderWriter> intfNeedStop;
+    {
+        absl::ReaderMutexLock lock(&this->eventMu);
+        if (this->eventIntfs.find(instanceID) == this->eventIntfs.end()) {
+            return nullptr;
+        }
+        intf = this->eventIntfs[instanceID];
+        if (!this->eventIntfs[instanceID]->Available()) {
+            intf = nullptr;
+        }
+        if (this->eventIntfs[instanceID]->Abnormal()) {
+            intfNeedStop = this->eventIntfs[instanceID];
+            needErase = true;
+            intf = nullptr;
+        }
+    }
+    if (needErase) {
+        intfNeedStop->Stop();
+        absl::WriterMutexLock lock(&this->eventMu);
+        this->eventIntfs.erase(instanceID);
+    }
+    return intf;
+}
+
+bool FSIntfManager::EmplaceEventIntfs(const std::string &instanceID, const std::shared_ptr<FSIntfReaderWriter> &intf)
+{
+    YRLOG_DEBUG("begin to EmplaceEventIntfs, instanceID is {}", instanceID);
+    std::shared_ptr<FSIntfReaderWriter> intfNeedStop;
+    {
+        absl::WriterMutexLock lock(&this->eventMu);
+        if (auto iter = this->eventIntfs.find(instanceID); iter != this->eventIntfs.end()) {
+            if (iter->second->Available()) {
+                YRLOG_ERROR("duplicated event intf reader/writer {}", instanceID);
+                return false;
+            }
+            intfNeedStop = iter->second;
+        }
+        this->eventIntfs[instanceID] = intf;
+    }
+    if (intfNeedStop) {
+        YRLOG_DEBUG("begin to stop EmplaceEventIntfs, instanceID is {}", instanceID);
+        intfNeedStop->Stop();
+    }
+    return true;
 }
 
 void FSIntfManager::Clear()
@@ -129,7 +216,17 @@ void FSIntfManager::Clear()
         for (auto iter : rtIntfs) {
             rtIntfsNeedStop.push_back(iter.second);
         }
+        for (auto iter : eventIntfs) {
+            rtIntfsNeedStop.push_back(iter.second);
+        }
         rtIntfs.clear();
+    }
+    {
+        absl::WriterMutexLock lock(&this->eventMu);
+        for (auto iter : eventIntfs) {
+            rtIntfsNeedStop.push_back(iter.second);
+        }
+        eventIntfs.clear();
     }
     for (auto intf : rtIntfsNeedStop) {
         intf->Stop();

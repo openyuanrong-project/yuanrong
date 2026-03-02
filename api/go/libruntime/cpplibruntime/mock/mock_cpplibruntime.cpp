@@ -76,6 +76,8 @@ void GoGetAsyncCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *u
 
 void GoWaitAsyncCallback(char *cObjectID, CErrorInfo *cErr, void *userData) {}
 
+void GoGetEventCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *userData) {}
+
 CErrorInfo ErrorInfoToCError(const ErrorInfo &err)
 {
     CErrorInfo cErr{};
@@ -166,6 +168,11 @@ void CWaitAsync(char *objectId, void *userData)
     return;
 }
 
+void CGetEvent(char *objectId, void *userData)
+{
+    return;
+}
+
 CErrorInfo CKill(char *instanceId, int sigNo, CBuffer cData)
 {
     if (sigNo == 128) {
@@ -219,6 +226,11 @@ CErrorInfo CIncreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRem
 
 CErrorInfo CDecreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRemoteId, char ***cFailedIds,
                                     int *size_cFailedIds, char isRaw)
+{
+    return ErrorInfoToCError(ErrorInfo());
+}
+
+CErrorInfo CReleaseGRefs(char *cRemoreId)
 {
     return ErrorInfoToCError(ErrorInfo());
 }

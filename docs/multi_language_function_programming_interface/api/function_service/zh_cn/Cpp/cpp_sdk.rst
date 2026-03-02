@@ -15,7 +15,7 @@ C++ SDK
  
        默认析构函数。
 
-    .. cpp:function:: void RegisterHandler(std::function<std::string(const std::string &request, Function::Context &context)> handleRequestFunc）
+    .. cpp:function:: void RegisterHandler(std::function<std::string(const std::string &request, Function::Context &context)> handleRequestFunc)
 
        向 openYuanrong C++ 运行时注册初始处理函数。
 

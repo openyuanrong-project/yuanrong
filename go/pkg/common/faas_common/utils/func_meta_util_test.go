@@ -32,7 +32,7 @@ import (
 func TestGetFuncMetaSignature(t *testing.T) {
 	convey.Convey("success", t, func() {
 		signature := GetFuncMetaSignature(&types.FunctionMetaInfo{}, true)
-		convey.So(signature, convey.ShouldEqual, "2778597263")
+		convey.So(signature, convey.ShouldEqual, "1830885943")
 	})
 	convey.Convey("marshal error", t, func() {
 		defer gomonkey.ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {

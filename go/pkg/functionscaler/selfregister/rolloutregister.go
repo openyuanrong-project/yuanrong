@@ -186,7 +186,8 @@ func putInsSpecForRolloutKey(locker *etcd3.EtcdLocker) error {
 		log.GetLogger().Errorf("failed to get self instance key")
 		return errors.New("self instance key is empty")
 	}
-	if selfInstanceSpec == nil {
+	selfSpec := getSelfInstanceSpec()
+	if selfSpec == nil {
 		log.GetLogger().Errorf("failed to get insSpec of this scheduler %s", instanceID)
 		return errors.New("insSpec not found")
 	}
@@ -196,8 +197,8 @@ func putInsSpecForRolloutKey(locker *etcd3.EtcdLocker) error {
 	}
 	rolloutInsSpec := types.RolloutInstanceSpecification{
 		RegisterKey:    RolloutRegisterKey,
-		InstanceID:     selfInstanceSpec.InstanceID,
-		RuntimeAddress: selfInstanceSpec.RuntimeAddress,
+		InstanceID:     selfSpec.InstanceID,
+		RuntimeAddress: selfSpec.RuntimeAddress,
 	}
 	rolloutInsSpecData, err := json.Marshal(rolloutInsSpec)
 	if err != nil {
@@ -252,7 +253,7 @@ func processRolloutRequest(rolloutKey string) error {
 	}
 	RolloutRegisterKey = rsp.RegisterKey
 	log.GetLogger().Infof("succeed to set RolloutRegisterKey to %s", RolloutRegisterKey)
-	registerInfo, err := utils.GetModuleSchedulerInfoFromEtcdKey(RolloutRegisterKey)
+	registerInfo, err := utils.GetSchedulerInfoFromEtcdKey(RolloutRegisterKey)
 	if err != nil {
 		log.GetLogger().Errorf("failed to get register info from key %s error %s", rsp.RegisterKey, err.Error())
 		return err

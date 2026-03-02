@@ -89,6 +89,8 @@ const (
 	SubEventTypeAdd EventType = "add"
 	// SubEventTypeSynced is synced type of subscribe event
 	SubEventTypeSynced EventType = "synced"
+	// SubEventTypeCRSynced -
+	SubEventTypeCRSynced EventType = "crSynced" // todo 待后续修正
 	// SubEventTypeRemove is remove type of instance event
 	SubEventTypeRemove      EventType = "remove"
 	defaultEphemeralStorage           = 512
@@ -152,6 +154,9 @@ func ProcessETCDList() {
 	if GlobalRegistry != nil {
 		GlobalRegistry.FunctionRegistry.initWatcher(metaEtcdClient)
 		GlobalRegistry.AliasRegistry.initWatcher(metaEtcdClient)
+		if GlobalRegistry.AgentRegistry != nil {
+			GlobalRegistry.AgentRegistry.RunWatcher()
+		}
 		GlobalRegistry.InstanceRegistry.initWatcher(routerEtcdClient)
 		GlobalRegistry.FaaSManagerRegistry.initWatcher(routerEtcdClient)
 		GlobalRegistry.InstanceConfigRegistry.initWatcher(metaEtcdClient)
@@ -176,11 +181,6 @@ func StartRegistry() {
 		GlobalRegistry.FunctionRegistry.RunWatcher()
 	} else {
 		log.GetLogger().Errorf("function registry is nil")
-	}
-	if GlobalRegistry.AgentRegistry != nil {
-		GlobalRegistry.AgentRegistry.RunWatcher()
-	} else {
-		log.GetLogger().Errorf("agent registry is nil")
 	}
 	if GlobalRegistry.InstanceRegistry != nil {
 		GlobalRegistry.InstanceRegistry.RunWatcher()
@@ -228,6 +228,12 @@ func StartRegistry() {
 
 // GetFuncSpec will get function specification
 func (r *Registry) GetFuncSpec(funcKey string) *types.FunctionSpecification {
+	if r.AgentRegistry != nil {
+		funcSpec := r.AgentRegistry.getFuncSpec(funcKey)
+		if funcSpec != nil {
+			return funcSpec
+		}
+	}
 	return r.FunctionRegistry.getFuncSpec(funcKey)
 }
 
@@ -244,6 +250,11 @@ func (r *Registry) FetchSilentFuncSpec(funcKey string) *types.FunctionSpecificat
 // SubscribeFuncSpec will add subscriber for function registry
 func (r *Registry) SubscribeFuncSpec(subChan chan SubEvent) {
 	r.FunctionRegistry.addSubscriberChan(subChan)
+}
+
+// SubscribeAgentRunInfo -
+func (r *Registry) SubscribeAgentRunInfo(subChan chan SubEvent) {
+	r.AgentRegistry.addSubscriberChan(subChan)
 }
 
 // SubscribeInsSpec will add subscriber for instance registry

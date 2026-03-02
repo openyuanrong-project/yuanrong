@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class DashboardLauncher(ComponentLauncher):
     def prestart_hook(self) -> None:
         logger.info(f"{self.name}: prestart hook executing")
-        src = self.resolver.rendered_config["values"][self.name]["config_path"]
+        src = self.resolver.rendered_config[self.name]["src_config_path"]
         dest = Path(self.resolver.rendered_config[self.name]["args"]["config_path"]).resolve()
         self.patch_dashboard_config(src, dest)
 
@@ -44,7 +44,7 @@ class DashboardLauncher(ComponentLauncher):
         grpc_port = dashboard_values["grpc_port"]
         function_master_addr = f"{values['function_master']['ip']}:{values['function_master']['global_scheduler_port']}"
         frontend_addr = (
-            f"{values['frontend']['ip']}:{values['frontend']['port']}"
+            f"{config['frontend']['ip']}:{config['frontend']['port']}"
             if config["mode"]["master"].get("frontend", False) or config["mode"]["agent"].get("frontend", False)
             else ""
         )
@@ -57,45 +57,62 @@ class DashboardLauncher(ComponentLauncher):
         etcd_auth_type = values["etcd"].get("auth_type", "Noauth")
         etcd_table_prefix = values["etcd"].get("table_prefix", "")
         etcd_ssl_base_path = values["etcd"]["auth"].get("base_path", "")
-        if etcd_auth_type == "TLS":
-            etcd_ca = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('ca_file', '')}"
-            etcd_cert = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_cert_file', '')}"
-            etcd_key = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_key_file', '')}"
-        else:
-            etcd_ca = ""
-            etcd_cert = ""
-            etcd_key = ""
+        etcd_ca = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('ca_file', '')}"
+            if values["etcd"]["auth"].get("ca_file") and etcd_auth_type == "TLS" and etcd_ssl_base_path
+            else ""
+        )
+        etcd_cert = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_cert_file', '')}"
+            if values["etcd"]["auth"].get("client_cert_file") and etcd_auth_type == "TLS" and etcd_ssl_base_path
+            else ""
+        )
+        etcd_key = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_key_file', '')}"
+            if values["etcd"]["auth"].get("client_key_file") and etcd_auth_type == "TLS" and etcd_ssl_base_path
+            else ""
+        )
 
         fs_tls_enable = str(values["fs"]["tls"].get("enable", "false")).lower()
         fs_tls_base_path = values["fs"]["tls"].get("base_path", "")
-        if fs_tls_enable == "true":
-            fs_ca = f"{fs_tls_base_path}/{values['fs']['tls'].get('ca_file', '')}"
-            fs_cert = f"{fs_tls_base_path}/{values['fs']['tls'].get('cert_file', '')}"
-            fs_key = f"{fs_tls_base_path}/{values['fs']['tls'].get('key_file', '')}"
-        else:
-            fs_ca = ""
-            fs_cert = ""
-            fs_key = ""
+        fs_ca = (
+            f"{fs_tls_base_path}/{values['fs']['tls'].get('ca_file', '')}"
+            if values["fs"]["tls"].get("ca_file") and fs_tls_enable == "true"
+            else ""
+        )
+        fs_cert = (
+            f"{fs_tls_base_path}/{values['fs']['tls'].get('cert_file', '')}"
+            if values["fs"]["tls"].get("cert_file") and fs_tls_enable == "true"
+            else ""
+        )
+        fs_key = (
+            f"{fs_tls_base_path}/{values['fs']['tls'].get('key_file', '')}"
+            if values["fs"]["tls"].get("key_file") and fs_tls_enable == "true"
+            else ""
+        )
 
         prometheus_auth = dashboard_values["prometheus"]["auth"]
         prometheus_auth_enable = str(prometheus_auth.get("enable", "false")).lower()
-        if prometheus_auth_enable == "true":
-            base_path = prometheus_auth.get("base_path", "")
-            prometheus_ca = f"{base_path}/{prometheus_auth.get('ca_file', '')}"
-            prometheus_cert = f"{base_path}/{prometheus_auth.get('cert_file', '')}"
-            prometheus_key = f"{base_path}/{prometheus_auth.get('key_file', '')}"
-        else:
-            prometheus_ca = ""
-            prometheus_cert = ""
-            prometheus_key = ""
+        base_path = prometheus_auth.get("base_path", "")
+        prometheus_ca = (
+            f"{base_path}/{prometheus_auth.get('ca_file', '')}"
+            if prometheus_auth.get("ca_file") and prometheus_auth_enable == "true"
+            else ""
+        )
+        prometheus_cert = (
+            f"{base_path}/{prometheus_auth.get('cert_file', '')}"
+            if prometheus_auth.get("ca_file") and prometheus_auth_enable == "true"
+            else ""
+        )
+        prometheus_key = (
+            f"{base_path}/{prometheus_auth.get('key_file', '')}"
+            if prometheus_auth.get("ca_file") and prometheus_auth_enable == "true"
+            else ""
+        )
 
         dashboard_ssl_enable = str(dashboard_values["auth"].get("enable", "false")).lower()
-        if dashboard_ssl_enable == "true":
-            dashboard_cert = dashboard_values["auth"].get("cert_file", "")
-            dashboard_key = dashboard_values["auth"].get("key_file", "")
-        else:
-            dashboard_cert = ""
-            dashboard_key = ""
+        dashboard_cert = dashboard_values["auth"].get("cert_file", "") if dashboard_ssl_enable == "true" else ""
+        dashboard_key = dashboard_values["auth"].get("key_file", "") if dashboard_ssl_enable == "true" else ""
 
         replacements = {
             "{ip}": ip_address,

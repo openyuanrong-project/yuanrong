@@ -27,7 +27,11 @@ from yr.config import InvokeOptions, GroupOptions
 from yr.exception import YRInvokeError
 from yr.stream import ProducerConfig, SubscriptionConfig
 from yr.common.utils import (
-    generate_random_id, generate_task_id, GaugeData, UInt64CounterData, DoubleCounterData
+    generate_random_id,
+    generate_task_id,
+    GaugeData,
+    UInt64CounterData,
+    DoubleCounterData,
 )
 from yr.fnruntime import Producer, Consumer
 from yr.local_mode.local_client import LocalClient
@@ -35,14 +39,20 @@ from yr.local_mode.local_object_store import LocalObjectStore
 from yr.local_mode.task_manager import TaskManager
 from yr.libruntime_pb2 import FunctionMeta, InvokeType
 from yr.local_mode.task_spec import TaskSpec
-
-from yr.runtime import Runtime, AlarmInfo, SetParam, MSetParam, CreateParam, GetParams
+from yr.base_runtime import (
+    BaseRuntime,
+    AlarmInfo,
+    SetParam,
+    MSetParam,
+    CreateParam,
+    GetParams,
+)
 from yr.fnruntime import SharedBuffer
 
 _logger = logging.getLogger(__name__)
 
 
-class LocalModeRuntime(Runtime, ABC):
+class LocalModeRuntime(BaseRuntime, ABC):
     """local mode runtime"""
 
     def __init__(self):

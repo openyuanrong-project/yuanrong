@@ -89,6 +89,7 @@ private:
     bool ScheduleRequest(const RequestResource &resource, std::shared_ptr<BaseQueue> requestQueue);
     void SendInvokeReq(const RequestResource &resource, std::shared_ptr<InvokeSpec> invokeSpec);
     void DowngradeCallback(const std::string &requestId, Libruntime::ErrorCode code, const std::string &result);
+
     std::shared_ptr<LibruntimeConfig> libRuntimeConfig;
     std::atomic<bool> runFlag{true};
     mutable absl::Mutex reqMtx_;

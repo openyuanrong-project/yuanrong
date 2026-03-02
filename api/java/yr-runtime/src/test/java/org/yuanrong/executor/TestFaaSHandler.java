@@ -33,6 +33,7 @@ import org.yuanrong.services.runtime.action.ResourceMetaData;
 import org.yuanrong.errorcode.ErrorCode;
 import org.yuanrong.errorcode.ErrorInfo;
 import org.yuanrong.errorcode.Pair;
+import org.yuanrong.jni.LibRuntime;
 import org.yuanrong.libruntime.generated.Libruntime;
 import org.yuanrong.libruntime.generated.Libruntime.FunctionMeta;
 import org.yuanrong.runtime.util.Constants;
@@ -87,7 +88,7 @@ public class TestFaaSHandler {
         ((Map<String, String>) obj).put(key, value);
     }
 
-    public List<String> generateInitArgs() {
+    private List<String> generateInitArgs() {
         List<String> args = new ArrayList<>();
         ContextImpl contextImpl = getContext();
         Gson gson = new Gson();
@@ -100,7 +101,7 @@ public class TestFaaSHandler {
         return args;
     }
 
-    public List<String> generateInitArgsWiThPreStopHandler(String testCase) {
+    private List<String> generateInitArgsWiThPreStopHandler(String testCase) {
         List<String> args = new ArrayList<>();
         ContextImpl contextImpl = getContext();
         PreStop preStop = new PreStop();
@@ -128,7 +129,7 @@ public class TestFaaSHandler {
         return args;
     }
 
-    public List<String> generateCallTimeoutArgs() {
+    private List<String> generateCallTimeoutArgs() {
         List<String> args = new ArrayList<>();
         ContextImpl contextImpl = getContext();
         Gson gson = new Gson();
@@ -140,7 +141,7 @@ public class TestFaaSHandler {
         return args;
     }
 
-    public List<String> generateCallResponseLargeSizeArgs() {
+    private List<String> generateCallResponseLargeSizeArgs() {
         List<String> args = new ArrayList<>();
         ContextImpl contextImpl = getContext();
         Gson gson = new Gson();
@@ -152,7 +153,7 @@ public class TestFaaSHandler {
         return args;
     }
 
-    public List<String> generateErrorInitArgs(String errorType) {
+    private List<String> generateErrorInitArgs(String errorType) {
         Gson gson = new Gson();
         List<String> args = new ArrayList<>();
         ContextImpl contextImpl = getContext();
@@ -250,7 +251,7 @@ public class TestFaaSHandler {
                 "\"schedulerIDList\":[\"2238fb12-0000-4000-8000-00abc0d9cc91\"]}";
     }
 
-    public List<String> generateCallArgs() {
+    private List<String> generateCallArgs() {
         Gson gson = new Gson();
         List<String> args = new ArrayList<>();
         args.add("{\"codeID\":\"\",\"config\":{\"functionID\":{\"cpp\":\"\"," +
@@ -264,6 +265,27 @@ public class TestFaaSHandler {
         callRequest.setHeader(new HashMap<String, String>(){
             {
                 put(Constants.CFF_LOG_TYPE, "tail");
+            }
+        });
+        args.add(gson.toJson(callRequest));
+        return args;
+    }
+
+    public List<String> generateCallArgsWithHeader() {
+        Gson gson = new Gson();
+        List<String> args = new ArrayList<>();
+        args.add("{\"codeID\":\"\",\"config\":{\"functionID\":{\"cpp\":\"\"," +
+                "\"python\":\"sn:cn:yrk:12345678901234561234567890123456:function:0-he-he:$latest\"}," +
+                "\"jodID\":\"96f2fc5e-c9ab-4d83-9aa2-89579a29ff4a\",\"logLevel\":30,\"recycleTime\":2}," +
+                "\"invokeType\":3,\"objectDescriptor\":{\"className\":\"\",\"functionName\":\"execute\"," +
+                "\"moduleName\":\"faasexecutor\",\"srcLanguage\":\"python\",\"targetLanguage\":\"python\"}}");
+        TestRequestEvent testRequestEvent = new TestRequestEvent("yuanrong", 1);
+        CallRequest callRequest = new CallRequest();
+        callRequest.setBody(testRequestEvent);
+        callRequest.setHeader(new HashMap<String, String>(){
+            {
+                put("Accept", "text/event-stream");
+                put("X-Trace-Id", "test_trace_id");
             }
         });
         args.add(gson.toJson(callRequest));
@@ -398,6 +420,21 @@ public class TestFaaSHandler {
         String response = (String) faaSHandler.faasCallHandler(args);
         CallResponse response2 = gson.fromJson(response, CallResponse.class);
         Assert.assertEquals("true", response2.getBody().toString());
+    }
+
+    @Test
+    public void testFaaSHandlerCallFailedWithEventHeader() throws Exception {
+        FaaSHandler faaSHandler = new FaaSHandler();
+        List<String> initArgs = generateInitArgs();
+        faaSHandler.faasInitHandler(initArgs);
+        List<String> callArgs = generateCallArgsWithHeader();
+        boolean isException = false;
+        try {
+            faaSHandler.faasCallHandler(callArgs);
+        } catch (Throwable e) {
+            isException = true;
+        }
+        Assert.assertTrue(isException);
     }
 
     @Test

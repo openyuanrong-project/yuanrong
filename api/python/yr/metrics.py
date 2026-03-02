@@ -18,8 +18,8 @@ import re
 from dataclasses import field
 from typing import Dict
 
+from yr.base_runtime import AlarmInfo
 from yr.config_manager import ConfigManager
-from yr.runtime import AlarmInfo
 from yr.runtime_holder import global_runtime
 from yr.common.utils import GaugeData, UInt64CounterData, DoubleCounterData
 

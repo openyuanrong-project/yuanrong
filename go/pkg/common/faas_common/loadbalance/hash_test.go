@@ -23,22 +23,15 @@ import (
 	"time"
 )
 
-func TestConcurrentCHGeneric_Next(t *testing.T) {
-	convey.Convey("concurrentCHGeneric next", t, func() {
-		generic := NewConcurrentCHGeneric(10)
+func TestSimpleCHGeneric_Next(t *testing.T) {
+	convey.Convey("SimpleCHGeneric next", t, func() {
+		generic := NewSimpleCHGeneric()
 
 		generic.Add("node1", 0)
 		generic.Add("node2", 0)
 		next1 := generic.Next("function1", false)
 		next2 := generic.Next("function1", false)
 		convey.So(next1, convey.ShouldResemble, next2)
-
-		generic = NewConcurrentCHGeneric(1)
-		generic.Add("node1", 0)
-		generic.Add("node2", 0)
-		next3 := generic.Next("function1", false)
-		next4 := generic.Next("function1", false)
-		convey.So(next3, convey.ShouldNotResemble, next4)
 	})
 }
 

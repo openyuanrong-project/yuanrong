@@ -42,6 +42,7 @@ FSIntf::FSIntf(const FSIntfHandlers &handlers) : handlers(handlers)
         this->heartbeatExecutor.Init(HEARTBEAT_THREAD_POOL_SIZE, "fs.heartbeat");
     }
     this->responseReceiver.Init(RESP_RECV_THREAD_POOL_SIZE, "fs.resp_recv");
+    this->eventExecutor.Init(EVENT_THREAD_POOL_SIZE, "fs.event");
 }
 
 FSIntf::~FSIntf()
@@ -63,6 +64,7 @@ void FSIntf::Clear()
     }
     responseReceiver.Shutdown();
     callReceiver.Shutdown();
+    eventExecutor.Shutdown();
     cleared_ = true;
 }
 
@@ -300,6 +302,16 @@ void FSIntf::HandleHeartbeatRequest(const HeartbeatRequest &req, HeartbeatCallBa
         [this, req, callback]() {
             auto resp = this->handlers.heartbeat(req);
             callback(resp);
+        },
+        "");
+}
+
+void FSIntf::HandleEventRequest(const std::shared_ptr<EventMessageSpec> &req)
+{
+    this->eventExecutor.Handle(
+        [this, req]() {
+            YRLOG_DEBUG("receive event req, request ID: {}", req->Immutable().requestid());
+            this->handlers.event(req);
         },
         "");
 }

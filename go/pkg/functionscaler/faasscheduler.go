@@ -44,6 +44,7 @@ import (
 	commonTypes "yuanrong.org/kernel/pkg/common/faas_common/types"
 	commonUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
+	"yuanrong.org/kernel/pkg/functionscaler/crprocessor"
 	"yuanrong.org/kernel/pkg/functionscaler/instancepool"
 	"yuanrong.org/kernel/pkg/functionscaler/lease"
 	"yuanrong.org/kernel/pkg/functionscaler/metrics"
@@ -141,6 +142,7 @@ func NewFaaSScheduler(stopCh <-chan struct{}) *FaaSScheduler {
 		rolloutConfigCh: make(chan registry.SubEvent, defaultChanSize),
 		leaseInterval:   leaseInterval,
 	}
+	setupAgentCRsManager(stopCh, faasScheduler)
 	registry.GlobalRegistry.SubscribeFuncSpec(faasScheduler.funcSpecCh)
 	registry.GlobalRegistry.SubscribeInsSpec(faasScheduler.insSpecCh)
 	registry.GlobalRegistry.SubscribeInsConfig(faasScheduler.insConfigCh)
@@ -163,6 +165,18 @@ func NewFaaSScheduler(stopCh <-chan struct{}) *FaaSScheduler {
 	go metrics.InitServerMetric(stopCh)
 
 	return faasScheduler
+}
+
+func setupAgentCRsManager(stopCh <-chan struct{}, faasScheduler *FaaSScheduler) {
+	if os.Getenv(constant.EnableAgentCRDRegistry) != "" {
+		agentRunResourceManager := crprocessor.NewAgentCRsManager(stopCh)
+		registry.GlobalRegistry.SubscribeInsSpec(agentRunResourceManager.AgentCRInsCh)
+		registry.GlobalRegistry.SubscribeSchedulerProxy(agentRunResourceManager.FaaSSchedulerProxyCh)
+		registry.GlobalRegistry.SubscribeAgentRunInfo(agentRunResourceManager.AgentCRCh)
+		agentRunResourceManager.AddFunctionSubscriberChan(faasScheduler.funcSpecCh)
+		agentRunResourceManager.AddInstanceConfigSubscriberChan(faasScheduler.insConfigCh)
+		agentRunResourceManager.StartLoop()
+	}
 }
 
 // InitGlobalScheduler -
@@ -296,8 +310,9 @@ func (fs *FaaSScheduler) processRolloutConfigSubscription() {
 // ProcessInstanceRequestLibruntime will handle acquire, release and retain of instance based on multi libruntime
 func (fs *FaaSScheduler) ProcessInstanceRequestLibruntime(args []api.Arg, traceID string) ([]byte, error) {
 	logger := log.GetLogger().With(zap.Any("traceID", traceID))
-	insOp, targetName, extraData, eventData := parseInstanceOperationLibruntime(args, traceID)
+	insOp, targetName, extraData, eventData := parseInstanceOperation(args, traceID)
 	startTime := time.Now()
+
 	defer logger.Infof("process of instance operation %s target %s cost %dms", insOp, targetName,
 		time.Now().Sub(startTime).Milliseconds())
 	result, err, shouldReply := fs.HandleRequestForward(insOp, args, traceID)
@@ -396,6 +411,7 @@ func (fs *FaaSScheduler) handleInstanceCreate(funcKey string, extraData, eventDa
 		return generateInstanceResponse(nil, err, startTime)
 	}
 	instance, err := fs.PoolManager.CreateInstance(&types.InstanceCreateRequest{
+		TraceID:      traceID,
 		FuncSpec:     funcSpec,
 		ResSpec:      resSpec,
 		InstanceName: dataInfo.designateInstanceName,
@@ -431,6 +447,12 @@ func (fs *FaaSScheduler) handleInstanceAcquire(targetName string, extraData []by
 	funcKey, stateID := parseStateOperation(targetName)
 	logger := log.GetLogger().With(zap.Any("traceID", traceID), zap.Any("funcKey", funcKey),
 		zap.Any("stateID", stateID))
+	ownerSchedulerInstanceId, ok := selfregister.GlobalSchedulerProxy.CheckFuncOwner(funcKey)
+	if !ok {
+		logger.Errorf("non-owner faasscheduler, return owner faasscheduelr: %s", ownerSchedulerInstanceId)
+		return generateInstanceResponse(nil, snerror.New(statuscode.AcquireNonOwnerSchedulerErrorCode,
+			ownerSchedulerInstanceId), startTime)
+	}
 	funcSpec := registry.GlobalRegistry.GetFuncSpec(funcKey)
 	if funcSpec == nil {
 		logger.Errorf("failed to get instance, function %s doesn't exist", funcKey)
@@ -548,6 +570,10 @@ func parseExtraData(extraData []byte) (*extraDataInfo, snerror.SNError) {
 		if !utils.CheckInstanceSessionValid(insSessConfig) {
 			return nil, snerror.New(statuscode.InstanceSessionInvalidErrCode, "session config invalid")
 		}
+		if insSessConfig.Concurrency <= 0 {
+			log.GetLogger().Warnf("user session concurrency is invalid: %d, will set to default 1", insSessConfig.Concurrency)
+			insSessConfig.Concurrency = 1
+		}
 		dataInfo.instanceSession = insSessConfig
 	}
 	if invokeLabel, ok := extraDataMap[constant.InstanceRequirementInvokeLabel]; ok {
@@ -627,7 +653,7 @@ func (fs *FaaSScheduler) handleInstanceRelease(targetName string, metricsData []
 	// If the arg:isAbnormal that received from fronted is true, the instance of this lease will be unusable
 	// for user. Then the instance will be removed from instance queue and be clean.
 	if data.IsAbnormal == true {
-		fs.PoolManager.ReleaseAbnormalInstance(insAlloc.Instance)
+		fs.PoolManager.ReleaseAbnormalInstance(insAlloc.Instance, logger)
 	}
 	if !commonUtils.IsNil(insAlloc.Lease) {
 		err := insAlloc.Lease.Release()
@@ -696,6 +722,17 @@ func (fs *FaaSScheduler) handleInstanceBatchRetain(target string, metricsData []
 		LeaseInterval:        fs.leaseInterval.Milliseconds(),
 	}
 	for _, name := range targetNames {
+		if _, ok := insThdMetrics[name]; !ok {
+			continue
+		}
+		if ownerSchedulerInstanceId, ok := selfregister.GlobalSchedulerProxy.CheckFuncOwner(
+			insThdMetrics[name].FunctionKey); !ok {
+			batchInstanceResp.InstanceAllocFailed[name] = commonTypes.InstanceAllocationFailedInfo{
+				ErrorCode:    statuscode.AcquireNonOwnerSchedulerErrorCode,
+				ErrorMessage: ownerSchedulerInstanceId,
+			}
+			continue
+		}
 		insAlloc, err := fs.retainInstance(name, traceID, insThdMetrics[name], logger)
 		if err != nil {
 			batchInstanceResp.InstanceAllocFailed[name] = commonTypes.InstanceAllocationFailedInfo{
@@ -952,7 +989,7 @@ func (fs *FaaSScheduler) buildMetrics(extraData *types.InstanceThreadMetrics) *t
 	}
 }
 
-func parseInstanceOperationLibruntime(args []api.Arg, traceID string) (InstanceOperation, string, []byte, []byte) {
+func parseInstanceOperation(args []api.Arg, traceID string) (InstanceOperation, string, []byte, []byte) {
 	logger := log.GetLogger().With(zap.Any("traceID", traceID))
 	insOp := insOpUnknown
 	if len(args) < minArgsNum {
@@ -985,30 +1022,6 @@ func parseInstanceOperationLibruntime(args []api.Arg, traceID string) (InstanceO
 		eventDataArg = args[2]
 	}
 	return insOp, target, extraDataArg.Data, eventDataArg.Data
-}
-
-func parseInstanceOperation(args []*api.Arg, traceID string) (InstanceOperation, string, []byte) {
-	logger := log.GetLogger().With(zap.Any("traceID", traceID))
-	if len(args) != validArgsNum {
-		logger.Errorf("invalid argument number")
-		return insOpUnknown, "", nil
-	}
-	operationArg := args[0]
-	extraDataArg := args[1]
-	if operationArg.Type != api.Value || extraDataArg.Type != api.Value {
-		logger.Errorf("invalid argument type")
-		return insOpUnknown, "", nil
-	}
-	operationCommand := string(operationArg.Data)
-	items := strings.SplitN(operationCommand, insOpSeparator, validInsOpLen)
-	if len(items) != validInsOpLen {
-		logger.Errorf("invalid argument %s", operationCommand)
-		return insOpUnknown, "", nil
-	}
-	insOp := InstanceOperation(items[0])
-	targetName := items[1]
-	extraData := extraDataArg.Data
-	return insOp, targetName, extraData
 }
 
 func getPoolLabel(poolLabelFromReq, poolLabelFromMeta string) string {

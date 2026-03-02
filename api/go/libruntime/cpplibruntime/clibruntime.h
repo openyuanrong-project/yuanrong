@@ -152,6 +152,7 @@ typedef struct tagCLibruntimeConfig {
     char *dsPublicKeyContextPath;
     int maxConcurrencyCreateNum;
     char enableSigaction;
+    char enableEvent;
 } CLibruntimeConfig;
 
 typedef struct tagCInvokeArg {
@@ -246,6 +247,7 @@ typedef struct tagCInvokeOptions {
     int size_invokeLabels;
     CInstanceSession *instanceSession;
     int64_t scheduleTimeoutMs;
+    char forceInvoke;
 } CInvokeOptions;
 
 typedef struct tagCErrorObject {
@@ -326,6 +328,8 @@ typedef struct tagCSubscriptionConfig {
 
 typedef void (*CGetAsyncCallback)(char *cObjectID, CErrorInfo *cErr, void *userData);
 
+typedef void (*CGetEventCallback)(char *cObjectID, CErrorInfo *cErr, void *userData);
+
 typedef struct tagCElement {
     uint8_t *ptr;
     uint64_t size;
@@ -399,13 +403,16 @@ CErrorInfo CGetMultiCommon(char **cObjIds, int size_cObjIds, int timeoutMs, char
 CErrorInfo CGet(char *objId, int timeoutSec, CBuffer *data);
 extern void GoGetAsyncCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *userData);
 extern void GoWaitAsyncCallback(char *cObjectID, CErrorInfo *cErr, void *userData);
+extern void GoGetEventCallback(char *cObjectID, CBuffer cBuf, CErrorInfo *cErr, void *userData);
 void CUpdateSchdulerInfo(char *scheduleName, char *schedulerId, char *option);
 void CGetAsync(char *objectId, void *userData);
 void CWaitAsync(char *objectId, void *userData);
+void CGetEvent(char *objectId, void *userData);
 CErrorInfo CIncreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRemoteId, char ***cFailedIds,
                                     int *size_cFailedIds, char isRaw);
 CErrorInfo CDecreaseReferenceCommon(char **cObjIds, int size_cObjIds, char *cRemoteId, char ***cFailedIds,
                                     int *size_cFailedIds, char isRaw);
+CErrorInfo CReleaseGRefs(char *cRemoteId);
 CErrorInfo CAllocReturnObject(CDataObject *object, int dataSize, char **nestedIds, int sizeNestedIds,
                               uint64_t *totalNativeBufferSize);
 void CSetReturnObject(CDataObject *cObject, int dataSize);

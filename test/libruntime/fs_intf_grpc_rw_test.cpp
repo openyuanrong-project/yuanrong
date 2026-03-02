@@ -92,15 +92,20 @@ protected:
         {StreamingMessage::kNotifyReq, std::bind(&FSIntfGrpcRWTest::RecvMsg, this, _1, _2)},
         {StreamingMessage::kCallResultAck, std::bind(&FSIntfGrpcRWTest::RecvMsg, this, _1, _2)},
     };
+    std::unordered_map<BodyCase, MsgHdlr> registerEventHdlrs = {
+        {StreamingMessage::kEventReq, std::bind(&FSIntfGrpcRWTest::RecvMsg, this, _1, _2)},
+    };
     void StartService(std::function<void(const std::string &)> resendCb = nullptr,
-                      std::function<void(const std::string &)> disconnectedCb = nullptr)
+                      std::function<void(const std::string &)> disconnectedCb = nullptr, bool enableEvent = false)
     {
         service = std::make_shared<GrpcPosixService>("server", "runtime-server", ip, listenPort,
                                                      std::make_shared<TimerWorker>(),
-                                                     std::make_shared<absl::Notification>(), fsIntfManager, security_);
+                                                     std::make_shared<absl::Notification>(), fsIntfManager, security_,
+                                                     true, enableEvent);
         service->rtDisconnectedTimeout = 100;
         service->fsDisconnectedTimeout = 100;
         service->RegisterRTHandler(rtMsgHdlrs);
+        service->RegisterEventHdlrs(registerEventHdlrs);
         service->RegisterResendCallback(resendCb);
         service->RegisterDisconnectedCallback(disconnectedCb);
         service->Start();
@@ -134,6 +139,42 @@ protected:
                 auto begin = std::chrono::steady_clock::now();
                 while (std::chrono::steady_clock::now() - begin < std::chrono::milliseconds(5000)) {
                     if (fsIntfManager->TryGet(clientName) != nullptr) {
+                        ready.set_value();
+                        return;
+                    }
+                }
+            },
+            "");
+        ready.get_future().wait();
+        return clientRw;
+    }
+
+    std::shared_ptr<FSIntfGrpcClientReaderWriter> StartEventClient(
+        std::string clientName, std::function<void(const std::string &)> resendCb = nullptr,
+        std::function<void(const std::string &)> disconnectedCb = nullptr, bool enableAuth = false)
+    {
+        if (enableAuth) {
+            std::string ak = "ak";
+            SensitiveValue sk = std::string("sk");
+            this->security_->SetAKSKAndCredential(ak, sk);
+            Config::Instance().YR_TENANT_ID() = ak;
+        }
+        auto clientRw =
+            std::make_shared<FSIntfGrpcClientReaderWriter>(clientName, "server", "runtime-client", clientsMgr,
+                                                           ReaderWriterClientOption{.ip = ip,
+                                                                                    .port = listenPort,
+                                                                                    .disconnectedTimeout = 100,
+                                                                                    .security = this->security_,
+                                                                                    .resendCb = resendCb,
+                                                                                    .disconnectedCb = disconnectedCb});
+        clientRw->RegisterMessageHandler(registerEventHdlrs);
+        clientRw->Start();
+        auto ready = std::promise<void>();
+        writer.Handle(
+            [&]() {
+                auto begin = std::chrono::steady_clock::now();
+                while (std::chrono::steady_clock::now() - begin < std::chrono::milliseconds(5000)) {
+                    if (fsIntfManager->TryGetEventIntfs(clientName) != nullptr) {
                         ready.set_value();
                         return;
                     }
@@ -401,6 +442,7 @@ TEST_F(FSIntfGrpcRWTest, BatchWrite)
 {
     StartService();
     auto clientRw1 = StartClient("clientRw1");
+    ASSERT_EQ(clientRw1->IsHealth(), true);
     struct Promises {
         std::shared_ptr<std::promise<StreamingMessage>> recvPromise;
         std::shared_ptr<std::promise<ErrorInfo>> writecb;

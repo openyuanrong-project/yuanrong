@@ -47,4 +47,21 @@ public class ContextInvokeParams {
      */
     public ContextInvokeParams() {
     }
+
+    public ContextInvokeParams(ContextInvokeParams contextInvokeParams) {
+        this.accessKey = contextInvokeParams.getAccessKey();
+        this.secretKey = contextInvokeParams.getSecretKey();
+        this.securityAccessKey = contextInvokeParams.getSecurityAccessKey();
+        this.securitySecretKey = contextInvokeParams.getSecuritySecretKey();
+        this.requestID = contextInvokeParams.getRequestID();
+        this.invokeID = contextInvokeParams.getInvokeID();
+        this.token = contextInvokeParams.getToken();
+        this.securityToken = contextInvokeParams.getSecurityToken();
+        this.alias = contextInvokeParams.getAlias();
+        this.workflowID = contextInvokeParams.getWorkflowID();
+        this.workflowRunID = contextInvokeParams.getWorkflowRunID();
+        this.workflowStateID = contextInvokeParams.getWorkflowStateID();
+        this.reqStreamName = contextInvokeParams.getReqStreamName();
+        this.respStreamName = contextInvokeParams.getRespStreamName();
+    }
 }

@@ -39,6 +39,8 @@ const int32_t RECONNECT_BACKOFF_INTERVAL = 100;
 const int32_t MAX_RECONNECT_BACKOFF_INTERVAL = 5 * 1000;
 const uint32_t SIZE_MEGA_BYTES = 1024 * 1024;
 const int32_t DEFAULT_MAX_GRPC_SIZE = 10;  // MB
+const int32_t GRPC_KEEPALIVE_TIME_MS = 600000;
+const int32_t GRPC_KEEPALIVE_TIMEOUT_MS = 5000;
 const std::string IP_PORT_REGEX = R"(((\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5})))";
 
 struct DatasystemClients {
@@ -54,7 +56,8 @@ public:
 
     std::pair<std::shared_ptr<grpc::Channel>, ErrorInfo> NewFsConn(const std::string &ip, int port,
                                                                    std::shared_ptr<Security> security,
-                                                                   const std::string &dstInstance);
+                                                                   const std::string &dstInstance,
+                                                                   bool isKeepAlive = true);
 
     std::pair<std::shared_ptr<grpc::Channel>, ErrorInfo> GetFsConn(const std::string &ip, int port,
                                                                    const std::string &dstInstance);
@@ -73,7 +76,8 @@ public:
 
     ErrorInfo ReleaseHttpClient(const std::string &ip, int port);
     std::pair<std::shared_ptr<grpc::Channel>, ErrorInfo> InitFunctionSystemConn(std::string target,
-                                                                                std::shared_ptr<Security> security);
+                                                                                std::shared_ptr<Security> security,
+                                                                                bool isKeepAlive);
 
 private:
     std::pair<DatasystemClients, ErrorInfo> InitDatasystemClient(

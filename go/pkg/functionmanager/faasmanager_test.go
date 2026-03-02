@@ -19,7 +19,6 @@ package functionmanager
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"plugin"
 	"reflect"
@@ -30,14 +29,25 @@ import (
 	"github.com/agiledragon/gomonkey/v2"
 	"github.com/smartystreets/goconvey/convey"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/informers"
+	testing2 "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
+	"yuanrong.org/kernel/runtime/libruntime/api"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
+	"yuanrong.org/kernel/pkg/common/faas_common/k8sclient"
 	commonType "yuanrong.org/kernel/pkg/common/faas_common/types"
 	mockUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
+	"yuanrong.org/kernel/pkg/functionmanager/registry"
 	"yuanrong.org/kernel/pkg/functionmanager/state"
-	"yuanrong.org/kernel/pkg/functionmanager/utils"
-	"yuanrong.org/kernel/runtime/libruntime/api"
+	"yuanrong.org/kernel/pkg/functionmanager/types"
 )
 
 type KvMock struct {
@@ -77,6 +87,9 @@ func (k *KvMock) Txn(ctx context.Context) clientv3.Txn {
 func TestNewFaaSManager(t *testing.T) {
 	defer gomonkey.ApplyFunc(state.Update, func(value interface{}, tags ...string) {
 	}).Reset()
+	defer gomonkey.ApplyFunc(registry.StartWatchEvent, func(vpcEventCh chan types.VPCEvent, stopCh chan struct{}, informer informers.GenericInformer) {
+		return
+	}).Reset()
 	type args struct {
 		sdkClient api.LibruntimeAPI
 		stopCh    chan struct{}
@@ -87,39 +100,13 @@ func TestNewFaaSManager(t *testing.T) {
 		wantErr     bool
 		patchesFunc mockUtils.PatchesFunc
 	}{
-		{"case3 InitKubeClient error", args{}, true, func() mockUtils.PatchSlice {
-			patches := mockUtils.InitPatchSlice()
-			patches.Append(mockUtils.PatchSlice{
-				gomonkey.ApplyFunc(plugin.Open, func(path string) (*plugin.Plugin, error) {
-					return &plugin.Plugin{}, nil
-				}),
-				gomonkey.ApplyFunc(utils.InitKubeClient, func() error {
-					return errors.New("InitKubeClient error")
-				}),
-			})
-			return patches
-		}},
-		{"case3 InitKubeClient error", args{}, true, func() mockUtils.PatchSlice {
-			patches := mockUtils.InitPatchSlice()
-			patches.Append(mockUtils.PatchSlice{
-				gomonkey.ApplyFunc(plugin.Open, func(path string) (*plugin.Plugin, error) {
-					return &plugin.Plugin{}, nil
-				}),
-				gomonkey.ApplyFunc(utils.InitKubeClient, func() error {
-					return errors.New("InitKubeClient error")
-				}),
-			})
-			return patches
-		}},
 		{"case4 succeed to NewFaaSManager", args{}, false, func() mockUtils.PatchSlice {
 			patches := mockUtils.InitPatchSlice()
 			patches.Append(mockUtils.PatchSlice{
 				gomonkey.ApplyFunc(plugin.Open, func(path string) (*plugin.Plugin, error) {
 					return &plugin.Plugin{}, nil
 				}),
-				gomonkey.ApplyFunc(utils.InitKubeClient, func() error {
-					return nil
-				}),
+				gomonkey.ApplyFunc((*etcd3.EtcdClient).AttachAZPrefix, func(_ *etcd3.EtcdClient, key string) string { return key }),
 			})
 			return patches
 		}},
@@ -163,7 +150,7 @@ func TestManager_ProcessSchedulerRequest(t *testing.T) {
 			args{args: []*api.Arg{&api.Arg{Data: []byte(requestOpNewLease)}, &api.Arg{Data: []byte("")}}},
 			constant.UnsupportedOperationErrorCode, func() mockUtils.PatchSlice {
 				patches := mockUtils.InitPatchSlice()
-				patches.Append(mockUtils.PatchSlice{})
+				patches = append(patches, gomonkey.ApplyFunc((*etcd3.EtcdClient).AttachAZPrefix, func(_ *etcd3.EtcdClient, key string) string { return key }))
 				return patches
 			}},
 		{"case8 success to requestOpNewLease", fields{patKeyList: make(map[string]map[string]struct{}, 1),
@@ -173,7 +160,7 @@ func TestManager_ProcessSchedulerRequest(t *testing.T) {
 				&api.Arg{Data: []byte("")}}},
 			constant.InsReqSuccessCode, func() mockUtils.PatchSlice {
 				patches := mockUtils.InitPatchSlice()
-				patches.Append(mockUtils.PatchSlice{})
+				patches = append(patches, gomonkey.ApplyFunc((*etcd3.EtcdClient).AttachAZPrefix, func(_ *etcd3.EtcdClient, key string) string { return key }))
 				return patches
 			}},
 		{"case9 failed to requestOpKeepAlive", fields{patKeyList: make(map[string]map[string]struct{}, 1),
@@ -222,7 +209,7 @@ func TestManager_ProcessSchedulerRequest(t *testing.T) {
 	}
 }
 
-func TestMnager_ProcessSchedulerRequestLibruntime(t *testing.T) {
+func TestManager_ProcessSchedulerRequestLibruntime(t *testing.T) {
 	defer gomonkey.ApplyFunc(state.Update, func(value interface{}, tags ...string) {
 	}).Reset()
 	type fields struct {
@@ -279,10 +266,25 @@ func TestMnager_ProcessSchedulerRequestLibruntime(t *testing.T) {
 
 func Test_handleRequestOpCreate(t *testing.T) {
 	convey.Convey("ProcessSchedulerRequest-handleRequestOpCreate", t, func() {
+		listKinds := map[schema.GroupVersionResource]string{
+			// Example: MyResource GVK to MyResourceList GVK
+			patGVR: "PatList",
+		}
+		fakeClient := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), listKinds)
+		defer gomonkey.ApplyFunc(k8sclient.GetDynamicClient, func() dynamic.Interface {
+			return fakeClient
+		}).Reset()
+		factory := dynamicinformer.NewDynamicSharedInformerFactory(fakeClient, time.Minute)
+		informer := factory.ForResource(patGVR)
+		stopCh := make(chan struct{})
+		go informer.Informer().Run(stopCh)
+		if !cache.WaitForCacheSync(stopCh, informer.Informer().HasSynced) {
+		}
 		m := &Manager{
 			leaseRenewMinute: 5,
+			patLister:        informer.Lister(),
 		}
-		args := []*api.Arg{
+		emptyArgs := []*api.Arg{
 			{
 				Type: 0,
 				Data: []byte(requestOpCreate),
@@ -297,17 +299,67 @@ func Test_handleRequestOpCreate(t *testing.T) {
 			},
 		}
 		convey.Convey("failed to create vpc pat pod, error", func() {
-
-			request := m.ProcessSchedulerRequest(args, "")
-			convey.So(request, convey.ShouldBeNil)
+			response := m.ProcessSchedulerRequest(emptyArgs, "")
+			convey.So(response.Code, convey.ShouldEqual, 6040)
 		})
+		normalArgs := []*api.Arg{
+			{
+				Type: 0,
+				Data: []byte(requestOpCreate),
+			},
+			{
+				Type: 0,
+				Data: []byte("{\"namespace\": \"default\",\"domainID\": \"\",\"projectID\": \"\",\"environmentID\": \"\",\"vpcID\": \"\",\"subnetID\": \"\",\"tenantCidr\": \"\",\"hostVMCidr\": \"\",\"gateway\": \"\",\"securityGroup\": [],\"xrole\": \"\",\"IPV6Enable\": false}"),
+			},
+			{
+				Type: 0,
+				Data: []byte("trace-id"),
+			},
+		}
 
-		convey.Convey("json Marshal error", func() {
-			defer gomonkey.ApplyFunc(json.Marshal, func(v interface{}) ([]byte, error) {
-				return nil, errors.New("json marshal error")
-			}).Reset()
-			request := m.ProcessSchedulerRequest(args, "")
-			convey.So(request, convey.ShouldBeNil)
+		convey.Convey("wait pat pod timeout", func() {
+			defaultCreatePatPodTimeout = 1500 * time.Millisecond
+			response := m.ProcessSchedulerRequest(normalArgs, "")
+			convey.So(response.Code, convey.ShouldEqual, 6040)
+		})
+		convey.Convey("pat pod exist", func() {
+			emptyResult := &unstructured.Unstructured{}
+			fakeClient.Invokes(testing2.NewCreateAction(patGVR, "default", &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "patservice.cap.io/v1",
+					"kind":       "Pat",
+					"metadata": map[string]interface{}{
+						"name":      "pat--e3b0c442",
+						"namespace": "default",
+					},
+					"spec": map[string]interface{}{
+						"delegate_role":  "fgs_admin",
+						"environment_id": "sdfase",
+						"require_count":  int64(2),
+						"vpc": map[string]interface{}{
+							"domain_id":    "xxxxx",
+							"gateway":      "182.20.0.1",
+							"host_vm_cidr": "10.1.0.0/18",
+							"project_id":   "xxxxxx",
+							"subnet_id":    "subnet",
+							"tenant_cidr":  "182.20.0.0/14",
+							"vpc_id":       "vpc",
+						},
+					},
+					"status": map[string]interface{}{
+						"pat_pods": []interface{}{
+							map[string]interface{}{
+								"status":       "Active",
+								"pat_pod_name": "pod1",
+							},
+						},
+					},
+				},
+			}), emptyResult)
+			time.Sleep(100 * time.Millisecond)
+			defaultCreatePatPodTimeout = 1500 * time.Millisecond
+			response := m.ProcessSchedulerRequest(normalArgs, "")
+			convey.So(response.Code, convey.ShouldEqual, 6030)
 		})
 	})
 }
@@ -596,7 +648,7 @@ func TestManager_WatchLeaseEvent(t *testing.T) {
 				}
 			})
 			defer p2.Reset()
-			p4 := gomonkey.ApplyFUNC((*etcd3.EtcdClient).AttachAZPrefix, func(_ *etcd3.EtcdClient, str string) string {
+			p4 := gomonkey.ApplyFunc((*etcd3.EtcdClient).AttachAZPrefix, func(_ *etcd3.EtcdClient, str string) string {
 				return str
 			})
 			defer p4.Reset()

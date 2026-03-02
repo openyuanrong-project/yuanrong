@@ -578,6 +578,7 @@ func (c *StreamConsumerImpl) Close() error {
 var (
 	cfg               config.Config
 	getAsyncCallbacks sync.Map
+	getEventCallbacks sync.Map
 	rawCallbacks      sync.Map
 )
 
@@ -672,36 +673,37 @@ func Init(conf config.Config) error {
 	cFunctionId := C.CString(conf.FunctionId)
 	defer C.free(unsafe.Pointer(cFunctionId))
 	cConf := C.CLibruntimeConfig{
-		functionSystemAddress:           cFunctionSystemAddress,
-		grpcAddress:                     cGrpcAddress,
-		dataSystemAddress:               cDataSystemAddress,
-		jobId:                           cJobId,
-		runtimeId:                       cRuntimeId,
-		instanceId:                      cInstanceId,
-		functionName:                    cFunctionName,
-		logLevel:                        cLogLevel,
-		logDir:                          cLogDir,
-		functionId:                      cFunctionId,
-		apiType:                         apiTypeToCApiType(conf.Api),
-		inCluster:                       C.char(btoi(conf.InCluster)),
-		isDriver:                        C.char(btoi(conf.IsDriver)),
-		enableMTLS:                      C.char(btoi(conf.EnableMTLS)),
-		privateKeyPath:                  cPrivateKeyPath,
-		certificateFilePath:             cCertificateFilePath,
-		verifyFilePath:                  cVerifyFilePath,
-		privateKeyPaaswd:                cPrivateKeyPaaswd,
-		systemAuthAccessKey:             cSystemAuthAccessKey,
-		systemAuthSecretKey:             cSystemAuthSecretKey,
-		systemAuthSecretKeySize:         cSystemAuthSecretKeySize,
-		encryptPrivateKeyPasswd:         cEncryptPrivateKeyPasswd,
-		primaryKeyStoreFile:             cPrimaryKeyStoreFile,
-		standbyKeyStoreFile:             cStandbyKeyStoreFile,
-		enableDsEncrypt:                 C.char(btoi(conf.EnableDsEncrypt)),
-		runtimePublicKeyContextPath:     cRuntimePublicKeyContextPath,
-		runtimePrivateKeyContextPath:    cRuntimePrivateKeyContextPath,
-		dsPublicKeyContextPath:          cDsPublicKeyContextPath,
-		maxConcurrencyCreateNum:         cMaxConcurrencyCreateNum,
-		enableSigaction:                 C.char(btoi(conf.EnableSigaction)),
+		functionSystemAddress:        cFunctionSystemAddress,
+		grpcAddress:                  cGrpcAddress,
+		dataSystemAddress:            cDataSystemAddress,
+		jobId:                        cJobId,
+		runtimeId:                    cRuntimeId,
+		instanceId:                   cInstanceId,
+		functionName:                 cFunctionName,
+		logLevel:                     cLogLevel,
+		logDir:                       cLogDir,
+		functionId:                   cFunctionId,
+		apiType:                      apiTypeToCApiType(conf.Api),
+		inCluster:                    C.char(btoi(conf.InCluster)),
+		isDriver:                     C.char(btoi(conf.IsDriver)),
+		enableMTLS:                   C.char(btoi(conf.EnableMTLS)),
+		privateKeyPath:               cPrivateKeyPath,
+		certificateFilePath:          cCertificateFilePath,
+		verifyFilePath:               cVerifyFilePath,
+		privateKeyPaaswd:             cPrivateKeyPaaswd,
+		systemAuthAccessKey:          cSystemAuthAccessKey,
+		systemAuthSecretKey:          cSystemAuthSecretKey,
+		systemAuthSecretKeySize:      cSystemAuthSecretKeySize,
+		encryptPrivateKeyPasswd:      cEncryptPrivateKeyPasswd,
+		primaryKeyStoreFile:          cPrimaryKeyStoreFile,
+		standbyKeyStoreFile:          cStandbyKeyStoreFile,
+		enableDsEncrypt:              C.char(btoi(conf.EnableDsEncrypt)),
+		runtimePublicKeyContextPath:  cRuntimePublicKeyContextPath,
+		runtimePrivateKeyContextPath: cRuntimePrivateKeyContextPath,
+		dsPublicKeyContextPath:       cDsPublicKeyContextPath,
+		maxConcurrencyCreateNum:      cMaxConcurrencyCreateNum,
+		enableSigaction:              C.char(btoi(conf.EnableSigaction)),
+		enableEvent:                  C.char(btoi(conf.EnableEvent)),
 	}
 	cErr := C.CInit(&cConf)
 	code := int(cErr.code)
@@ -915,6 +917,19 @@ func GetAsync(objectID string, cb api.GetAsyncCallback) {
 	C.CGetAsync(cObjectID, nil)
 }
 
+// GetEvent with a callback
+func GetEvent(objectID string, cb api.GetEventCallback) {
+	getEventCallbacks.Store(objectID, cb)
+	cObjectID := C.CString(objectID)
+	defer C.free(unsafe.Pointer(cObjectID))
+	C.CGetEvent(cObjectID, nil)
+}
+
+// DeleteGetEventCallback -
+func DeleteGetEventCallback(objectID string) {
+	getEventCallbacks.Delete(objectID)
+}
+
 // WaitAsync with a callback
 func WaitAsync(objectID string, cb api.GetAsyncCallback) {
 	getAsyncCallbacks.Store(objectID, cb)
@@ -1040,6 +1055,36 @@ func getGetAsyncCallback(objectID string) (api.GetAsyncCallback, bool) {
 	value, ok := getAsyncCallbacks.LoadAndDelete(objectID)
 	if ok {
 		cb, ok := value.(api.GetAsyncCallback)
+		return cb, ok
+	}
+	return nil, false
+}
+
+// GoGetEventCallback is exported as a C function for calling from C/C++ code.
+// The purpose is to execute the get callback function of go.
+//
+//export GoGetEventCallback
+func GoGetEventCallback(cObjectID *C.char, cBuf C.CBuffer, cErr *C.CErrorInfo, userData unsafe.Pointer) {
+	objectID := CSafeGoString((*C.char)(cObjectID))
+	cb, ok := getGetEventCallback(objectID)
+	if !ok {
+		return
+	}
+
+	code := int(cErr.code)
+	if code != 0 {
+		cb([]byte{}, codeNotZeroErr(code, *cErr, ""))
+		return
+	}
+
+	cb(C.GoBytes(cBuf.buffer, C.int(cBuf.size_buffer)), nil)
+	C.free(cBuf.buffer)
+}
+
+func getGetEventCallback(objectID string) (api.GetEventCallback, bool) {
+	value, ok := getEventCallbacks.Load(objectID)
+	if ok {
+		cb, ok := value.(api.GetEventCallback)
 		return cb, ok
 	}
 	return nil, false
@@ -1538,6 +1583,19 @@ func GDecreaseRefRaw(objectIDs []string, remoteClientID ...string) ([]string, er
 	return GDecreaseRefCommon(objectIDs, true, remoteClientID...)
 }
 
+// ReleaseGRefs release object refs by remote client id
+func ReleaseGRefs(remoteClientID string) error {
+	var cRemoteID *C.char = nil
+	cRemoteID = C.CString(remoteClientID)
+	defer C.free(unsafe.Pointer(cRemoteID))
+	cErr := C.CReleaseGRefs(cRemoteID)
+	code := int(cErr.code)
+	if code != 0 {
+		return codeNotZeroErr(code, cErr, "global decrease ref: ")
+	}
+	return nil
+}
+
 // AllocReturnObject Creates an object and applies for a memory block.
 // Computing operations can be performed on the memory block.
 // will return a 'Buffer' that will be used to manipulate the memory
@@ -1864,6 +1922,7 @@ func cInvokeOptions(invokeOpt api.InvokeOptions) *C.CInvokeOptions {
 		invokeLabels:              cIvkLabel,
 		size_invokeLabels:         cIvkLabelLen,
 		scheduleTimeoutMs:         C.int64_t(invokeOpt.ScheduleTimeoutMs),
+		forceInvoke:               C.char(btoi(invokeOpt.ForceInvoke)),
 	}
 	if invokeOpt.InstanceSession != nil {
 		cCInstanceSession := (*C.CInstanceSession)(C.malloc(C.sizeof_CInstanceSession))

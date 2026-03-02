@@ -24,7 +24,6 @@ import (
 
 	"yuanrong.org/kernel/pkg/common/faas_common/urnutils"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
-	"yuanrong.org/kernel/pkg/functionscaler/dynamicconfigmanager"
 )
 
 const (
@@ -39,12 +38,50 @@ const (
 	defaultAgentStsVolumeMountPath      = "/opt/certs/WiseCloudElasticResourceService/ERSDataSystem/"
 )
 
+type otelShared struct{}
+
+func (o *otelShared) configVolume(b *volumeBuilder, dir string) {
+	b.addVolumeMount(containerDelegate, v1.VolumeMount{
+		Name:      otelShardDirVolumeName,
+		MountPath: dir,
+	})
+	b.addVolume(v1.Volume{
+		Name:         otelShardDirVolumeName,
+		VolumeSource: v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}},
+	})
+}
+
 type dataSystemSocket struct{}
 
 func (u *dataSystemSocket) configVolume(b *volumeBuilder) {
 	b.addVolumeMount(containerDelegate, v1.VolumeMount{
 		Name:      "datasystem-socket",
 		MountPath: "/home/uds",
+	})
+}
+
+type serviceAccountToken struct{}
+
+func (s *serviceAccountToken) configVolume(b *volumeBuilder) {
+	b.addVolumeMount(containerDelegate, v1.VolumeMount{
+		Name:      "oidc-token",
+		MountPath: "/var/run/secrets/tokens",
+		ReadOnly:  true,
+	})
+	expirationSeconds := int64(7200)
+	defaultMode := int32(urnutils.DefaultMode)
+	b.addVolume(v1.Volume{
+		Name: "oidc-token",
+		VolumeSource: v1.VolumeSource{
+			Projected: &v1.ProjectedVolumeSource{
+				Sources: []v1.VolumeProjection{{ServiceAccountToken: &v1.ServiceAccountTokenProjection{
+					Audience:          "agentrunservice",
+					ExpirationSeconds: &expirationSeconds,
+					Path:              "oidc-token",
+				}}},
+				DefaultMode: &defaultMode,
+			},
+		},
 	})
 }
 
@@ -183,33 +220,6 @@ func (f *faasAgentSts) configVolume(b *volumeBuilder) {
 		Name:      defaultAgentStsVolumeName,
 		MountPath: defaultAgentStsVolumeMountPath + "ERSDataSystem.sts.p12",
 		SubPath:   "ERSDataSystem.sts.p12",
-	})
-}
-
-type dynamicConfig struct {
-	crName string
-	enable bool
-}
-
-func (d *dynamicConfig) configVolume(vb *volumeBuilder) {
-	if !d.enable {
-		return
-	}
-	securityFileMode := int32(urnutils.OwnerReadWrite)
-	vb.addVolumeMount(containerDelegate, v1.VolumeMount{
-		Name:      dynamicconfigmanager.DynamicConfigMapName,
-		MountPath: dynamicconfigmanager.DefaultDynamicConfigPath,
-	})
-	vb.addVolume(v1.Volume{
-		Name: dynamicconfigmanager.DynamicConfigMapName,
-		VolumeSource: v1.VolumeSource{
-			ConfigMap: &v1.ConfigMapVolumeSource{
-				LocalObjectReference: v1.LocalObjectReference{
-					Name: d.crName + dynamicconfigmanager.DynamicConfigSuffix,
-				},
-				DefaultMode: &securityFileMode,
-			},
-		},
 	})
 }
 

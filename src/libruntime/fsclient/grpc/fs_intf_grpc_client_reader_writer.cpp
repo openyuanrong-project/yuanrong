@@ -283,13 +283,17 @@ ErrorInfo FSIntfGrpcClientReaderWriter::BuildStreamWithRetry(std::shared_ptr<grp
         context->AddMetadata(SIGNATURE, signature);
         auto timestamp = GetCurrentUTCTime();
         context->AddMetadata(TIMESTAMP, timestamp);
+        // If it is the runtime direct connection mode, set the tenant ID.
+        if (dstInstance != FUNCTION_PROXY) {
+            context->AddMetadata(TENANT_ID, Config::Instance().YR_TENANT_ID());
+        }
     }
     context->AddMetadata(SOURCE_ID_META, srcInstance);
     context->AddMetadata(DST_ID_META, dstInstance);
     ErrorInfo err;
     for (int32_t retry = 0; retry < retryTimes; ++retry) {
         if (channel == nullptr) {
-            auto ret = clientsMgr->NewFsConn(ip, port, security, dstInstance);
+            auto ret = clientsMgr->NewFsConn(ip, port, security, dstInstance, isKeepAlive);
             if (!ret.second.OK()) {
                 err = ret.second;
                 YRLOG_ERROR("get new fs connection err, ip is {}, port is {}, err code is {}, err msg is {}", ip, port,
@@ -344,5 +348,13 @@ bool FSIntfGrpcClientReaderWriter::IsHealth()
         return false;
     }
     return true;
+}
+
+bool FSIntfGrpcClientReaderWriter::IsSameDstAddr(const std::string &dstIp, const int &dstPort)
+{
+    if (this->ip == dstIp && this->port == dstPort) {
+        return true;
+    }
+    return false;
 }
 }  // namespace YR::Libruntime

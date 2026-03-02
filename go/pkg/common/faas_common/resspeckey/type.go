@@ -59,13 +59,20 @@ func (rs *ResourceSpecification) DeepCopy() *ResourceSpecification {
 // String returns ResourceSpecification as string
 func (rs *ResourceSpecification) String() string {
 	resourceExpression := fmt.Sprintf("cpu-%d-mem-%d", rs.CPU, rs.Memory)
+	keys := make([]string, 0)
 	for key, value := range rs.CustomResources {
 		if value <= constant.MinCustomResourcesSize {
 			continue
 		}
-		resourceExpression += fmt.Sprintf("-%s-%d", key, value)
+		keys = append(keys, key)
 	}
-	keys := make([]string, 0, len(rs.CustomResourcesSpec))
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := rs.CustomResources[k]
+		resourceExpression += fmt.Sprintf("-%s-%d", k, v)
+	}
+
+	keys = make([]string, 0, len(rs.CustomResourcesSpec))
 	for k := range rs.CustomResourcesSpec {
 		keys = append(keys, k)
 	}

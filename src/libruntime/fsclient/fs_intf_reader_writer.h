@@ -37,6 +37,7 @@ struct ReaderWriterClientOption {
     std::shared_ptr<Security> security;
     std::function<void(const std::string &)> resendCb;
     std::function<void(const std::string &)> disconnectedCb;
+    bool isKeepAlive = true;
 };
 class FSIntfReaderWriter {
 public:
@@ -51,6 +52,7 @@ public:
                        std::function<void(bool, ErrorInfo)> callback = nullptr,
                        std::function<void(bool)> preWrite = nullptr) = 0;
     virtual bool IsHealth() = 0;
+    virtual bool IsSameDstAddr(const std::string &dstIp, const int &dstPort) = 0;
     void SetDiscoverDriverCb(const DiscoverDriverCb &cb)
     {
         discoverDriverCb = cb;

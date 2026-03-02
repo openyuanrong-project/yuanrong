@@ -65,10 +65,13 @@ type LibruntimeAPI interface {
 	GDecreaseRef(objectIDs []string, remoteClientID ...string) ([]string, error)
 	GDecreaseRefRaw(objectIDs []string, remoteClientID ...string) ([]string, error)
 	GetAsync(objectID string, cb GetAsyncCallback)
+	GetEvent(objectID string, cb GetEventCallback)
+	DeleteGetEventCallback(objectID string)
 
 	GetFormatLogger() FormatLogger
 
 	CreateClient(config ConnectArguments) (KvClient, error)
+	ReleaseGRefs(remoteClientID string) error
 	GetCredential() Credential
 	UpdateSchdulerInfo(schedulerName string, schedulerId string, option string)
 	IsHealth() bool

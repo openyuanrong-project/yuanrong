@@ -42,8 +42,7 @@ void PosixAuthInterceptor::InterceptCommon(::grpc::experimental::InterceptorBatc
             methods->ModifySendMessage(&signedMessage);
             methods->Proceed();
         } else {
-            YRLOG_ERROR("failed to sign message: {}, instance: {}, runtime: {}", message->DebugString(), instanceID_,
-                        runtimeID_);
+            YRLOG_ERROR("failed to sign message: {}, message id is {}", message->DebugString(), message->messageid());
             methods->FailHijackedSendMessage();
         }
         return;
@@ -61,8 +60,7 @@ void PosixAuthInterceptor::InterceptCommon(::grpc::experimental::InterceptorBatc
             return;
         }
         if (!VerifyAKSK(*message)) {
-            YRLOG_ERROR("failed to verify message: {}, instance: {}, runtime: {}", message->DebugString(), instanceID_,
-                        runtimeID_);
+            YRLOG_ERROR("failed to verify message: {}, message id is {}", message->DebugString(), message->messageid());
             // clear message, if return directly, the server will be blocked
             message->Clear();
         }
@@ -72,58 +70,11 @@ void PosixAuthInterceptor::InterceptCommon(::grpc::experimental::InterceptorBatc
 
 void PosixClientAuthInterceptor::Intercept(::grpc::experimental::InterceptorBatchMethods *clientMethods)
 {
-    if (clientMethods->QueryInterceptionHookPoint(
-        ::grpc::experimental::InterceptionHookPoints::PRE_SEND_INITIAL_METADATA)) {
-        auto metadata = clientMethods->GetSendInitialMetadata();
-        if (metadata == nullptr) {
-            clientMethods->Proceed();
-            return;
-        }
-
-        for (const auto &metaIter : *metadata) {
-            auto clientKey = std::string(metaIter.first.data(), metaIter.first.length());
-            if (clientKey == INSTANCE_ID) {
-                instanceID_ = std::string(metaIter.second.data(), metaIter.second.length());
-            }
-            if (clientKey == RUNTIME_ID) {
-                runtimeID_ = std::string(metaIter.second.data(), metaIter.second.length());
-            }
-            if (clientKey == ACCESS_KEY) {
-                tenantAccessKey_ = std::string(metaIter.second.data(), metaIter.second.length());
-            }
-        }
-
-        clientMethods->Proceed();
-        return;
-    }
     InterceptCommon(clientMethods);
 }
 
 void PosixServerAuthInterceptor::Intercept(::grpc::experimental::InterceptorBatchMethods *methods)
 {
-    if (methods->QueryInterceptionHookPoint(::grpc::experimental::InterceptionHookPoints::POST_RECV_INITIAL_METADATA)) {
-        auto metadata = methods->GetSendInitialMetadata();
-        if (metadata == nullptr) {
-            methods->Proceed();
-            return;
-        }
-
-        for (const auto &metaIte : *metadata) {
-            auto key = std::string(metaIte.first.data(), metaIte.first.length());
-            if (key == INSTANCE_ID) {
-                instanceID_ = std::string(metaIte.second.data(), metaIte.second.length());
-            }
-            if (key == RUNTIME_ID) {
-                runtimeID_ = std::string(metaIte.second.data(), metaIte.second.length());
-            }
-            if (key == ACCESS_KEY) {
-                tenantAccessKey_ = std::string(metaIte.second.data(), metaIte.second.length());
-            }
-        }
-
-        methods->Proceed();
-        return;
-    }
     InterceptCommon(methods);
 }
 
@@ -135,8 +86,8 @@ bool PosixAuthInterceptor::VerifyAKSK(const StreamingMessage &message)
 
     auto tenantAccessKey = message.metadata().find(ACCESS_KEY);
     if (tenantAccessKey == message.metadata().end() || tenantAccessKey->second.empty()) {
-        YRLOG_ERROR("failed to verify message: {}, failed to find access_key in meta-data, instance: {}, runtime: {}",
-                    message.DebugString(), instanceID_, runtimeID_);
+        YRLOG_ERROR("failed to verify message: {}, failed to find access_key in meta-data, message id is {}",
+                    message.DebugString(), message.messageid());
         return false;
     }
 
@@ -146,9 +97,8 @@ bool PosixAuthInterceptor::VerifyAKSK(const StreamingMessage &message)
 
     if (ak.empty() || sk.Empty()) {
         YRLOG_ERROR(
-            "failed to verify message {}, ak or sk is emptgy, failed to get cred from security, instance {}, "
-            "runtime {}",
-            message.DebugString(), instanceID_, runtimeID_);
+            "failed to verify message {}, ak or sk is emptgy, failed to get cred from security, message id is {}",
+            message.DebugString(), message.messageid());
         return false;
     }
 
@@ -167,14 +117,13 @@ bool PosixAuthInterceptor::SignWithAKSK(StreamingMessage &message)
     security_->GetAKSK(ak, sk);
 
     if (ak.empty() || sk.Empty()) {
-        YRLOG_ERROR("failed to sign message: {}, failed to get cred from iam, instance: {}, runtime: {}",
-                    message.DebugString(), instanceID_, runtimeID_);
+        YRLOG_ERROR("failed to sign message: {}, failed to get cred from iam, message id is {}",
+                    message.DebugString(), message.messageid());
         return false;
     }
 
     if (!SignStreamingMessage(ak, sk, message)) {
-        YRLOG_ERROR("failed to sign message: {}, instance: {}, runtime: {}", message.DebugString(), instanceID_,
-                    runtimeID_);
+        YRLOG_ERROR("failed to sign message: {}, message id is {}", message.DebugString(), message.messageid());
         return false;
     }
     return true;

@@ -223,6 +223,16 @@ func (f *FakeLibruntimeSdkClient) GetAsync(objectID string, cb api.GetAsyncCallb
 	return
 }
 
+// GetEvent -
+func (f *FakeLibruntimeSdkClient) GetEvent(objectID string, cb api.GetEventCallback) {
+	return
+}
+
+// DeleteGetEventCallback -
+func (f *FakeLibruntimeSdkClient) DeleteGetEventCallback(objectID string) {
+	return
+}
+
 // GetFormatLogger -
 func (f *FakeLibruntimeSdkClient) GetFormatLogger() api.FormatLogger {
 	return nil
@@ -231,6 +241,11 @@ func (f *FakeLibruntimeSdkClient) GetFormatLogger() api.FormatLogger {
 // CreateClient -
 func (f *FakeLibruntimeSdkClient) CreateClient(config api.ConnectArguments) (api.KvClient, error) {
 	return nil, nil
+}
+
+// ReleaseGRefs -
+func (f *FakeLibruntimeSdkClient) ReleaseGRefs(remoteClientID string) error {
+	return nil
 }
 
 // GetCredential -

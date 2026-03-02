@@ -48,9 +48,6 @@ public:
     }
 
 protected:
-    std::string runtimeID_;
-    std::string instanceID_;
-    std::string tenantAccessKey_;
     std::shared_ptr<Security> security_;
     std::atomic<bool> stopped{false};
 };

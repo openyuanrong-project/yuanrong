@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 class MetaServiceLauncher(ComponentLauncher):
     def prestart_hook(self) -> None:
         logger.info(f"{self.name}: prestart hook executing")
-        config_src = self.resolver.rendered_config["values"][self.name]["config_path"]
+        config_src = self.resolver.rendered_config[self.name]["src_config_path"]
         config_dest = Path(self.resolver.rendered_config[self.name]["args"]["config_path"]).resolve()
         self.patch_meta_service_config(config_src, config_dest)
 
-        log_src = self.resolver.rendered_config["values"][self.name]["log_config_path"]
+        log_src = self.resolver.rendered_config[self.name]["src_log_config_path"]
         log_dest = Path(self.resolver.rendered_config[self.name]["args"]["log_config_path"]).resolve()
         self.patch_meta_service_log(log_src, log_dest)
 
@@ -40,41 +40,74 @@ class MetaServiceLauncher(ComponentLauncher):
         config = self.resolver.rendered_config
         values = config["values"]
         service_args = config[self.component_config.name]["args"]
-        service_values = values["meta_service"]
+        service_config = config[self.name]
         # attention: etcd address getting from function_proxy component
         etcd_addrs = config["function_proxy"]["args"]["etcd_address"]
         etcd_addr = etcd_addrs.split(",")
         etcd_addrs = '","'.join(etcd_addr)
-        ip_address = service_values["ip"]
-        port = service_values["port"]
+        ip_address = service_config["ip"]
+        port = service_config["port"]
         etcd_auth_type = values["etcd"].get("auth_type", "Noauth")
         etcd_table_prefix = values["etcd"].get("table_prefix", "")
 
         ssl_enable = str(values["fs"]["tls"].get("enable", "false")).lower()
-        scc_enable = str(service_values.get("scc_enable", "false")).lower()
+        scc_enable = str(service_config.get("scc_enable", "false")).lower()
         ssl_base_path = values["fs"]["tls"].get("base_path", "")
         scc_base_path = service_args.get("scc_base_path", "")
         etcd_ssl_base_path = values["etcd"]["auth"].get("base_path", "")
 
-        if ssl_enable == "true":
-            root_ca = f"{ssl_base_path}/{values['fs']['tls'].get('ca_file', '')}"
-            module_cert = f"{ssl_base_path}/{values['fs']['tls'].get('cert_file', '')}"
-            module_key = f"{ssl_base_path}/{values['fs']['tls'].get('key_file', '')}"
-            pwd_file = f"{ssl_base_path}/{values['fs']['tls'].get('pwd_file', '')}"
-            if etcd_ssl_base_path:
-                etcd_ca = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('ca_file', '')}"
-                etcd_cert = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_cert_file', '')}"
-                etcd_key = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_key_file', '')}"
-                pass_phrase = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('pass_phrase', '')}"
-        else:
-            etcd_ca = ""
-            etcd_cert = ""
-            etcd_key = ""
-            pass_phrase = ""
-            root_ca = ""
-            module_cert = ""
-            module_key = ""
-            pwd_file = ""
+        root_ca = (
+            f"{ssl_base_path}/{values['fs']['tls'].get('ca_file', '')}"
+            if values["fs"]["tls"].get("ca_file") and ssl_enable == "true"
+            else ""
+        )
+        module_cert = (
+            f"{ssl_base_path}/{values['fs']['tls'].get('cert_file', '')}"
+            if values["fs"]["tls"].get("cert_file") and ssl_enable == "true"
+            else ""
+        )
+        module_key = (
+            f"{ssl_base_path}/{values['fs']['tls'].get('key_file', '')}"
+            if values["fs"]["tls"].get("key_file") and ssl_enable == "true"
+            else ""
+        )
+        pwd_file = (
+            f"{ssl_base_path}/{values['fs']['tls'].get('pwd_file', '')}"
+            if values["fs"]["tls"].get("pwd_file") and ssl_enable == "true"
+            else ""
+        )
+        etcd_ca = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('ca_file', '')}"
+            if values["etcd"]["auth"].get("ca_file")
+            and ssl_enable == "true"
+            and etcd_auth_type == "TLS"
+            and etcd_ssl_base_path
+            else ""
+        )
+        etcd_cert = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_cert_file', '')}"
+            if values["etcd"]["auth"].get("client_cert_file")
+            and ssl_enable == "true"
+            and etcd_auth_type == "TLS"
+            and etcd_ssl_base_path
+            else ""
+        )
+        etcd_key = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_key_file', '')}"
+            if values["etcd"]["auth"].get("client_key_file")
+            and ssl_enable == "true"
+            and etcd_auth_type == "TLS"
+            and etcd_ssl_base_path
+            else ""
+        )
+        pass_phrase = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('pass_phrase', '')}"
+            if values["etcd"]["auth"].get("pass_phrase")
+            and ssl_enable == "true"
+            and etcd_auth_type == "TLS"
+            and etcd_ssl_base_path
+            else ""
+        )
 
         replacements = {
             "{ip}": ip_address,
@@ -83,7 +116,7 @@ class MetaServiceLauncher(ComponentLauncher):
             "{sslEnable}": ssl_enable,
             "{azPrefix}": etcd_table_prefix,
             "{etcdAuthType}": etcd_auth_type,
-            "{clusters}": service_values.get("clusters", ""),
+            "{clusters}": service_config.get("clusters", ""),
             "{sccEnable}": scc_enable,
             "{sccBasePath}": scc_base_path,
             # if ssl enable
@@ -96,7 +129,7 @@ class MetaServiceLauncher(ComponentLauncher):
             "{etcdCertFile}": etcd_cert,
             "{etcdKeyFile}": etcd_key,
             "{passphraseFile}": pass_phrase,
-            "{sslDecryptTool}": service_values.get(
+            "{sslDecryptTool}": service_config.get(
                 "ssl_decrypt_tool",
                 "SCC",
             ),

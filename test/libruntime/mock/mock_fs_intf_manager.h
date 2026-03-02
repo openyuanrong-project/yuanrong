@@ -32,8 +32,16 @@ public:
                 (const std::string &srcInstance, const std::string &dstInstance, const std::string &runtimeID,
                  const ReaderWriterClientOption &option, ProtocolType type),
                 (override));
+    MOCK_METHOD(std::shared_ptr<FSIntfReaderWriter>, NewEventIntfClient,
+            (const std::string &srcInstance, const std::string &dstInstance, const std::string &runtimeID,
+             const ReaderWriterClientOption &option, ProtocolType type),
+            (override));
     MOCK_METHOD(std::shared_ptr<FSIntfReaderWriter>, TryGet, (const std::string &instanceID), (override));
     MOCK_METHOD(std::shared_ptr<FSIntfReaderWriter>, Get, (const std::string &instanceID), (override));
+    MOCK_METHOD(std::shared_ptr<FSIntfReaderWriter>, TryGetEventIntfs, (const std::string &instanceID), (override));
+    MOCK_METHOD(std::shared_ptr<FSIntfReaderWriter>, GetEventIntfs, (const std::string &instanceID), (override));
+    MOCK_METHOD(bool, EmplaceEventIntfs, (const std::string &instanceID,
+                const std::shared_ptr<FSIntfReaderWriter> &intf), (override));
 };
 }  // namespace test
 }  // namespace YR

@@ -87,8 +87,8 @@ TEST_F(NormalInstanceManagerTest, ScheduleInsTest)
         "", "", "funcname", "classname", libruntime::LanguageType::Cpp, "", "", "", libruntime::ApiType::Function};
     spec->opts = {};
     auto resource = GetRequestResource(spec);
-    auto [insId, leaseId] = insManager->GetAvailableIns(resource);
-    ASSERT_EQ(insId.empty(), true);
+    auto summary = insManager->GetAvailableIns(resource);
+    ASSERT_EQ(summary.instanceId.empty(), true);
 
     std::unordered_map<std::string, std::shared_ptr<InstanceInfo>> instanceInfos;
     instanceInfos["insId"] = std::make_shared<InstanceInfo>();
@@ -101,8 +101,8 @@ TEST_F(NormalInstanceManagerTest, ScheduleInsTest)
     requestResourceInfo->instanceInfos = instanceInfos;
     requestResourceInfo->avaliableInstanceInfos = instanceInfos;
     insManager->requestResourceInfoMap[resource] = requestResourceInfo;
-    auto [id, lId] = insManager->GetAvailableIns(resource);
-    ASSERT_EQ(id.empty(), false);
+    summary = insManager->GetAvailableIns(resource);
+    ASSERT_EQ(summary.instanceId.empty(), false);
     insManager->Stop();
 }
 

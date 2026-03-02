@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class FaaSSchedulerLauncher(ComponentLauncher):
     def prestart_hook(self) -> None:
         logger.info(f"{self.name}: prestart hook executing")
-        src = self.resolver.rendered_config["values"][self.name]["config_path"]
+        src = self.resolver.rendered_config[self.name]["src_init_config_path"]
         dest = Path(self.resolver.rendered_config[self.name]["env"]["INIT_ARGS_FILE_PATH"]).resolve()
         self.patch_init_scheduler_args(src, dest)
 
@@ -46,17 +46,26 @@ class FaaSSchedulerLauncher(ComponentLauncher):
         ssl_base_path = values["fs"]["tls"].get("base_path", "")
         etcd_ssl_base_path = values["etcd"]["auth"].get("base_path", "")
 
-        if etcd_auth_type == "TLS":
-            etcd_ca = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('ca_file', '')}"
-            etcd_cert = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_cert_file', '')}"
-            etcd_key = f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_key_file', '')}"
-            user_pass_phrase = values["etcd"]["auth"].get("pass_phrase", "")
-            pass_phrase = f"{etcd_ssl_base_path}/{user_pass_phrase}" if user_pass_phrase else ""
-        else:
-            etcd_ca = ""
-            etcd_cert = ""
-            etcd_key = ""
-            pass_phrase = ""
+        etcd_ca = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('ca_file', '')}"
+            if values["etcd"]["auth"].get("ca_file") and etcd_auth_type == "TLS" and etcd_ssl_base_path
+            else ""
+        )
+        etcd_cert = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_cert_file', '')}"
+            if values["etcd"]["auth"].get("client_cert_file") and etcd_auth_type == "TLS" and etcd_ssl_base_path
+            else ""
+        )
+        etcd_key = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('client_key_file', '')}"
+            if values["etcd"]["auth"].get("client_key_file") and etcd_auth_type == "TLS" and etcd_ssl_base_path
+            else ""
+        )
+        pass_phrase = (
+            f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('pass_phrase', '')}"
+            if values["etcd"]["auth"].get("pass_phrase") and etcd_auth_type == "TLS" and etcd_ssl_base_path
+            else ""
+        )
 
         replacements = {
             "{etcdAddr}": etcd_addrs,

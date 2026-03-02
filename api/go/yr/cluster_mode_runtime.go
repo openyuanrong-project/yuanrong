@@ -224,12 +224,23 @@ func (r *ClusterModeRuntime) GDecreaseRefRaw(objectIDs []string, remoteClientID 
 // GetAsync no implement
 func (r *ClusterModeRuntime) GetAsync(objectID string, cb api.GetAsyncCallback) {}
 
+// GetEvent no implement
+func (r *ClusterModeRuntime) GetEvent(objectID string, cb api.GetEventCallback) {}
+
+// DeleteGetEventCallback no implement
+func (r *ClusterModeRuntime) DeleteGetEventCallback(objectID string) {}
+
 // GetFormatLogger no implement
 func (r *ClusterModeRuntime) GetFormatLogger() api.FormatLogger { return nil }
 
 // CreateClient -
 func (r *ClusterModeRuntime) CreateClient(config api.ConnectArguments) (api.KvClient, error) {
 	return nil, nil
+}
+
+// ReleaseGRefs release object refs by remote client id
+func (r *ClusterModeRuntime) ReleaseGRefs(remoteClientID string) error {
+	return fmt.Errorf("not support")
 }
 
 // GetCredential -

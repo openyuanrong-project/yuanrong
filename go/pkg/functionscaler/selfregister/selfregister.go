@@ -48,15 +48,13 @@ var (
 	selfLocker          *etcd3.EtcdLocker
 	maxContendTime      = 300
 	contendWaitInterval = 1 * time.Second
+	retryIntervalMs     = 10
 )
 
 // RegisterToEtcd -
 func RegisterToEtcd(stopCh <-chan struct{}) error {
 	discoveryConfig := config.GlobalConfig.SchedulerDiscovery
 	log.GetLogger().Infof("start to register to etcd, discoveryConfig %+v", discoveryConfig)
-	if discoveryConfig == nil || len(discoveryConfig.RegisterMode) == 0 {
-		return nil
-	}
 	if discoveryConfig != nil && discoveryConfig.RegisterMode == types.RegisterTypeContend {
 		log.GetLogger().Infof("start to contend for instance name in etcd")
 		selfCurVer := os.Getenv(CurrentVersionEnvKey)
@@ -108,7 +106,7 @@ func contendInstanceInEtcd(stopCh <-chan struct{}) error {
 	log.GetLogger().Infof("start to contend for instance key in etcd")
 	var err error
 	for i := 0; i < maxContendTime; i++ {
-		err = selfLocker.TryLockWithPrefix(constant.ModuleSchedulerPrefix, contendFilterForInstance)
+		err = selfLocker.TryLockWithPrefix(constant.SchedulerHashPrefix, contendFilterForInstance)
 		if err != nil {
 			log.GetLogger().Errorf("failed to contend for rollout key, lock failed error %s", err.Error())
 			time.Sleep(contendWaitInterval)
@@ -126,7 +124,7 @@ func contendInstanceInEtcd(stopCh <-chan struct{}) error {
 }
 
 func processLockedInstanceKey(lockedKey string) error {
-	info, err := commonUtils.GetModuleSchedulerInfoFromEtcdKey(lockedKey)
+	info, err := commonUtils.GetSchedulerInfoFromEtcdKey(lockedKey)
 	if err != nil {
 		log.GetLogger().Errorf("failed to register to etcd, get instanceInfo failed error %s", err.Error())
 		return err
@@ -143,21 +141,33 @@ func getInstanceKeyAndValue() (string, string, error) {
 	nodeIP := os.Getenv("NODE_IP")
 	podName := os.Getenv("POD_NAME")
 	podIP := os.Getenv("POD_IP")
-
-	err := validateEnvs(clusterID, nodeIP, podName, podIP)
-	if err != nil {
-		return "", "", err
+	instanceId := os.Getenv("INSTANCE_ID")
+	selfSpec := getSelfInstanceSpec()
+	for i := 0; i < 500; i++ { // magic number
+		selfSpec = getSelfInstanceSpec()
+		if selfSpec == nil || selfSpec.InstanceStatus.ErrorCode != int32(constant.KernelInstanceStatusRunning) {
+			time.Sleep(time.Duration(retryIntervalMs) * time.Millisecond)
+			continue
+		}
+		break
 	}
-	key := fmt.Sprintf("/sn/faas-scheduler/instances/%s/%s/%s", clusterID, nodeIP, podName)
+	if selfSpec == nil {
+		return "", "", fmt.Errorf("selfInstanceSpec is nil")
+	}
+	key := fmt.Sprintf("/sn/faas-scheduler/instances/%s/%s/%s", clusterID, nodeIP, instanceId)
 
 	schedulerInfo := commonTypes.InstanceSpecification{
-		InstanceID:     podName,
+		InstanceID:     instanceId,
 		RuntimeID:      constant.ModuleScheduler,
 		DataSystemHost: "",
-		RuntimeAddress: fmt.Sprintf("%s:%s", podIP, config.GlobalConfig.ModuleConfig.ServicePort),
+		RuntimeAddress: fmt.Sprintf("%s:%s", podIP, GetFaaSSchedulerHttpPort()),
 		InstanceStatus: commonTypes.InstanceStatus{
 			Code: int32(constant.KernelInstanceStatusRunning),
 		},
+		CreateOptions: map[string]string{
+			constant.SchedulerExclusivityKey: os.Getenv(constant.FaaSSchedulerExclusivityEnvKey),
+		},
+		Extensions: commonTypes.Extensions{PodName: podName},
 	}
 	value, err := json.Marshal(schedulerInfo)
 	if err != nil {
@@ -166,17 +176,8 @@ func getInstanceKeyAndValue() (string, string, error) {
 	return key, string(value), nil
 }
 
-func validateEnvs(clusterID, nodeIP, podName, podIP string) error {
-	if clusterID == "" || nodeIP == "" || podName == "" || podIP == "" {
-		log.GetLogger().Errorf("can not find envs, clusterID %s, nodeIP %s podName %s podIP %s",
-			clusterID, nodeIP, podName, podIP)
-		return fmt.Errorf("can not find envs")
-	}
-	return nil
-}
-
 func contendFilterForInstance(key, value []byte) bool {
-	_, err := commonUtils.GetModuleSchedulerInfoFromEtcdKey(string(key))
+	_, err := commonUtils.GetSchedulerInfoFromEtcdKey(string(key))
 	if err != nil {
 		return true
 	}
@@ -190,11 +191,12 @@ func putInsSpecForInstanceKey(locker *etcd3.EtcdLocker) error {
 		log.GetLogger().Errorf("failed to get locked key")
 		return errors.New("locked key is empty")
 	}
-	if selfInstanceSpec == nil {
+	selfSpec := getSelfInstanceSpec()
+	if selfSpec == nil {
 		log.GetLogger().Errorf("failed to get insSpec of this scheduler %s", SelfInstanceID)
 		return errors.New("insSpec not found")
 	}
-	selfInsSpecData, err := json.Marshal(selfInstanceSpec)
+	selfInsSpecData, err := json.Marshal(selfSpec)
 	if err != nil {
 		log.GetLogger().Errorf("failed to marshal insSpec error %s", err.Error())
 		return err
@@ -215,6 +217,9 @@ func delInsSpecForInstanceKey(locker *etcd3.EtcdLocker) error {
 		return errors.New("locked key is empty")
 	}
 	if exist, err := isKeyExist(locker.EtcdClient, lockedKey); err != nil || !exist {
+		if !exist {
+			err = fmt.Errorf("not exist")
+		}
 		return fmt.Errorf("key not exist or get error %s, no need clean it", err.Error())
 	}
 	if err := processEtcdPut(locker.EtcdClient, lockedKey, ""); err != nil {
@@ -255,4 +260,13 @@ func isKeyExist(client *etcd3.EtcdClient, key string) (bool, error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+// GetFaaSSchedulerHttpPort -
+func GetFaaSSchedulerHttpPort() string {
+	port := constant.DefaultFaaSSchedulerHttpPort
+	if config.GlobalConfig.HttpServerPort != "" {
+		port = config.GlobalConfig.HttpServerPort
+	}
+	return port
 }

@@ -297,15 +297,19 @@ TEST_F(LibruntimeTest, CreateFailedTest)
               "invalid opts concurrency, concurrency: -1, please set the concurrency range between 1 and 1000");
     opts.customExtensions[CONCURRENCY] = "1";
 
-    meta.name = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    meta.name =
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     res = lr->CreateInstance(meta, invokeArgs, opts);
     ASSERT_EQ(res.first.Code(), ErrorCode::ERR_PARAM_INVALID);
-    ASSERT_NE(res.first.Msg().find("exceeds the maximum length of 64 bytes"), std::string::npos);
-    meta.name = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    ASSERT_NE(res.first.Msg().find("exceeds the maximum length of 128 bytes"), std::string::npos);
+    meta.name =
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     meta.ns = "ns";
     res = lr->CreateInstance(meta, invokeArgs, opts);
     ASSERT_EQ(res.first.Code(), ErrorCode::ERR_PARAM_INVALID);
-    ASSERT_NE(res.first.Msg().find("exceeds the maximum length of 64 bytes"), std::string::npos);
+    ASSERT_NE(res.first.Msg().find("exceeds the maximum length of 128 bytes"), std::string::npos);
 }
 
 TEST_F(LibruntimeTest, AllocReturnObjectSmallTest)
@@ -1060,6 +1064,11 @@ TEST_F(LibruntimeTest, DecreaseReferenceTest)
     EXPECT_NO_THROW(lr->DecreaseReference(objIds));
 }
 
+TEST_F(LibruntimeTest, ReleaseGRefsTest)
+{
+    ASSERT_EQ(lr->ReleaseGRefs("remoteId").OK(), true);
+}
+
 TEST_F(LibruntimeTest, WaitTest)
 {
     ASSERT_EQ(lr->Wait({"objId"}, 1, 0)->readyIds.size(), 1);
@@ -1111,6 +1120,18 @@ TEST_F(LibruntimeTest, WaitAndGetAsyncTest)
                                                            void *data) { getPromise.set_value(err); };
     lr->GetAsync("objId", cbGet, str);
     ASSERT_EQ(getFut.get().OK(), true);
+}
+
+TEST_F(LibruntimeTest, GetEventTest)
+{
+    YR::Libruntime::GetEventCallback callback = [](const std::shared_ptr<DataObject>& dataObj,
+                                                           const ErrorInfo& err,
+                                                           void* userData) {
+        YRLOG_DEBUG("GetEvent callback is called");
+    };
+    std::string objectId = "testObjectId";
+    void* userData = nullptr;
+    EXPECT_NO_THROW(lr->GetEvent(objectId, callback, userData));
 }
 
 TEST_F(LibruntimeTest, GetGroupInstanceIdsTest)
@@ -1303,9 +1324,9 @@ TEST_F(LibruntimeTest, KillAsyncTest)
 {
     auto mock_adaptor = std::make_shared<YR::Libruntime::MockInvokeAdaptor>();
     lr->invokeAdaptor = mock_adaptor;
-    EXPECT_CALL(*mock_adaptor, KillAsyncCB(_, _, _, _))
+    EXPECT_CALL(*mock_adaptor, KillAsyncCB(_, _, _, _, _))
         .WillOnce(Invoke([](const std::string &instanceId, const std::string &payload, int signal,
-                            std::function<void(const ErrorInfo &err)> cb) { cb(YR::Libruntime::ErrorInfo()); }));
+                            std::function<void(const ErrorInfo &err)> cb, int timeoutSec) { cb(YR::Libruntime::ErrorInfo()); }));
     auto promise = std::make_shared<std::promise<ErrorInfo>>();
     auto f = promise->get_future();
     lr->KillAsync("instanceId", 1, [promise](const ErrorInfo &err) { promise->set_value(err); });
@@ -1313,5 +1334,25 @@ TEST_F(LibruntimeTest, KillAsyncTest)
     EXPECT_EQ(status, std::future_status::ready);
     EXPECT_TRUE(f.get().OK());
 }
+
+TEST_F(LibruntimeTest, GetRequestAndInstanceIDTest)
+{
+    threadLocalRequestId = "req123";
+    threadLocalInstanceId = "inst456";
+
+    auto result = lr->GetRequestAndInstanceID();
+
+    EXPECT_EQ(result.first, "req123");
+    EXPECT_EQ(result.second, "inst456");
+
+    threadLocalRequestId.clear();
+    threadLocalInstanceId.clear();
+
+    result = lr->GetRequestAndInstanceID();
+
+    EXPECT_TRUE(result.first.empty());
+    EXPECT_TRUE(result.second.empty());
+}
+
 }  // namespace test
 }  // namespace YR

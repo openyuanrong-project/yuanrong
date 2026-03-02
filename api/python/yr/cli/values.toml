@@ -9,10 +9,6 @@ node_id = "{{ node_id }}"
 log_level = "INFO"
 pid = "{{ pid }}"
 
-[values.metrics]
-metrics_config = ""
-metrics_config_file = "{{ values.yr_package_path }}/functionsystem/config/metrics/metrics_config.json"
-
 [values.meta_store]
 enable = false
 address = ""
@@ -40,6 +36,10 @@ ca_file = "ca.crt"
 cert_file = "module.crt"
 key_file = "module.key"
 
+[values.fs.metrics]
+metrics_config = ""
+metrics_config_file = "{{ values.yr_package_path }}/functionsystem/config/metrics/metrics_config.json"
+
 [values.ds.curve]
 enable = false
 base_path = ""
@@ -47,7 +47,6 @@ cache_storage_auth_type = "Noauth" # Noauth, ZMQ, AK/SK
 cache_storage_auth_enable = false
 
 [values.etcd]
-bin_path = "{{ values.yr_package_path }}/third_party/etcd/etcd"
 enable_multi_master = false
 auth_type = "Noauth"
 table_prefix = ""
@@ -66,57 +65,30 @@ peer_port = "{{ 32380|check_port() }}"
 port = "{{ 32379|check_port() }}"
 
 [values.ds_master]
-bin_path = "{{ values.yr_package_path }}/datasystem/datasystem_worker"
 ip = "{{ values.host_ip }}"
 port = "{{ 12123|check_port() }}"
 
 [values.ds_worker]
-bin_path = "{{ values.yr_package_path }}/datasystem/datasystem_worker"
 ip = "{{ values.host_ip }}"
 port = "{{ 31501|check_port() }}"
-spill = false
 
 [values.function_master]
-bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_master"
 ip = "{{ values.host_ip }}"
 global_scheduler_port = "{{ 22770|check_port() }}"
 
 [values.function_proxy]
-bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_proxy"
 ip = "{{ values.host_ip }}"
 port = "{{ 22772|check_port() }}"
 grpc_listen_port = "{{ 22773|check_port() }}"
 
 [values.function_agent]
-bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_agent"
 ip = "{{ values.host_ip }}"
 port = "{{ 58866|check_port() }}"
 
-[values.frontend]
-bin_path = "{{ values.yr_package_path }}/runtime/service/go/bin/goruntime"
-ip = "{{ values.host_ip }}"
-port = "{{ 8888|check_port() }}"
-config_path = "{{ values.yr_package_path }}/faas/init_frontend_args.json"
-
-[values.function_scheduler]
-bin_path = "{{ values.yr_package_path }}/runtime/service/go/bin/goruntime"
-ip = "{{ values.host_ip }}"
-config_path = "{{ values.yr_package_path }}/faas/init_scheduler_args.json"
-
-[values.meta_service]
-bin_path = "{{ values.yr_package_path }}/functionsystem/bin/meta_service"
-ip = "{{ values.host_ip }}"
-port = "{{ 31182|check_port() }}" 
-clusters = ""
-config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/meta_service_config.json"
-log_config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/meta_service_log_config.json"
-
 [values.dashboard]
-bin_path = "{{ values.yr_package_path }}/functionsystem/bin/dashboard"
 ip = "{{ values.host_ip }}"
 port = "{{ 9080|check_port() }}"
 grpc_port = "{{ 9081|check_port() }}"
-config_path = "{{ values.yr_package_path }}/dashboard/dashboard_config.json"
 
 [values.dashboard.auth]
 enable = false
@@ -132,8 +104,3 @@ base_path = ""
 ca_file = ""
 cert_file = ""
 key_file = ""
-
-[values.collector]
-bin_path = "{{ values.yr_package_path }}/functionsystem/bin/collector"
-ip = "{{ values.host_ip }}"
-port = "{{ 9082|check_port() }}"

@@ -59,7 +59,7 @@ BAZEL_OPTIONS_CONFIG=" --config=release "
 BAZEL_TARGETS="//api/cpp:yr_cpp_pkg //api/java:yr_java_pkg //api/python:yr_python_pkg //api/go:yr_go_pkg"
 BAZEL_PRE_OPTIONS="--output_user_root=${BUILD_BASE} --output_base=${OUTPUT_BASE}"
 THIRD_PARTY_DIR="$(dirname "$BASE_DIR")/thirdparty"
-PYTHON3_BIN_PATH="python3.9"
+PYTHON3_BIN_PATH="python3"
 PYTHON3_SDK_BIN_PATH=$PYTHON3_BIN_PATH
 PYTHON_BAZEL_TARGETS="//api/python:yr_python_pkg"
 MULTI_PYTHON_VERSION="true"
@@ -176,7 +176,10 @@ function build_python_sdk() {
     fi
     API_DIR="$BASE_DIR/api"
     cd $API_DIR/python
-    $PYTHON3_SDK_BIN_PATH setup.py bdist_wheel
+    rm -rf build/ dist/ *.egg-info
+    SETUP_TYPE= $PYTHON3_SDK_BIN_PATH setup.py bdist_wheel
+    cp -ar $API_DIR/python/dist/*whl $BASE_DIR/output/
+    chmod 750 $BASE_DIR/output/*.whl
     mkdir -p $OUTPUT_BASE/runtime/sdk/python/
     if [ -e "${OUTPUT_BASE}"/runtime/service/python/yr ]; then
         cp -arf $API_DIR/python/yr/* $OUTPUT_BASE/runtime/service/python/yr
@@ -184,8 +187,6 @@ function build_python_sdk() {
         rm -rf $OUTPUT_BASE/runtime/service/python/yr/tests
     else
         mkdir -p $OUTPUT_BASE/runtime/service/python/yr
-        mkdir -p $OUTPUT_BASE/runtime/service/python/fnruntime
-        cp -ar $API_DIR/python/server.py $OUTPUT_BASE/runtime/service/python/fnruntime
         cp -ar $API_DIR/python/yr/* $OUTPUT_BASE/runtime/service/python/yr
         cp -ar $API_DIR/python/dist/*whl $OUTPUT_BASE/runtime/sdk/python/
         rm -rf $OUTPUT_BASE/runtime/service/python/yr/tests
@@ -193,42 +194,13 @@ function build_python_sdk() {
     rm -f $OUTPUT_BASE/runtime/service/python/yr/fnruntime.pyx
 }
 
-function build_multi_python_version() {
-    if [[ "${MULTI_PYTHON_VERSION}" != "true" || "${BAZEL_COMMAND}" != "build" ]];then
-        return
-    fi
-    export PYTHONWARNINGS="ignore::DeprecationWarning"
-    for item in "${PYTHON_VERSION_LIST[@]}";
-        do
-            PYTHON_BIN_PATH=$item
-            if command -v $PYTHON_BIN_PATH;then
-                PYTHON_INCLUDE=$($PYTHON_BIN_PATH -c "from __future__ import print_function;import sysconfig;print(sysconfig.get_path('include'))")
-                if [ ! -e "${PYTHON_INCLUDE}/Python.h" ]; then
-                  log_warning "${PYTHON_INCLUDE}/Python.h not exit"
-                  continue
-                fi
-                log_info "start build $PYTHON_BIN_PATH "
-                BAZEL_PYTHON_OPTIONS_ENV="${BAZEL_OPTIONS_ENV} --action_env=BUILD_VERSION=${BUILD_VERSION} --action_env=PYTHON3_BIN_PATH=$PYTHON_BIN_PATH --define ENABLE_GLOO=${ENABLE_GLOO}"
-                BAZEL_PYTHON_OPTIONS="${BAZEL_OPTIONS} ${BAZEL_OPTIONS_CONFIG} ${BAZEL_PYTHON_OPTIONS_ENV}"
-                cd $BASE_DIR
-                rm -rf ${BASE_DIR}/api/python/yr/fnruntime.cpython-*.so
-                rm -rf ${BASE_DIR}/api/python/build/lib*/yr/fnruntime.cpython-*.so
-                bazel ${BAZEL_PRE_OPTIONS} ${BAZEL_COMMAND} ${BAZEL_PYTHON_OPTIONS} -- ${PYTHON_BAZEL_TARGETS}
-                PYTHON3_SDK_BIN_PATH=$PYTHON_BIN_PATH
-                build_python_sdk
-            else
-                log_warning "there is no $PYTHON_BIN_PATH "
-            fi
-    done
-}
-
 function install_python_requirements() {
-    pip3.9 install pytest coverage
-    pip3.9 install -r api/python/requirements.txt
-    pip3.9 install numpy
-    pip3.9 install fastapi
-    pip3.9 install aiohttp # only for test
-    pip3.9 install requests
+    pip3 install pytest coverage
+    pip3 install -r api/python/requirements.txt
+    pip3 install numpy
+    pip3 install fastapi
+    pip3 install aiohttp # only for test
+    pip3 install requests
 }
 
 function check_sanitizers() {
@@ -244,7 +216,7 @@ function check_sanitizers() {
   fi
 }
 
-while getopts 'athr:v:S:DcCgPET:p:B:m:j:gGU' opt; do
+while getopts 'athr:l:v:S:DcCgPET:p:B:m:j:gGU' opt; do
     case "$opt" in
     a)
         BUILD_ALL="true"
@@ -268,6 +240,12 @@ while getopts 'athr:v:S:DcCgPET:p:B:m:j:gGU' opt; do
         else
           log_warning "no remote cache server available"
         fi
+        ;;
+    l)
+        if [ ! -d "${OPTARG}" ] ;then
+          mkdir -p ${OPTARG}
+        fi
+        BAZEL_OPTIONS="$BAZEL_OPTIONS --disk_cache=${OPTARG} "
         ;;
     v)
         BUILD_VERSION="${OPTARG}"
@@ -337,7 +315,7 @@ while getopts 'athr:v:S:DcCgPET:p:B:m:j:gGU' opt; do
 done
 
 if [ "$BAZEL_COMMAND" != "clean" ]; then
-   bash -x ${BASE_DIR}/tools/download_dependency.sh
+   bash ${BASE_DIR}/tools/download_dependency.sh
 fi
 
 API_DIR="${BASE_DIR}/api"
@@ -346,15 +324,12 @@ sed -i "s/<version>1.0.0<\/version>/<version>${BUILD_VERSION}<\/version>/" $API_
 sed -i "s/<version>1.0.0<\/version>/<version>${BUILD_VERSION}<\/version>/" $API_DIR/java/function-common/pom.xml
 sed -i "s/<version>1.0.0<\/version>/<version>${BUILD_VERSION}<\/version>/" $API_DIR/java/yr-runtime/pom.xml
 
-pip3.9 install wheel==0.36.2
-build_multi_python_version
+pip3 install wheel==0.36.2
 
 BAZEL_OPTIONS_ENV="${BAZEL_OPTIONS_ENV} --action_env=BOOST_VERSION=$BOOST_VERSION --action_env=GOPATH=$(go env GOPATH) --action_env=GOEXPERIMENT=$(go env GOEXPERIMENT) --action_env=GOCACHE=$(go env GOCACHE) --action_env=BUILD_VERSION=${BUILD_VERSION} --action_env=PYTHON3_BIN_PATH=$PYTHON3_BIN_PATH --define ENABLE_GLOO=${ENABLE_GLOO}"
 BAZEL_OPTIONS="${BAZEL_OPTIONS} ${BAZEL_OPTIONS_CONFIG} ${BAZEL_OPTIONS_ENV}"
 
 cd $BASE_DIR
-rm -rf ${BASE_DIR}/api/python/yr/fnruntime.cpython-*.so
-rm -rf ${BASE_DIR}/api/python/build/lib*/yr/fnruntime.cpython-*.so
 bazel ${BAZEL_PRE_OPTIONS} ${BAZEL_COMMAND} ${BAZEL_OPTIONS} -- ${BAZEL_TARGETS}
 
 PYTHON3_SDK_BIN_PATH=$PYTHON3_BIN_PATH
@@ -386,6 +361,27 @@ if [ "$BAZEL_COMMAND" == "build" ]; then
 fi
 
 if [ "$PACKAGE_ALL" == "true" ]; then
-    bash ${BASE_DIR}/scripts/package.sh -v ${BUILD_VERSION} --python_bin_path ${PYTHON3_BIN_PATH}
+
+    start=$(date +%s)
+    bash ${BASE_DIR}/scripts/package_yuanrong.sh -v ${BUILD_VERSION}
+    end1=$(date +%s)
+    echo "Package openyuanrong.tar.gz elapsed: $((end1 - start)) seconds"
+
+    cd "$BASE_DIR"/api/python
+    rm -rf build/ dist/ *.egg-info
+    SETUP_TYPE=dashboard $PYTHON3_SDK_BIN_PATH setup.py bdist_wheel
+    cp -ar $API_DIR/python/dist/*whl $BASE_DIR/output/
+    rm -rf build/ dist/ *.egg-info
+    SETUP_TYPE=faas $PYTHON3_SDK_BIN_PATH setup.py bdist_wheel
+    cp -ar $API_DIR/python/dist/*whl $BASE_DIR/output/
+    rm -rf build/ dist/ *.egg-info
+    SETUP_TYPE=sdk_cpp $PYTHON3_SDK_BIN_PATH setup.py bdist_wheel
+    cp -ar $API_DIR/python/dist/*whl $BASE_DIR/output/
+    rm -rf build/ dist/ *.egg-info
+    SETUP_TYPE=runtime $PYTHON3_SDK_BIN_PATH setup.py bdist_wheel
+    cp -ar $API_DIR/python/dist/*whl $BASE_DIR/output/
+    end2=$(date +%s)
+    echo "Package openyuanrong.whl elapsed: $((end2 - end1)) seconds"
+    chmod 750 $BASE_DIR/output/*.whl
 fi
 cd -

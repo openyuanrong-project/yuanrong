@@ -443,20 +443,6 @@ func TestGetPodNameByInstanceID(t *testing.T) {
 	assert.Equal(t, podName, "podName")
 }
 
-func TestShuffleOneArray(t *testing.T) {
-	arr1 := []string{"1"}
-	arr2 := ShuffleOneArray(arr1)
-	assert.Equal(t, arr1, arr2)
-
-	arr3 := []string{"1", "2", "5", "6", "7"}
-	arr4 := ShuffleOneArray(arr3)
-	assert.NotEqual(t, arr3, arr4)
-
-	arr5 := make([]string, 0)
-	arr6 := ShuffleOneArray(arr5)
-	assert.Equal(t, len(arr6), 0)
-}
-
 func TestIsCAEFunc(t *testing.T) {
 	assert.Equal(t, true, IsCAEFunc(constant.BusinessTypeCAE))
 	assert.Equal(t, false, IsCAEFunc(constant.WorkerManagerApplier))
@@ -579,14 +565,14 @@ func TestGetFunctionInstanceInfoFromEtcdKey(t *testing.T) {
 	})
 }
 
-func TestGetModuleSchedulerInfoFromEtcdKey(t *testing.T) {
-	convey.Convey("Test GetModuleSchedulerInfoFromEtcdKey", t, func() {
+func TestGetSchedulerInfoFromEtcdKey(t *testing.T) {
+	convey.Convey("Test GetSchedulerInfoFromEtcdKey", t, func() {
 		key := "/sn/faas-scheduler/instances/cluster1/node1/falseParam/faas-scheduler-123"
-		_, err := GetModuleSchedulerInfoFromEtcdKey(key)
+		_, err := GetSchedulerInfoFromEtcdKey(key)
 		convey.So(err, convey.ShouldNotBeNil)
 
 		key = "/sn/faas-scheduler/instances/cluster1/node1/faas-scheduler-123"
-		info, err := GetModuleSchedulerInfoFromEtcdKey(key)
+		info, err := GetSchedulerInfoFromEtcdKey(key)
 		convey.So(err, convey.ShouldBeNil)
 		convey.So(info.FunctionName, convey.ShouldEqual, defaultFunctionName)
 		convey.So(info.TenantID, convey.ShouldEqual, defaultTenant)
@@ -644,6 +630,84 @@ func TestCheckFaaSSchedulerInstanceFault(t *testing.T) {
 				result := CheckFaaSSchedulerInstanceFault(tc.input)
 				convey.So(result, convey.ShouldEqual, tc.expected)
 			})
+		}
+	})
+}
+
+func TestGetInstanceNameFromSchedulerLeaseEtcdKey(t *testing.T) {
+	convey.Convey("Test GetInstanceNameFromSchedulerLeaseEtcdKey", t, func() {
+		testCases := []struct {
+			path     string
+			expected string
+			shouldOk bool
+		}{
+			{
+				path:     "/sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf/12345",
+				expected: "faas-scheduler-xxxx-8xdjf",
+				shouldOk: true,
+			}, {
+				path:     "/sn/faas-scheduler/instances/cluster001/8.yy.yy.26/faas-scheduler-yyyy-9yekg/67890",
+				expected: "faas-scheduler-yyyy-9yekg",
+				shouldOk: true,
+			}, {
+				path: "",
+			}, {
+				path: "/sn/faas-scheduler/instances",
+			}, {
+				path: "/sn/faas-scheduler/instances/cluster001/7.xx.xx.25", // 缺少实例名和 leaseId
+			}, {
+				path: "/sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf",
+			},
+		}
+
+		for _, tc := range testCases {
+			actual, ok := GetInstanceNameFromSchedulerLeaseEtcdKey(tc.path)
+			convey.So(ok, convey.ShouldEqual, tc.shouldOk)
+			convey.So(actual, convey.ShouldEqual, tc.expected)
+		}
+	})
+}
+
+func TestGetFunctionSchedulerInfoFromEtcdKey(t *testing.T) {
+	convey.Convey("Test GetFunctionSchedulerInfoFromEtcdKey", t, func() {
+		testCases := []struct {
+			path     string
+			expected *types.InstanceInfo
+			isOk     bool
+		}{
+			{
+				path: "/sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf",
+				expected: &types.InstanceInfo{
+					TenantID:     defaultTenant,
+					FunctionName: defaultFunctionName,
+					Version:      defaultVersion,
+					InstanceName: "faas-scheduler-xxxx-8xdjf",
+				},
+				isOk: true,
+			}, {
+				path: "/sn/faas-scheduler/instances/cluster002/8.yy.yy.26/faas-scheduler-yyyy-9yekg",
+				expected: &types.InstanceInfo{
+					TenantID:     defaultTenant,
+					FunctionName: defaultFunctionName,
+					Version:      defaultVersion,
+					InstanceName: "faas-scheduler-yyyy-9yekg",
+				},
+				isOk: true,
+			}, {
+				path: "",
+			}, {
+				path: "/sn/faas-scheduler/instances",
+			}, {
+				path: "/sn/faas-scheduler/instances/cluster001",
+			}, {
+				path: "/sn/faas-scheduler/instances/cluster001/7.xx.xx.25/faas-scheduler-xxxx-8xdjf/12345",
+			},
+		}
+
+		for _, tc := range testCases {
+			actual, err := GetFunctionSchedulerInfoFromEtcdKey(tc.path)
+			convey.So(actual, convey.ShouldResemble, tc.expected)
+			convey.So(err == nil, convey.ShouldEqual, tc.isOk)
 		}
 	})
 }

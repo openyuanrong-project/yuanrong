@@ -28,7 +28,7 @@ from yr.fnruntime import Consumer, Fnruntime, Producer, SharedBuffer
 from yr.libruntime_pb2 import ApiType, FunctionMeta
 from yr.common.utils import GaugeData, UInt64CounterData, DoubleCounterData
 from yr.object_ref import ObjectRef
-from yr.runtime import Runtime, AlarmInfo, SetParam, MSetParam, CreateParam, GetParams
+from yr.base_runtime import BaseRuntime, AlarmInfo, SetParam, MSetParam, CreateParam, GetParams
 from yr.serialization import Serialization
 from yr.stream import ProducerConfig, SubscriptionConfig
 from yr.accelerate.shm_broadcast import Handle
@@ -36,7 +36,7 @@ from yr.accelerate.shm_broadcast import Handle
 _logger = logging.getLogger(__name__)
 
 
-class ClusterModeRuntime(Runtime):
+class ClusterModeRuntime(BaseRuntime):
     """
     Cluster mode runtime
     """

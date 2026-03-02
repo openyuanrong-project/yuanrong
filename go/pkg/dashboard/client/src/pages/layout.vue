@@ -16,7 +16,7 @@
 
 <template>
   <div class="preview">
-    <tiny-nav-menu :data="menuData">
+    <tiny-nav-menu :data="menuData" overflow="hidden">
       <template #logo>
         <a href="#/overview">
           <img src="/favicon.ico" alt="YuanRong logo" class="yr-logo"/>

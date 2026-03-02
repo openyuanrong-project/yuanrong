@@ -17,7 +17,6 @@
 package logmanager
 
 import (
-	"context"
 	"strings"
 	"sync"
 
@@ -41,17 +40,6 @@ var (
 	managerSingleton *manager
 	logManagerOnce   sync.Once
 )
-
-func streamTopicOfInstanceJobID(instance *types.InstanceSpecification) string {
-	return userStdStreamPrefix + instance.JobID
-}
-
-func instanceJobIDOfStreamTopic(topic string) string {
-	if !strings.HasPrefix(topic, userStdStreamPrefix) {
-		return ""
-	}
-	return strings.TrimPrefix(topic, userStdStreamPrefix)
-}
 
 func init() {
 	logManagerOnce.Do(func() {
@@ -77,39 +65,10 @@ func (m *manager) RegisterLogCollector(collectorInfo collectorClientInfo) error 
 		// unregister self if shutdown
 		m.UnregisterLogCollector(collectorInfo.ID)
 	})
-	go m.recycleLogStream(&client)
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 	m.Collectors[collectorInfo.ID] = client
 	return nil
-}
-
-func (m *manager) recycleLogStream(client *collectorClient) {
-	queryRsp, err := client.logClient.QueryLogStream(context.TODO(), &logservice.QueryLogStreamRequest{})
-	if err != nil {
-		log.GetLogger().Errorf("failed to query log stream of client %s at %s", client.ID, client.Address)
-		return
-	}
-	for _, streamName := range queryRsp.Streams {
-		jobID := instanceJobIDOfStreamTopic(streamName)
-		driverExists := false
-		for _, instance := range etcdcache.InstanceCache.GetByJobID(jobID) {
-			if isDriverInstance(instance) {
-				driverExists = true
-				break
-			}
-		}
-		if driverExists {
-			continue
-		}
-		// otherwise, should recycle the stream
-		log.GetLogger().Infof("going to recycle log stream %s at collector %s", streamName, client.ID)
-		stopRsp, err := client.logClient.StopLogStream(context.TODO(),
-			&logservice.StopLogStreamRequest{StreamName: streamName})
-		if err != nil || stopRsp.Code != 0 {
-			log.GetLogger().Errorf("failed to recycle log stream %s at collector %s", streamName, client.ID)
-		}
-	}
 }
 
 // UnregisterLogCollector -
@@ -178,31 +137,6 @@ func (m *manager) fulfillLogEntryInLogDB(instance *types.InstanceSpecification) 
 		entry.JobID = instance.JobID
 		// actually performs an in-place modification, but still put it to avoid some unexpected problem
 		m.LogDB.Put(entry, putOptionIfExistsReplace)
-		go m.processLogStream(instance)
-	})
-}
-
-func (m *manager) processLogStream(instance *types.InstanceSpecification) {
-	// query for the first time
-	queryResult := m.LogDB.Query(logDBQuery{InstanceID: instance.InstanceID})
-	if queryResult.Len() <= 0 {
-		log.GetLogger().Infof("failed to detect instance %s log data in log db, the log stream will not start",
-			instance.InstanceID)
-		return
-	}
-	queryResult.Range(func(inst *LogEntry) {
-		// this is a pointer, so it is not copied, but it seems that in-place modify is ok
-		inst.LogItem.Target = logservice.LogTarget_USER_STD
-		streamTopic := streamTopicOfInstanceJobID(instance)
-		log.GetLogger().Infof("notify collector to start a stream about job %s on item %s", streamTopic, inst.LogItem)
-		log.GetLogger().Infof("collector: %#v", m.GetCollector(inst.CollectorID))
-		_, err := m.GetCollector(inst.CollectorID).logClient.StartLogStream(context.TODO(),
-			&logservice.StartLogStreamRequest{StreamName: streamTopic, Item: inst.LogItem})
-		if err != nil {
-			log.GetLogger().Warnf("notify collector %s on stream %s about %s failed: %s", inst.CollectorID,
-				streamTopic, inst.LogItem.Filename, err)
-			return
-		}
 	})
 }
 
@@ -210,16 +144,6 @@ func (m *manager) processLogStream(instance *types.InstanceSpecification) {
 func (m *manager) OnInstanceExit(instance *types.InstanceSpecification) {
 	if !isDriverInstance(instance) {
 		return
-	}
-	// only stop all stream when driver exit
-	log.GetLogger().Infof("instance %s exited, stop log stream of %s now", instance.InstanceID, instance.JobID)
-	for _, c := range m.Collectors {
-		_, err := c.logClient.StopLogStream(context.TODO(),
-			&logservice.StopLogStreamRequest{StreamName: streamTopicOfInstanceJobID(instance)})
-		if err != nil {
-			log.GetLogger().Errorf("failed to stop stream, err: %v", err)
-			continue
-		}
 	}
 }
 

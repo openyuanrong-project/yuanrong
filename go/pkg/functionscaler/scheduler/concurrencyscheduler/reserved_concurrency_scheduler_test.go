@@ -31,6 +31,7 @@ import (
 	"yuanrong.org/kernel/pkg/common/faas_common/snerror"
 	commontypes "yuanrong.org/kernel/pkg/common/faas_common/types"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
+	"yuanrong.org/kernel/pkg/functionscaler/lease"
 	"yuanrong.org/kernel/pkg/functionscaler/requestqueue"
 	"yuanrong.org/kernel/pkg/functionscaler/scheduler"
 	"yuanrong.org/kernel/pkg/functionscaler/selfregister"
@@ -52,13 +53,18 @@ func TestAcquireInstanceReservedNew(t *testing.T) {
 		config.GlobalConfig.LeaseSpan = 0
 	}()
 	defer gomonkey.ApplyGlobalVar(&requestqueue.DefaultRequestTimeout, 100*time.Millisecond).Reset()
-	defer gomonkey.ApplyFunc((*selfregister.SchedulerProxy).CheckFuncOwner, func(_ *selfregister.SchedulerProxy,
+	defer gomonkey.ApplyFunc((*selfregister.SchedulerProxy).IsFuncOwner, func(_ *selfregister.SchedulerProxy,
 		funcKey string) bool {
 		return true
 	}).Reset()
 	defer gomonkey.ApplyMethod(reflect.TypeOf(&fakeInstanceScaler{}), "GetExpectInstanceNumber",
 		func(f *fakeInstanceScaler) int {
 			return 1
+		}).Reset()
+	defer gomonkey.ApplyFunc((*lease.GenericInstanceLeaseManager).CreateInstanceLease,
+		func(_ *lease.GenericInstanceLeaseManager,
+			insAlloc *types.InstanceAllocation, interval time.Duration, callback func()) (types.InstanceLease, error) {
+			return nil, nil
 		}).Reset()
 	InsThdReqQueue := requestqueue.NewInsAcqReqQueue("", 100*time.Millisecond)
 	rcs := NewReservedConcurrencyScheduler(&types.FunctionSpecification{
@@ -153,7 +159,7 @@ func TestAcquireInstanceReserved(t *testing.T) {
 }
 
 func TestPopInstanceReserved(t *testing.T) {
-	defer gomonkey.ApplyFunc((*selfregister.SchedulerProxy).CheckFuncOwner, func(_ *selfregister.SchedulerProxy,
+	defer gomonkey.ApplyFunc((*selfregister.SchedulerProxy).IsFuncOwner, func(_ *selfregister.SchedulerProxy,
 		funcKey string) bool {
 		return true
 	}).Reset()
@@ -197,7 +203,7 @@ func TestHandleFuncSpecUpdateReserved(t *testing.T) {
 }
 
 func TestAddInstancePublishReserved(t *testing.T) {
-	defer gomonkey.ApplyFunc((*selfregister.SchedulerProxy).CheckFuncOwner, func(_ *selfregister.SchedulerProxy,
+	defer gomonkey.ApplyFunc((*selfregister.SchedulerProxy).IsFuncOwner, func(_ *selfregister.SchedulerProxy,
 		funcKey string) bool {
 		return true
 	}).Reset()

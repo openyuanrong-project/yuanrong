@@ -38,8 +38,8 @@ import (
 	"yuanrong.org/kernel/pkg/dashboard/etcdcache"
 )
 
-var logManagerAddress = "127.0.0.1:55555"
-var logCollectAddress = "127.0.0.1:55556"
+var logManagerAddress = "127.0.0.1:55556"
+var logCollectAddress = "127.0.0.1:55557"
 var logManagerServer *grpc.Server
 var logCollectorServer *grpc.Server
 

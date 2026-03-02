@@ -465,4 +465,23 @@ public class LibRuntime {
      * @throws LibRuntimeException the LibRuntimeException.
      */
     public static native Pair<ErrorInfo, List<Node>> nodes() throws LibRuntimeException;
+
+    /**
+     * write stream data event.
+     *
+     * @param jsonData the json data of stream event.
+     * @param requestId the request id.
+     * @param instanceId the instance id.
+     * @return ErrorInfo
+     * @throws LibRuntimeException the LibRuntimeException.
+     */
+    public static native ErrorInfo streamWrite(String jsonData, String requestId, String instanceId)
+            throws LibRuntimeException;
+
+    /**
+     * get requestId and instanceId.
+     *
+     * @return Pair of requestId and instanceId.
+     */
+    public static native Pair<String, String> getRequestAndInstanceID();
 }

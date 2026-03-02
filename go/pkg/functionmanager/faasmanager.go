@@ -25,20 +25,33 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/tools/cache"
 	"yuanrong.org/kernel/runtime/libruntime/api"
 
-	commonconstant "yuanrong.org/kernel/pkg/common/faas_common/constant"
+	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
+	"yuanrong.org/kernel/pkg/common/faas_common/k8sclient"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	commonType "yuanrong.org/kernel/pkg/common/faas_common/types"
 	commonUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
 	"yuanrong.org/kernel/pkg/functionmanager/config"
+	"yuanrong.org/kernel/pkg/functionmanager/registry"
 	"yuanrong.org/kernel/pkg/functionmanager/state"
+	"yuanrong.org/kernel/pkg/functionmanager/types"
 	"yuanrong.org/kernel/pkg/functionmanager/utils"
+	"yuanrong.org/kernel/pkg/functionmanager/vpcmanager"
 )
 
 // Manager manages functions for faas pattern
 type Manager struct {
+	vpcManager        *vpcmanager.VPCManager
+	patLister         cache.GenericLister
 	remoteClientLease map[string]*leaseTimer
 	remoteClientList  map[string]struct{}
 	clientMutex       sync.Mutex
@@ -62,12 +75,20 @@ var (
 	// requestOpUnknown stands for unknown operation
 	requestOpUnknown RequestOperation = "Unknown"
 	// requestOpNewLease stands for create lease operation
-	requestOpNewLease RequestOperation = commonconstant.NewLease
+	requestOpNewLease RequestOperation = constant.NewLease
 	// requestOpKeepAlive stands for keep-alive lease operation
-	requestOpKeepAlive RequestOperation = commonconstant.KeepAlive
+	requestOpKeepAlive RequestOperation = constant.KeepAlive
 	// requestOpDelLease stands for delete lease operation
-	requestOpDelLease RequestOperation = commonconstant.DelLease
+	requestOpDelLease RequestOperation = constant.DelLease
 	libruntimeClient  api.LibruntimeAPI
+
+	defaultCreatePatPodTimeout = time.Minute
+
+	patGVR = schema.GroupVersionResource{
+		Group:    "patservice.cap.io",
+		Version:  "v1",
+		Resource: "pats",
+	}
 )
 
 const (
@@ -81,6 +102,8 @@ const (
 	leaseEtcdKeyLen = 3
 
 	defaultLeaseRenewMinute = 5
+
+	defaultDeletePatAfterPatPodEmpty = 10 * time.Minute
 )
 
 // NewFaaSManagerLibruntime will create a new faas functions manager
@@ -96,7 +119,11 @@ func MakeFaasManager(stopCh chan struct{}) (*Manager, error) {
 	if leaseRenewMinute == 0 {
 		leaseRenewMinute = defaultLeaseRenewMinute
 	}
+	factory := dynamicinformer.NewDynamicSharedInformerFactory(k8sclient.GetDynamicClient(), time.Minute)
+	informer := factory.ForResource(patGVR)
 	faaSManager := &Manager{
+		vpcManager:        vpcmanager.MakeVPCManager(informer, defaultDeletePatAfterPatPodEmpty, stopCh),
+		patLister:         informer.Lister(),
 		remoteClientLease: make(map[string]*leaseTimer),
 		remoteClientList:  map[string]struct{}{},
 		clientMutex:       sync.Mutex{},
@@ -108,11 +135,12 @@ func MakeFaasManager(stopCh chan struct{}) (*Manager, error) {
 		},
 		leaseRenewMinute: time.Duration(cfg.LeaseRenewMinute),
 	}
-	err := utils.InitKubeClient()
-	if err != nil {
-		return nil, err
-	}
 	go faaSManager.saveStateLoop()
+	if cfg.EnableVPCManage {
+		go faaSManager.vpcManager.Run()
+		go informer.Informer().Run(stopCh)
+		registry.StartWatchEvent(faaSManager.vpcManager.EventCh, stopCh, informer)
+	}
 	return faaSManager, nil
 }
 
@@ -135,6 +163,7 @@ func (m *Manager) RecoverData() {
 	log.GetLogger().Infof("recovered remoteClientList: %v", m.remoteClientList)
 	m.clientMutex.Unlock()
 }
+
 func newLeaseTimer(timeout time.Duration) *leaseTimer {
 	timer := time.NewTimer(timeout)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -161,7 +190,8 @@ func startLeaseTimeOutWatcher(ctx context.Context, fm *Manager, timer *time.Time
 
 // HandlerRequest -
 func (m *Manager) HandlerRequest(requestOp RequestOperation, requestData []byte,
-	traceID string) *commonType.CallHandlerResponse {
+	traceID string,
+) *commonType.CallHandlerResponse {
 	switch requestOp {
 	case requestOpCreate:
 		return m.handleRequestOpCreate(requestData, traceID)
@@ -174,8 +204,8 @@ func (m *Manager) HandlerRequest(requestOp RequestOperation, requestData []byte,
 	default:
 		log.GetLogger().Warnf("unknown request operation %s, traceID %s", requestOp, traceID)
 	}
-	return utils.GenerateErrorResponse(commonconstant.UnsupportedOperationErrorCode,
-		commonconstant.UnsupportedOperationErrorMessage)
+	return utils.GenerateErrorResponse(constant.UnsupportedOperationErrorCode,
+		constant.UnsupportedOperationErrorMessage)
 }
 
 // ProcessSchedulerRequestLibruntime will handle create, report and delete of instance
@@ -191,7 +221,142 @@ func (m *Manager) ProcessSchedulerRequest(args []*api.Arg, traceID string) *comm
 }
 
 func (m *Manager) handleRequestOpCreate(requestData []byte, traceID string) *commonType.CallHandlerResponse {
-	return nil
+	ctx, cancel := context.WithTimeout(context.Background(), defaultCreatePatPodTimeout)
+	defer cancel()
+	patRequest := commonType.PATServiceRequest{}
+	logger := log.GetLogger().With(zap.Any("traceID", traceID))
+	logger.Debugf("handle pat create request, %s", string(requestData))
+	err := json.Unmarshal(requestData, &patRequest)
+	if err != nil {
+		logger.Errorf("pat info unmarshal failed %s", err.Error())
+		return utils.GenerateErrorResponse(constant.AcquireVPCPatInfoErrorCode, "requestData format error")
+	}
+	runningPatPods, err := m.getRunningPatPod(ctx, patRequest)
+	if err != nil && k8serror.IsNotFound(err) {
+		_, err = m.createPat(ctx, patRequest)
+		if err != nil {
+			logger.Errorf("create pat failed, err %s", err.Error())
+			return utils.GenerateErrorResponse(constant.AcquireVPCPatInfoErrorCode, "pat cr create failed")
+		}
+	}
+	if len(runningPatPods) == 0 {
+		runningPatPods, err = m.getRunningPatPodWithRetry(ctx, patRequest, logger)
+	}
+	if err != nil {
+		logger.Errorf("query patpod failed, err %s", err.Error())
+		return utils.GenerateErrorResponse(constant.AcquireVPCPatInfoErrorCode, "query pat pod info failed")
+	}
+	patInfoByte, err := json.Marshal(commonType.PatResponseInfo{PatPods: runningPatPods})
+	if err != nil {
+		logger.Warnf("unmarshal pat pod info failed, err", err.Error())
+		return utils.GenerateErrorResponse(constant.AcquireVPCPatInfoErrorCode, "unmarshal pat pod info failed")
+	}
+	logger.Infof("create pat success, %s", string(patInfoByte))
+	return utils.GenerateSuccessResponse(constant.InsReqSuccessCode, string(patInfoByte))
+}
+
+func (m *Manager) getRunningPatPodWithRetry(ctx context.Context, patRequest commonType.PATServiceRequest,
+	logger api.FormatLogger,
+) ([]commonType.NATConfigure, error) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Warnf("query pat pod timeout")
+			return nil, fmt.Errorf("query pat pod timeout")
+		case <-ticker.C:
+			runningPatPod, err := m.getRunningPatPod(ctx, patRequest)
+			if err != nil {
+				logger.Warnf("query pat pod info failed, err: %s", err.Error())
+				continue
+			}
+			if len(runningPatPod) > 0 {
+				return runningPatPod, nil
+			}
+		}
+	}
+}
+
+func (m *Manager) getRunningPatPod(ctx context.Context,
+	patRequest commonType.PATServiceRequest,
+) ([]commonType.NATConfigure, error) {
+	var runningPatPods []commonType.NATConfigure
+	obj, err := m.patLister.ByNamespace(patRequest.Namespace).
+		Get(utils.GetPatName(patRequest.SubnetID, patRequest.SecurityGroups))
+	if err != nil {
+		return nil, err
+	}
+	u, ok := obj.(*unstructured.Unstructured)
+	if !ok {
+		return nil, fmt.Errorf("failed to get pat info, type error")
+	}
+	patInfo, err := utils.UnstructuredToPat(u)
+	if err != nil {
+		return nil, err
+	}
+	for _, pod := range patInfo.Status.PatPods {
+		if pod.Status == types.PatPodRunningStatus {
+			runningPatPods = append(runningPatPods, commonType.NATConfigure{
+				Namespace:      u.GetNamespace(),
+				PatContainerIP: pod.PatContainerIp,
+				PatVMIP:        pod.PatVmIp,
+				PatPortIP:      pod.PatPortIp,
+				PatMacAddr:     pod.PatMacAddr,
+				PatGateway:     pod.PatGateway,
+				PatPodName:     pod.PatPodName,
+				TenantCidr:     pod.TenantCidr,
+				SubMetaDigest:  pod.SubMetaDigest,
+			})
+		}
+	}
+	if len(runningPatPods) > 0 {
+		return runningPatPods, nil
+	}
+	return nil, fmt.Errorf("pat pod is empty")
+}
+
+func (m *Manager) createPat(ctx context.Context,
+	patRequest commonType.PATServiceRequest,
+) (*unstructured.Unstructured, error) {
+	pat := &types.Pat{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pat",
+			APIVersion: "patservice.cap.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        utils.GetPatName(patRequest.SubnetID, patRequest.SecurityGroups),
+			Namespace:   patRequest.Namespace,
+			Annotations: nil,
+		},
+		Spec: types.PatSpec{
+			KeepAliveTimeout: 60, // default pat pod live time after idle
+			DelegateRole:     patRequest.Xrole,
+			RequireCount:     2, // default pat pod replica
+			EnvironmentId:    patRequest.Namespace,
+			Vpc: types.VPC{
+				DomainId:       patRequest.DomainID,
+				ProjectId:      patRequest.ProjectID,
+				VpcId:          patRequest.VpcID,
+				SubnetId:       patRequest.SubnetID,
+				TenantCidr:     patRequest.TenantCidr,
+				HostVmCidr:     patRequest.HostVMCidr,
+				Gateway:        patRequest.Gateway,
+				SecurityGroups: patRequest.SecurityGroups,
+			},
+		},
+		Status: types.PatStatus{},
+	}
+	if pat.Spec.Vpc.SecurityGroups == nil {
+		pat.Spec.Vpc.SecurityGroups = []string{}
+	}
+	patInfo, err := utils.PatToUnstructured(pat)
+	patInfo, err = k8sclient.GetDynamicClient().Resource(patGVR).
+		Namespace(patRequest.Namespace).Create(ctx, patInfo, metav1.CreateOptions{})
+	if err != nil && !k8serror.IsAlreadyExists(err) {
+		return nil, err
+	}
+	return patInfo, nil
 }
 
 func (m *Manager) handleNewLease(requestData []byte, traceID string, timeout int64) *commonType.CallHandlerResponse {
@@ -201,7 +366,7 @@ func (m *Manager) handleNewLease(requestData []byte, traceID string, timeout int
 	if _, value := m.remoteClientLease[remoteClientID]; value {
 		m.clientMutex.Unlock()
 		log.GetLogger().Infof("lease already existed, traceID: %s", traceID)
-		return &commonType.CallHandlerResponse{Code: commonconstant.InsReqSuccessCode, Message: "lease existed"}
+		return &commonType.CallHandlerResponse{Code: constant.InsReqSuccessCode, Message: "lease existed"}
 	}
 	t := time.Minute * m.leaseRenewMinute
 	if timeout > 0 {
@@ -216,7 +381,7 @@ func (m *Manager) handleNewLease(requestData []byte, traceID string, timeout int
 	go startLeaseTimeOutWatcher(lease.Ctx, m, lease.Timer, remoteClientID, traceID)
 
 	log.GetLogger().Infof("succeed to create lease, traceID: %s", traceID)
-	return &commonType.CallHandlerResponse{Code: commonconstant.InsReqSuccessCode, Message: "Succeed to create lease"}
+	return &commonType.CallHandlerResponse{Code: constant.InsReqSuccessCode, Message: "Succeed to create lease"}
 }
 
 func (m *Manager) clearLease(clientID string, traceID string) {
@@ -303,7 +468,16 @@ func (m *Manager) saveStateLoop() {
 }
 
 func killInstanceOuter(clientID string, traceID string) {
-
+	log.GetLogger().Infof("start to kill instance outer, clientID: %s, traceID: %s", clientID, traceID)
+	if err := libruntimeClient.Kill(clientID, types.KillSignalVal, []byte{}); err != nil {
+		log.GetLogger().Warnf("failed to clean instance when delete lease, traceID: %s, "+
+			"remoteClientID: %s, status: %s", traceID, clientID, err.Error())
+	}
+	libruntimeClient.SetTraceID(traceID)
+	if err := libruntimeClient.ReleaseGRefs(clientID); err != nil {
+		log.GetLogger().Warnf("failed to release refs when delete lease, traceID: %s, "+
+			"remoteClientID: %s, status: %s", traceID, clientID, err.Error())
+	}
 }
 
 func (m *Manager) handleKeepAlive(requestData []byte, traceID string) *commonType.CallHandlerResponse {
@@ -316,14 +490,14 @@ func (m *Manager) handleKeepAlive(requestData []byte, traceID string) *commonTyp
 		m.clientMutex.Unlock()
 		log.GetLogger().Infof("succeed to renew lease, traceID: %s", traceID)
 		return &commonType.CallHandlerResponse{
-			Code:    commonconstant.InsReqSuccessCode,
+			Code:    constant.InsReqSuccessCode,
 			Message: "Succeed to renew lease",
 		}
 	}
 	m.clientMutex.Unlock()
 	log.GetLogger().Infof("failed to renew unknown lease, traceID: %s", traceID)
 	return &commonType.CallHandlerResponse{
-		Code:    commonconstant.UnsupportedOperationErrorCode,
+		Code:    constant.UnsupportedOperationErrorCode,
 		Message: fmt.Sprintf("%s remote client id not exist", remoteClientID),
 	}
 }
@@ -334,7 +508,7 @@ func (m *Manager) handleDelLease(requestData []byte, traceID string) *commonType
 	m.clearLease(remoteClientID, traceID)
 
 	return &commonType.CallHandlerResponse{
-		Code:    commonconstant.InsReqSuccessCode,
+		Code:    constant.InsReqSuccessCode,
 		Message: "Succeed to delete lease",
 	}
 }
@@ -364,9 +538,9 @@ func parseRequestOperation(args []*api.Arg) (RequestOperation, []byte) {
 // WatchLeaseEvent -
 func (m *Manager) WatchLeaseEvent() {
 	etcdClient := etcd3.GetRouterEtcdClient()
-	watcher := etcd3.NewEtcdWatcher(commonconstant.LeasePrefix, func(event *etcd3.Event) bool {
+	watcher := etcd3.NewEtcdWatcher(constant.LeasePrefix, func(event *etcd3.Event) bool {
 		etcdKey := event.Key
-		keyParts := strings.Split(etcdKey, commonconstant.ETCDEventKeySeparator)
+		keyParts := strings.Split(etcdKey, constant.ETCDEventKeySeparator)
 		return len(keyParts) == leaseEtcdKeyLen
 	}, func(event *etcd3.Event) {
 		log.GetLogger().Infof("handling lease event type %d, key:%s, remoteClientLease in use len: %d", event.Type,
@@ -408,11 +582,11 @@ func (m *Manager) handleLeaseEvent(event *etcd3.Event) {
 		return
 	}
 	switch e.Type {
-	case commonconstant.NewLease:
+	case constant.NewLease:
 		m.handleNewLease([]byte(e.RemoteClientID), e.TraceID, 0)
-	case commonconstant.DelLease:
+	case constant.DelLease:
 		m.handleDelLease([]byte(e.RemoteClientID), e.TraceID)
-	case commonconstant.KeepAlive:
+	case constant.KeepAlive:
 		// 判断是否是过期心跳
 		timeout := int64((m.leaseRenewMinute * time.Minute).Seconds()) - (time.Now().Unix() - e.Timestamp)
 		if timeout <= 0 {

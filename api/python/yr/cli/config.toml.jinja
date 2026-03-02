@@ -16,9 +16,6 @@ meta_service = false
 function_scheduler = false
 
 [mode.agent]
-etcd = false
-ds_master = false
-function_master = false
 ds_worker = true
 function_proxy = true
 function_agent = true
@@ -79,7 +76,7 @@ function_scheduler = false
 {% endfor %}
 
 [etcd]
-bin_path = "{{ values.etcd.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/third_party/etcd/etcd"
 
 [etcd.health_check]
 enable = true
@@ -129,7 +126,7 @@ initial-cluster-token = "etcd-cluster-1"
 {% endif -%}
 
 [ds_master]
-bin_path = "{{ values.ds_master.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/datasystem/datasystem_worker"
 
 [ds_master.health_check]
 enable = true
@@ -180,7 +177,7 @@ enable_distributed_master = false
 stderrthreshold = 3
 
 [ds_worker]
-bin_path = "{{ values.ds_worker.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/datasystem/datasystem_worker"
 
 [ds_worker.health_check]
 enable = true
@@ -235,10 +232,10 @@ max_client_num = 1000
 memory_reclamation_time_second = 5
 #spill
 spill_directory = ""
-spill_size_limit = "{% if values.ds_worker.spill %}21474836480{% endif %}" # copy from data_system/deploy/install.sh
+spill_size_limit = ""
 
 [function_master]
-bin_path = "{{ values.function_master.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_master"
 
 [function_master.health_check]
 enable = true
@@ -251,7 +248,7 @@ LD_PRELOAD = "" # for jemalloc use
 
 [function_master.args]
 ip = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
-{% if values.meta_store.enable and values.meta_store.mode != "passthrough" %}
+{% if values.meta_store.enable and values.meta_store.mode == "local" %}
 meta_store_address = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
 {% else %}
 meta_store_address = "{{ etcd_cluster }}"
@@ -264,8 +261,8 @@ runtime_recover_enable = false
 litebus_thread_num = 20
 system_timeout = 1800000
 enable_metrics = true
-metrics_config = "{{ values.metrics.metrics_config }}"
-metrics_config_file = "{{ values.metrics.metrics_config_file }}"
+metrics_config = "{{ values.fs.metrics.metrics_config }}"
+metrics_config_file = "{{ values.fs.metrics.metrics_config_file }}"
 pull_resource_interval = 1000
 is_schedule_tolerate_abnormal = false
 enable_print_resource_view = false
@@ -273,9 +270,9 @@ schedule_plugins = '''{{ values.fs.schedule_plugins }}'''
 schedule_relaxed = -1
 max_priority = 0
 enable_preemption = false
-enable_meta_store = false
+enable_meta_store = {{ 'true' if values.meta_store.enable else 'false' }}
 enable_persistence = false
-meta_store_mode = "local"
+meta_store_mode = "{{ values.meta_store.mode }}"
 meta_store_excluded_keys = ","
 election_mode = "{{ 'etcd' if values.etcd.enable_multi_master else 'standalone' }}"
 services_path = "{{ values.yr_package_path }}/cli/services.yaml"
@@ -296,7 +293,7 @@ meta_store_max_flush_concurrency = 100
 meta_store_max_flush_batch_size = 50
 
 [function_proxy]
-bin_path = "{{ values.function_proxy.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_proxy"
 
 [function_proxy.health_check]
 enable = true
@@ -304,12 +301,12 @@ timeout = 60
 endpoint = "{{ 'https' if values.fs.tls.enable else 'http' }}://{{ values.function_proxy.ip }}:{{ values.function_proxy.port }}/local-scheduler/healthy"
 
 [function_proxy.env]
-LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib:{{ values.yr_package_path }}/datasystem/lib" # datasystem lib is needed for libds_router_client.so which needs v1.1 libssl and libcrypto
 LD_PRELOAD = "" # for jemalloc use
 
 [function_proxy.args]
 ip = "{{ values.function_proxy.ip }}"
-{% if values.meta_store.enable and values.meta_store.mode != "passthrough" %}
+{% if values.meta_store.enable %}
 meta_store_address = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
 {% else %}
 meta_store_address = "{{ etcd_cluster }}"
@@ -320,8 +317,8 @@ node_id = "{{ values.node_id }}"
 services_path = "{{ values.yr_package_path }}/cli/services.yaml"
 lib_path = "{{ values.yr_package_path }}/functionsystem/lib"
 enable_metrics = true
-metrics_config = ""
-metrics_config_file = "{{ values.metrics.metrics_config_file }}"
+metrics_config = "{{ values.fs.metrics.metrics_config }}"
+metrics_config_file = "{{ values.fs.metrics.metrics_config_file }}"
 litebus_thread_num = 20
 runtime_recover_enable = false
 system_timeout = 1800000
@@ -330,8 +327,8 @@ schedule_plugins = '''{{ values.fs.schedule_plugins }}'''
 schedule_relaxed = -1
 max_priority = 0
 enable_preemption = false
-enable_meta_store = false
-meta_store_mode = "local"
+enable_meta_store = {{ 'true' if values.meta_store.enable else 'false' }}
+meta_store_mode = "{{ values.meta_store.mode }}"
 meta_store_excluded_keys = ","
 election_mode = "{{ 'etcd' if values.etcd.enable_multi_master else 'standalone' }}"
 ssl_enable = "{{ 'true' if values.fs.tls.enable else 'false' }}"
@@ -378,7 +375,7 @@ is_partial_watch_instances = false
 runtime_instance_debug_enable = false
 
 [function_agent]
-bin_path = "{{ values.function_agent.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/function_agent"
 
 [function_agent.env]
 LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
@@ -425,8 +422,8 @@ port = {{ values.function_agent.port }}
 data_system_port = "{{ values.ds_worker.port }}"
 agent_address = "{{ values.function_agent.ip }}:{{ values.function_agent.port }}"
 enable_metrics = true
-metrics_config = ""
-metrics_config_file = "{{ values.metrics.metrics_config_file }}"
+metrics_config = "{{ values.fs.metrics.metrics_config }}"
+metrics_config_file = "{{ values.fs.metrics.metrics_config_file }}"
 runtime_initial_port = 21006
 port_num = 65535
 system_timeout = 1800000
@@ -459,7 +456,8 @@ runtime_instance_debug_enable = false
 local_node_id = "{{ values.node_id }}"
 
 [function_scheduler]
-bin_path = "{{ values.function_scheduler.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/runtime/service/go/bin/goruntime"
+src_init_config_path = "{{ values.yr_package_path }}/faas/init_scheduler_args.json"
 
 [function_scheduler.env]
 LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib:{{ values.yr_package_path }}/runtime/service/go/bin"
@@ -477,10 +475,10 @@ SIGNAL_HANDLER="faasscheduler.SignalHandler"
 YR_FUNCTION_LIB_PATH="{{ values.yr_package_path }}/faas/faasscheduler/"
 GLOG_log_dir="{{ values.fs.log.path }}"
 YR_LOG_LEVEL="{{ values.fs.log.level }}"
-POD_IP="{{ values.function_scheduler.ip }}"
-NODE_IP="{{ values.function_scheduler.ip }}"
+POD_IP="{{ values.host_ip }}"
+NODE_IP="{{ values.host_ip }}"
 DATASYSTEM_ADDR="{{ values.ds_worker.ip }}:{{ values.ds_worker.port }}"
-INSTANCE_ID="driver-scheduler-${NODE_ID}"
+INSTANCE_ID="driver-scheduler-{{ values.node_id }}"
 FAAS_LOG_PATH="{{ values.fs.log.path }}"
 
 [function_scheduler.health_check]
@@ -506,7 +504,10 @@ standbyKeyStoreFile=""
 enableDsEncrypt =  "{{ 'true' if values.ds.curve.enable else 'false' }}"
 
 [frontend]
-bin_path = "{{ values.frontend.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/runtime/service/go/bin/goruntime"
+src_init_config_path = "{{ values.yr_package_path }}/faas/init_frontend_args.json"
+ip = "{{ values.host_ip }}"
+port = "{{ 8888|check_port() }}"
 
 [frontend.env]
 LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib:{{ values.yr_package_path }}/runtime/service/go/bin"
@@ -524,10 +525,10 @@ SIGNAL_HANDLER="faasfrontend.SignalHandler"
 YR_FUNCTION_LIB_PATH="{{ values.yr_package_path }}/faas/faasfrontend/"
 GLOG_log_dir="{{ values.fs.log.path }}"
 YR_LOG_LEVEL="{{ values.fs.log.level }}"
-POD_IP="{{ values.frontend.ip }}"
-NODE_IP="{{ values.frontend.ip }}"
+POD_IP="{{ values.host_ip }}"
+NODE_IP="{{ values.host_ip }}"
 DATASYSTEM_ADDR="{{ values.ds_worker.ip }}:{{ values.ds_worker.port }}"
-INSTANCE_ID="driver-frontend-${NODE_ID}"
+INSTANCE_ID="driver-frontend-{{ values.node_id }}"
 FAAS_LOG_PATH="{{ values.fs.log.path }}"
 
 [frontend.health_check]
@@ -553,7 +554,11 @@ standbyKeyStoreFile=""
 enableDsEncrypt =  "{{ 'true' if values.ds.curve.enable else 'false' }}"
 
 [dashboard]
-bin_path = "{{ values.dashboard.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/dashboard/bin/dashboard"
+src_config_path = "{{ values.yr_package_path }}/dashboard/config/dashboard_config.json"
+ip = "{{ values.host_ip }}"
+port = "{{ 9080|check_port() }}"
+grpc_port = "{{ 9081|check_port() }}"
 
 [dashboard.env]
 LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
@@ -567,7 +572,7 @@ timeout = 60
 config_path = "{{ values.deploy_path }}/dashboard_config.json"
 
 [collector]
-bin_path = "{{ values.collector.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/dashboard/bin/collector"
 
 [collector.health_check]
 enable = true
@@ -580,10 +585,10 @@ LD_LIBRARY_PATH = "{{ values.yr_package_path }}/datasystem/lib:{{ values.yr_pack
 collect_id = "{{ values.node_id }}"
 datasystem_port = "{{ values.ds_worker.port }}"
 etcd_config_servers = "{{ etcd_cluster }}"
-ip = "{{ values.collector.ip }}"
+ip = "{{ values.host_ip }}"
 log_root = "{{ values.deploy_path }}/logs"
 manager_address = "{{ values.dashboard.ip }}:{{ values.dashboard.grpc_port }}"
-port = "{{ values.collector.port }}"
+port = "{{ 9082|check_port() }}"
 etcd_config_ssl_enable="{{ 'true' if values.etcd.auth_type == 'TLS' else 'false' }}"
 etcd_config_auth_type="{{ values.etcd.auth_type }}"
 etcd_config_ca_file="{{ values.etcd.auth.base_path }}/{{ values.etcd.auth.ca_file }}"
@@ -595,7 +600,12 @@ function_system_cert_file="{{ values.fs.tls.base_path }}/{{ values.fs.tls.cert_f
 function_system_key_file="{{ values.fs.tls.base_path }}/{{ values.fs.tls.key_file }}"
 
 [meta_service]
-bin_path = "{{ values.meta_service.bin_path }}"
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/meta_service"
+src_config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/metaservice_config.json"
+src_log_config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/metaservice_log.json"
+ip = "{{ values.host_ip }}"
+port = "{{ 31182|check_port() }}" 
+clusters = ""
 
 [meta_service.env]
 LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"

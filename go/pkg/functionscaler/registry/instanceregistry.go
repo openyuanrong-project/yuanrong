@@ -138,6 +138,7 @@ func (ir *InstanceRegistry) watcherHandler(event *etcd3.Event) {
 	if event.Type == etcd3.SYNCED {
 		log.GetLogger().Infof("received instance synced event")
 		ir.listDoneCh <- struct{}{}
+		ir.publishEvent(SubEventTypeSynced, &commonTypes.InstanceSpecification{})
 		return
 	}
 	instanceID := instance.GetInstanceIDFromEtcdKey(event.Key)

@@ -32,7 +32,8 @@ public:
     ErrorInfo Start(const std::string &ipAddr, int port, FSIntfHandlers handlers, ClientType type, bool isDriver,
                     std::shared_ptr<Security> security, std::shared_ptr<ClientsManager> clientsMgr,
                     const std::string &jobID, const std::string &instanceID, const std::string &runtimeID,
-                    const std::string &functionName, const SubscribeFunc &reSubscribeCb = nullptr);
+                    const std::string &functionName, const SubscribeFunc &reSubscribeCb = nullptr,
+                    bool enableEvent = false);
     void Stop();
     void ReceiveRequestLoop(void);
     void GroupCreateAsync(const CreateRequests &reqs, CreateRespsCallback respCallback, CreateCallBack callback,
@@ -56,11 +57,16 @@ public:
                              int timeoutSec = -1);
     void EraseIntf(const std::string &id);
     bool IsHealth();
+    void UpdateEventServerInfo(const std::string &ip, int port, const std::string &instaceId);
+    void EventAsync(const std::shared_ptr<EventMessageSpec> &req, int timeoutSec = -1);
+    std::string GetEventServerIP();
+    int GetEventServerPort();
 
 private:
     std::shared_ptr<FSIntf> fsIntf;
     std::string ipAddr;
     int port{};
+    int eventServerPort{};
     ClientType type;
     bool isDriver{};
 };

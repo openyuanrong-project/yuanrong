@@ -144,27 +144,6 @@ func (s *server) send(stream logservice.LogCollectorService_ReadLogServer, filen
 	return nil
 }
 
-// StartLogStream -
-func (s *server) StartLogStream(ctx context.Context, request *logservice.StartLogStreamRequest) (
-	*logservice.StartLogStreamResponse, error) {
-	log.GetLogger().Infof("receive start log stream request about %s on %s", request.StreamName,
-		request.Item.Filename)
-	if err := CreateLogStreamPublisher(request.StreamName, request.Item); err != nil {
-		log.GetLogger().Errorf("failed to create log stream %s, error: %v", request.StreamName, err)
-		return &logservice.StartLogStreamResponse{Code: -1, Message: err.Error()}, err
-	}
-	return &logservice.StartLogStreamResponse{Code: 0}, nil
-}
-
-// StopLogStream -
-func (s *server) StopLogStream(ctx context.Context, request *logservice.StopLogStreamRequest) (
-	*logservice.StopLogStreamResponse, error) {
-	if err := CloseLogStreamPublisher(request.StreamName); err != nil {
-		return &logservice.StopLogStreamResponse{Code: -1, Message: err.Error()}, err
-	}
-	return &logservice.StopLogStreamResponse{Code: 0}, nil
-}
-
 // QueryLogStream -
 func (s *server) QueryLogStream(ctx context.Context, request *logservice.QueryLogStreamRequest) (
 	*logservice.QueryLogStreamResponse, error) {

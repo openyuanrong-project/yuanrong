@@ -126,7 +126,7 @@ func (rs *RoundRobinScheduler) AcquireInstance(insAcqReq *types.InstanceAcquireR
 		rs.Lock()
 		currentInstanceNum := len(rs.instanceQueue) + len(rs.subHealthInstance)
 		rs.Unlock()
-		if currentInstanceNum > 0 {
+		if currentInstanceNum > 0 || currentInstanceNum >= rs.instanceScaler.GetExpectInstanceNumber() {
 			break
 		}
 		time.Sleep(checkScalingInterval)

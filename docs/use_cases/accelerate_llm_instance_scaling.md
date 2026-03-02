@@ -68,8 +68,8 @@
     +import os
     +import torch
     +
-    +from datasystem.hetero_client import HeteroClient, Blob, DeviceBlobList
-    +from datasystem.ds_tensor_client import DsTensorClient
+    +from yr.datasystem.hetero_client import HeteroClient, Blob, DeviceBlobList
+    +from yr.datasystem.ds_tensor_client import DsTensorClient
     +from torch_npu.npu import current_device
     +from vllm.distributed.parallel_state import (
     +    get_tp_group, get_ep_group, get_pp_group
@@ -268,19 +268,19 @@ docker run \
    在 Linux x86_64 环境上：
    
    ```bash
-   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/x86_64/openyuanrong-0.6.0-cp311-cp311-manylinux_2_34_x86_64.whl
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.7.0/linux/x86_64/openyuanrong-0.7.0-cp311-cp311-manylinux_2_34_x86_64.whl
 
    # 安装数据系统 SDK
-   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/x86_64/openyuanrong_datasystem-0.6.0-cp311-cp311-manylinux_2_34_x86_64.whl
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.7.0/linux/x86_64/openyuanrong_datasystem-0.7.0-cp311-cp311-manylinux_2_34_x86_64.whl
    ```
    
    在 Linux aarch64（ARM）环境上：
 
    ```bash
-   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/aarch64/openyuanrong-0.6.0-cp311-cp311-manylinux_2_34_aarch64.whl
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.7.0/linux/aarch64/openyuanrong-0.7.0-cp311-cp311-manylinux_2_34_aarch64.whl
 
    # 安装数据系统 SDK
-   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.6.0/linux/aarch64/openyuanrong_datasystem-0.6.0-cp311-cp311-manylinux_2_34_aarch64.whl
+   pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.7.0/linux/aarch64/openyuanrong_datasystem-0.7.0-cp311-cp311-manylinux_2_34_aarch64.whl
    ```
 
 4. 部署 openYuanrong

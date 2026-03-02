@@ -52,8 +52,8 @@ class ConfigResolver:
         self.mode = mode
         self.yr_package_path = cli_dir.parent
         self.env_subst_keys = env_subst_keys
-        self.runtime_context = self._build_runtime_context()
         if render:
+            self.runtime_context = self._build_runtime_context()
             self.jinja_env = Environment(
                 undefined=StrictUndefined,
                 trim_blocks=True,
@@ -77,6 +77,9 @@ class ConfigResolver:
             )
             self.jinja_env.filters["check_port"] = port_or_free
             self.rendered_config = self._load_config(config_path, overrides)
+            self.runtime_context["deploy_path"] = Path(
+                self.rendered_config["values"]["deploy_path"]
+            )  # update deploy_path in runtime context with rendered value
         elif render is False:
             config_text = config_path.read_text()
             config_text = self._apply_env_subst(config_text)

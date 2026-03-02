@@ -39,8 +39,8 @@ public:
 
     MOCK_METHOD3(KillAsync, void(const std::string &instanceId, const std::string &payload, int sigNo));
 
-    MOCK_METHOD4(KillAsyncCB, void(const std::string &instanceId, const std::string &payload, int signal,
-                                   std::function<void(const ErrorInfo &err)> cb));
+    MOCK_METHOD(void, KillAsyncCB, ((const std::string &instanceId), (const std::string &payload), (int signal),
+                (std::function<void(const ErrorInfo &err)> cb), (int timeoutSec)), (override));
 
     MOCK_METHOD2(GroupCreate, ErrorInfo(const std::string &groupName, GroupOpts &opts));
 
@@ -74,6 +74,9 @@ public:
 
     MOCK_METHOD1(EraseFsIntf, void(const std::string &id));
     MOCK_METHOD0(IsHealth, bool());
+    MOCK_METHOD3(StreamWriteEvent,
+                 ErrorInfo(const std::string &streamMessage, const std::string &requestId,
+                           const std::string &instanceId));
 };
 }  // namespace Libruntime
 }  // namespace YR

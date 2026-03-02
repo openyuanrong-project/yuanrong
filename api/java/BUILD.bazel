@@ -206,6 +206,7 @@ group_of_java_tests(
         "org.yuanrong.services.runtime.action.TestContextImpl",
         "org.yuanrong.services.runtime.action.TestCustomLoggerStream",
         "org.yuanrong.services.runtime.action.TestFunctionLoggerImpl",
+        "org.yuanrong.services.runtime.action.TestStream",
         "org.yuanrong.services.runtime.utils.TestDataTypeAdapter",
         "org.yuanrong.services.runtime.utils.TestUtil",
         "org.yuanrong.TestGroupOptions",

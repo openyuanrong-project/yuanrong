@@ -248,8 +248,23 @@ func (m mockLibruntimeClient) GetAsync(objectID string, cb api.GetAsyncCallback)
 	panic("implement me")
 }
 
+func (m mockLibruntimeClient) GetEvent(objectID string, cb api.GetEventCallback) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m mockLibruntimeClient) DeleteGetEventCallback(objectID string) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m mockLibruntimeClient) GetFormatLogger() api.FormatLogger {
 	//TODO implement me
+	panic("implement me")
+}
+
+func (m mockLibruntimeClient) ReleaseGRefs(remoteClientID string) error {
+	// TODO implement me
 	panic("implement me")
 }
 

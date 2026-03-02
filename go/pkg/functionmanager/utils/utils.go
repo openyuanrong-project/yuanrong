@@ -18,95 +18,58 @@
 package utils
 
 import (
-	"context"
-	"errors"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"sort"
+	"strings"
 
-	"k8s.io/api/apps/v1"
-	k8serror "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
-	"yuanrong.org/kernel/pkg/common/faas_common/types"
-)
-
-const (
-	defaultPodNameLen = 3
-)
-
-var (
-	kubeClient kubernetes.Interface
-	// ErrK8SClientNil -
-	ErrK8SClientNil = errors.New("kubernetes client is nil")
+	commontype "yuanrong.org/kernel/pkg/common/faas_common/types"
+	"yuanrong.org/kernel/pkg/functionmanager/types"
 )
 
 // GenerateErrorResponse -
-func GenerateErrorResponse(errorCode int, errorMessage string) *types.CallHandlerResponse {
-	return &types.CallHandlerResponse{
+func GenerateErrorResponse(errorCode int, errorMessage string) *commontype.CallHandlerResponse {
+	return &commontype.CallHandlerResponse{
 		Code:    errorCode,
 		Message: errorMessage,
 	}
 }
 
 // GenerateSuccessResponse -
-func GenerateSuccessResponse(code int, message string) *types.CallHandlerResponse {
-	return &types.CallHandlerResponse{
+func GenerateSuccessResponse(code int, message string) *commontype.CallHandlerResponse {
+	return &commontype.CallHandlerResponse{
 		Code:    code,
 		Message: message,
 	}
 }
 
-// InitKubeClient initializes kubernetes client
-func InitKubeClient() error {
-	kubeConfig, err := rest.InClusterConfig()
+// GetPatName by subnetId and securityGroup
+func GetPatName(subnetId string, securityGroup []string) string {
+	sort.Strings(securityGroup)
+	hash := sha256.Sum256([]byte(strings.Join(securityGroup, "")))
+	hashStr := hex.EncodeToString(hash[:])[:8] // hashStr len is 8
+	return fmt.Sprintf("pat-%s-%s", subnetId, hashStr)
+}
+
+// UnstructuredToPat convert Unstructured to pat
+func UnstructuredToPat(unstruct *unstructured.Unstructured) (*types.Pat, error) {
+	var pat types.Pat
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstruct.Object, &pat)
 	if err != nil {
-		log.GetLogger().Errorf("failed to get token and ca for kubernetes, error: %s", err.Error())
-		return err
+		return nil, fmt.Errorf("failed to convert unstructured to custom resource: %v", err)
 	}
+	return &pat, nil
+}
 
-	kubeClient, err = kubernetes.NewForConfig(kubeConfig)
+// PatToUnstructured convert pat to unstructured
+func PatToUnstructured(customResource *types.Pat) (*unstructured.Unstructured, error) {
+	unstructObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(customResource)
 	if err != nil {
-		log.GetLogger().Errorf("failed to create kubernetes client, error: %s", err.Error())
-		return err
+		return nil, fmt.Errorf("failed to convert custom resource to unstructured: %v", err)
 	}
-	log.GetLogger().Infof("succeed to create kubeClient")
-	return nil
-}
-
-// GetKubeClient return kubernetes client
-func GetKubeClient() kubernetes.Interface {
-	return kubeClient
-}
-
-// GetDeployByK8S get deployment by k8s
-func GetDeployByK8S(k8sClient kubernetes.Interface, deployName string) (*v1.Deployment, error) {
-	if k8sClient == nil {
-		log.GetLogger().Errorf("failed to get k8sClient")
-		return nil, ErrK8SClientNil
-	}
-	return k8sClient.AppsV1().Deployments("default").Get(context.TODO(), deployName, metav1.GetOptions{})
-}
-
-// CreateDeployByK8S create deployment by k8s
-func CreateDeployByK8S(k8sClient kubernetes.Interface, deploy *v1.Deployment) error {
-	if k8sClient == nil {
-		log.GetLogger().Errorf("failed to get k8sClient")
-		return ErrK8SClientNil
-	}
-	_, err := k8sClient.AppsV1().Deployments("default").Create(context.TODO(), deploy, metav1.CreateOptions{})
-	if err != nil && !k8serror.IsAlreadyExists(err) {
-		log.GetLogger().Errorf("failed to create deploy %s", err.Error())
-		return err
-	}
-	return nil
-}
-
-// DeleteDeployByK8S delete deployment by k8s
-func DeleteDeployByK8S(k8sClient kubernetes.Interface, name string) error {
-	if k8sClient == nil {
-		log.GetLogger().Errorf("failed to get k8sClient")
-		return ErrK8SClientNil
-	}
-	return k8sClient.AppsV1().Deployments("default").Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return &unstructured.Unstructured{Object: unstructObj}, nil
 }

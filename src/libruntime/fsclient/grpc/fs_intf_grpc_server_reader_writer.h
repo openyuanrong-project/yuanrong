@@ -54,6 +54,7 @@ public:
     bool GrpcBatchWrite(const std::shared_ptr<BatchStreamingMessage> &request) override;
     bool IsBatched() override;
     bool IsHealth() override;
+    bool IsSameDstAddr(const std::string &dstIp, const int &dstPort) override { return true; }
 
 private:
     void ClearStream();

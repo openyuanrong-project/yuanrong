@@ -75,6 +75,7 @@ func GetConfigManager() *ConfigManager {
 	manager.MaxTaskInstanceNum = -1
 	manager.LogFileNumMax = 20
 	manager.LogFileSizeMax = 400
+	manager.EnableEvent = false
 	return manager
 }
 

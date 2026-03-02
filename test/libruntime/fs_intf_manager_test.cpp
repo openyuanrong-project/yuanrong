@@ -111,5 +111,36 @@ TEST_F(FSIntfManagerTest, Clear_ShouldRemoveAllInterfaces)
     ASSERT_EQ(fsIntfManager->Get(instanceID2), nullptr);
 }
 
+TEST_F(FSIntfManagerTest, NewEventIntfClient_EmplaceEventIntfs_TryGetEventIntfs)
+{
+    std::shared_ptr<FSIntfReaderWriter> intf = fsIntfManager->NewEventIntfClient(
+        "srcInstance", "eventInstance", "runtimeID", ReaderWriterClientOption(), ProtocolType::GRPC);
+    ASSERT_TRUE(fsIntfManager->EmplaceEventIntfs("eventInstance", intf));
+
+    std::shared_ptr<FSIntfReaderWriter> retrievedIntf1 = fsIntfManager->TryGetEventIntfs("eventInstance");
+    std::shared_ptr<FSIntfReaderWriter> retrievedIntf2 = fsIntfManager->GetEventIntfs("eventInstance");
+    ASSERT_NE(intf, nullptr);
+    ASSERT_NE(retrievedIntf1, nullptr);
+    ASSERT_EQ(retrievedIntf2, nullptr);
+
+    fsIntfManager->Remove("eventInstance");
+    retrievedIntf1 = fsIntfManager->TryGetEventIntfs("eventInstance");
+    ASSERT_EQ(retrievedIntf1, nullptr);
+}
+
+TEST_F(FSIntfManagerTest, NewEventIntfClient_ShouldReturnExistingEventIntf_WhenAvailable)
+{
+    std::string dstInstance = "eventInstance2";
+    std::shared_ptr<FSIntfReaderWriter> intf = fsIntfManager->NewEventIntfClient(
+        "srcInstance", dstInstance, "runtimeID", ReaderWriterClientOption(), ProtocolType::GRPC);
+    std::shared_ptr<FSIntfReaderWriter> intf2 = fsIntfManager->NewEventIntfClient(
+        "srcInstance", dstInstance, "runtimeID", ReaderWriterClientOption(), ProtocolType::GRPC);
+    ASSERT_NE(intf, intf2);
+
+    std::shared_ptr<FSIntfReaderWriter> intf3 = fsIntfManager->NewEventIntfClient(
+    "srcInstance", "eventInstance", "runtimeID", ReaderWriterClientOption(), static_cast<ProtocolType>(999));
+    ASSERT_EQ(intf3, nullptr);
+}
+
 }  // namespace Libruntime
 }  // namespace YR

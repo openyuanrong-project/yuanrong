@@ -383,6 +383,7 @@ void FaasInsManager::AcquireCallback(const std::shared_ptr<InvokeSpec> acquireSp
     faasInsInfo->instanceId = resp.info.instanceId;
     faasInsInfo->leaseId = resp.info.leaseId;
     faasInsInfo->idleTime = 0;
+    faasInsInfo->forceInvoke = resp.info.forceInvoke;
     faasInsInfo->unfinishReqNum = 0;
     faasInsInfo->available = true;
     faasInsInfo->traceId = invokeSpec->traceId;

@@ -26,7 +26,7 @@ from yr import fcc
 from yr.config_manager import ConfigManager
 from yr.config import FunctionGroupOptions
 from yr.decorator import function_proxy, instance_proxy
-from yr.runtime import AlarmInfo
+from yr.base_runtime import AlarmInfo
 from yr.object_ref import ObjectRef
 from yr.config import InvokeOptions
 

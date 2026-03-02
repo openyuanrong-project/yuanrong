@@ -80,6 +80,26 @@ public class ContextImpl implements Context {
     private long startTime = System.currentTimeMillis();
 
     /**
+     * Stream event handler.
+     */
+    private Stream stream = new Stream();
+
+    public ContextImpl() {}
+
+    public ContextImpl(ContextImpl contextImpl) {
+        if (contextImpl != null) {
+            this.funcMetaData = contextImpl.getFuncMetaData();
+            this.delegateDecrypt = contextImpl.getDelegateDecrypt();
+            this.resourceMetaData = contextImpl.getResourceMetaData();
+            this.extendedMetaData = contextImpl.getExtendedMetaData();
+            this.contextInvokeParams = new ContextInvokeParams(contextImpl.getContextInvokeParams());
+            this.instanceID = contextImpl.getInstanceID();
+            this.instanceLabel = contextImpl.getInstanceLabel();
+            this.startTime = contextImpl.getStartTime();
+        }
+    }
+
+    /**
      * Set context from invoke parameters
      *
      * @param contextInvokeParams context from invoke parameters
@@ -276,5 +296,12 @@ public class ContextImpl implements Context {
 
     @Override
     public void setExtraMap(Map<String, String> extraMap) {
+    }
+
+    @Override
+    public Stream getStream() {
+        stream.setRequestId(this.getInvokeID());
+        stream.setInstanceId(this.getInstanceID());
+        return this.stream;
     }
 }

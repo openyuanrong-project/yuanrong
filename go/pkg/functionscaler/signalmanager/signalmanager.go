@@ -47,7 +47,7 @@ type signalInstance struct {
 
 // PrepareSchedulerArg -
 func PrepareSchedulerArg() ([]byte, error) {
-	schedulerInfo := registry.GlobalRegistry.FaaSSchedulerRegistry.GetSchedulerInfo()
+	schedulerInfo := registry.GlobalRegistry.FaaSSchedulerRegistry.GetAllSchedulerInfo()
 	schedulerData, err := json.Marshal(schedulerInfo)
 	if err != nil {
 		return nil, err

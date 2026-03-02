@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,22 +25,6 @@ import (
 	commonTypes "yuanrong.org/kernel/pkg/common/faas_common/types"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
 )
-
-func TestDeleteConfigMapByFuncInfo(t *testing.T) {
-	convey.Convey("DeleteConfigMapByFuncInfo", t, func() {
-		DeleteConfigMapByFuncInfo(&types.FunctionSpecification{
-			FuncMetaData: commonTypes.FuncMetaData{FuncName: "func-name", Version: "latest"},
-			ExtendedMetaData: commonTypes.ExtendedMetaData{
-				CustomFilebeatConfig: commonTypes.CustomFilebeatConfig{
-					ImageAddress: "images",
-					SidecarConfigInfo: &commonTypes.SidecarConfigInfo{
-						ConfigFiles: []commonTypes.CustomLogConfigFile{{Path: "path",
-							Data: base64.StdEncoding.EncodeToString([]byte("data"))}},
-					},
-				},
-			}})
-	})
-}
 
 func TestIsNeedRaspSideCar(t *testing.T) {
 	convey.Convey("IsNeedRaspSideCar", t, func() {

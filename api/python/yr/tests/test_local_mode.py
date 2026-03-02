@@ -25,7 +25,7 @@ from yr.local_mode import local_client, instance_manager
 from yr.local_mode.instance import Resource, Instance
 from yr.local_mode.task_spec import TaskSpec
 from yr.local_mode.local_object_store import LocalObjectStore
-from yr.runtime import SetParam
+from yr.base_runtime import SetParam
 
 
 class Mock(object):

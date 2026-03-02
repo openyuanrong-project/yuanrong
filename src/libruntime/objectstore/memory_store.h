@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <deque>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -30,15 +31,25 @@
 #include "object_store.h"
 #include "src/dto/data_object.h"
 #include "src/libruntime/waiting_object_manager.h"
+#include "src/utility/timer_worker.h"
 
 namespace YR {
 namespace Libruntime {
 class WaitingObjectManager;
 using ObjectReadyCallback = std::function<void(const ErrorInfo &)>;
 using ObjectReadyCallbackWithData = std::function<void(const ErrorInfo &, std::shared_ptr<Buffer>)>;
+using EventCallbackWithData = std::function<void(const ErrorInfo &, std::shared_ptr<Buffer>)>;
+using YR::utility::TimerWorker;
+const int EVENT_TIMER_EXEC_TIMES = 1;
 struct GeneratorRes {
     std::string objectId;
     ErrorInfo err;
+};
+
+struct EventCallbackInfo {
+    EventCallbackWithData eventCallback;
+    std::deque<std::shared_ptr<std::string>> buffers;
+    std::shared_ptr<YR::utility::Timer> timer;
 };
 
 enum IncreInDataSystemEnum : int { INCREASE_IN_DS = 1, INCREASING_IN_DS = 0, NOT_INCREASE_IN_DS = -1 };
@@ -97,6 +108,7 @@ public:
     std::pair<ErrorInfo, std::vector<std::string>> DecreGlobalReference(const std::vector<std::string> &objectIds,
                                                                         const std::string &remoteId);
     std::vector<int> QueryGlobalReference(const std::vector<std::string> &objectIds);
+    ErrorInfo ReleaseGRefs(const std::string &remoteId);
     ErrorInfo GenerateKey(std::string &key, const std::string &prefix, bool isPut = true);
     ErrorInfo GenerateReturnObjectIds(const std::string &requestId,
                                       std::vector<YR::Libruntime::DataObject> &returnObjs);
@@ -121,6 +133,9 @@ public:
     bool SetError(const std::string &id, const ErrorInfo &err);
     bool AddReadyCallback(const std::string &id, ObjectReadyCallback callback);
     bool AddReadyCallbackWithData(const std::string &id, ObjectReadyCallbackWithData callback);
+    void AddEventCallbackWithData(const std::string &id, EventCallbackWithData callback);
+    bool AddEventData(const std::string &reqId, const std::string &eventData);
+    void AddEventTimer(const std::string &reqId, int timeoutSec);
     bool AddReturnObject(const std::vector<DataObject> &returnObjs);
     bool AddReturnObject(const std::string &objId);
     bool SetInstanceId(const std::string &id, const std::string &instanceId);
@@ -153,13 +168,18 @@ private:
                                                                              bool toDataSystem,
                                                                              const std::string &remoteId = "");
     std::vector<std::string> DecreaseGRefInMemory(const std::vector<std::string> &objectIds);
+    void DoEventCallback(EventCallbackWithData callback, const std::string &reqId, const std::string &eventData);
 
     std::mutex mu;
     std::mutex reqMu;
+    std::mutex eventMu;
     std::shared_ptr<ObjectStore> dsObjectStore;
     std::shared_ptr<WaitingObjectManager> waitingObjectManager;
     std::unordered_map<std::string, std::shared_ptr<ObjectDetail>> storeMap;
     std::unordered_map<std::string, std::vector<std::string>> reqObjStore;
+    std::unordered_map<std::string, EventCallbackInfo> reqEventCallbackMap_;
+    std::shared_ptr<TimerWorker> timerWorker_;
+    std::condition_variable eventCond_;
     size_t totalInMemBufSize;
 };
 

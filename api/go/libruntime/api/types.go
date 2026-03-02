@@ -240,6 +240,7 @@ type InvokeOptions struct {
 	Timeout              int
 	AcquireTimeout       int
 	TrafficLimited       bool
+	ForceInvoke          bool
 }
 
 // InstanceAllocation holds the allocation of instance
@@ -429,6 +430,9 @@ func (e ErrorInfo) getStackTracesInfo() string {
 
 // GetAsyncCallback define the get async callback function type.
 type GetAsyncCallback func(result []byte, err error)
+
+// GetEventCallback define the get event callback function type.
+type GetEventCallback func(result []byte, err error)
 
 // FormatLogger format logger interface
 type FormatLogger interface {

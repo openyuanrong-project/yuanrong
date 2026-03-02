@@ -56,12 +56,6 @@ pyx_library(
 )
 
 copy_file(
-    name = "cp_server_py",
-    srcs = ["server.py"],
-    dstdir = "build/output/runtime/service/python/fnruntime",
-)
-
-copy_file(
     name = "cp_yr_so",
     srcs = [
         "//src/proto:libruntime_py_proto",
@@ -98,7 +92,6 @@ genrule(
         "py_strip",
         "//:grpc_strip",
         "//api/python:cp_yr_so",
-        "//api/python:cp_server_py",
         ":python_sources",
     ],
     outs = ["yr_python_pkg.out"],

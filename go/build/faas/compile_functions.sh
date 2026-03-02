@@ -32,5 +32,5 @@ function generate_pb() {
     cp -afr ${GOPATH}/src/yuanrong.org/kernel/pkg/ ${GOPATH}/src/faas/
 }
 
-go mod tidy
 generate_pb
+go mod tidy

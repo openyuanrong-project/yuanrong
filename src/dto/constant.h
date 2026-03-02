@@ -45,5 +45,8 @@ const std::string LABEL_DOES_NOT_EXIST = "LabelDoesNotExist";
 const std::string AFFINITYSCOPE_POD = "POD";
 const std::string AFFINITYSCOPE_NODE = "NODE";
 const std::string DEFAULT_YR_NAMESPACE = "yr_defalut_namespace";
+const std::string EVENT_EOF = "yuanrong_event_EOF";
+const std::string INSTANCE_REQUIREMENT_ACCEPT = "accept";
+const std::string INSTANCE_REQUIREMENT_ACCEPT_EVENT_STREAM = "text/event-stream";
 }  // namespace Libruntime
 }  // namespace YR

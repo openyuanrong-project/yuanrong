@@ -197,17 +197,34 @@ grpc::Status GrpcPosixService::HandleDirectStream(
                     srcInstance, dstInstance, instanceID);
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "The instance id is not match.");
     }
-    auto fs = this->fsIntfMgr->TryGet(srcInstance);
-    if (fs != nullptr && fs->Available()) {
-        return grpc::Status(grpc::StatusCode::ALREADY_EXISTS,
-                            "The runtime " + instanceID + " has already connected to the " + srcInstance);
+    grpc::Status status = grpc::Status::OK;
+    if (enableEvent_) {
+        auto fs = this->fsIntfMgr->TryGetEventIntfs(srcInstance);
+        if (fs != nullptr && fs->Available()) {
+            status = grpc::Status(grpc::StatusCode::ALREADY_EXISTS,
+                                "The runtime " + instanceID + " has already connected to the " + srcInstance);
+        } else {
+            auto eventIntf = std::make_shared<FSIntfGrpcServerReaderWriter>(instanceID, srcInstance, runtimeID, context,
+                                                                     SteamRW{stream, batchStream});
+            eventIntf->RegisterMessageHandler(eventMsgHdlrs);
+            this->fsIntfMgr->EmplaceEventIntfs(srcInstance, eventIntf);
+            StartRead(srcInstance, eventIntf, rtDisconnectedTimeout);
+        }
     }
-    auto fsIntf = std::make_shared<FSIntfGrpcServerReaderWriter>(instanceID, srcInstance, runtimeID, context,
-                                                                 SteamRW{stream, batchStream});
-    fsIntf->RegisterMessageHandler(rtMsgHdlrs);
-    this->fsIntfMgr->Emplace(srcInstance, fsIntf);
-    StartRead(srcInstance, fsIntf, rtDisconnectedTimeout);
-    return grpc::Status::OK;
+    if (enableDirectCall_) {
+        auto fs = this->fsIntfMgr->TryGet(srcInstance);
+        if (fs != nullptr && fs->Available()) {
+            status = grpc::Status(grpc::StatusCode::ALREADY_EXISTS,
+                                "The runtime " + instanceID + " has already connected to the " + srcInstance);
+        } else {
+            auto fsIntf = std::make_shared<FSIntfGrpcServerReaderWriter>(instanceID, srcInstance, runtimeID, context,
+                                                                         SteamRW{stream, batchStream});
+            fsIntf->RegisterMessageHandler(rtMsgHdlrs);
+            this->fsIntfMgr->Emplace(srcInstance, fsIntf);
+            StartRead(srcInstance, fsIntf, rtDisconnectedTimeout);
+        }
+    }
+    return status;
 }
 
 grpc::Status GrpcPosixService::BatchMessageStream(

@@ -15,11 +15,13 @@
 # limitations under the License.
 
 import logging
+import sys
 from pathlib import Path
 from typing import Optional
 
 import click
 
+import yr.cli.discovery as discovery
 from yr.cli.config import ConfigResolver
 from yr.cli.const import (
     DEFAULT_CONFIG_PATH,
@@ -34,13 +36,14 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s.%(msecs)03d | %(levelname)-7s | %(name)s:%(funcName)s:%(lineno)d - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    force=True,
 )
 logger = logging.getLogger(__name__)
 
 print_logger = logging.getLogger("print")
 print_logger.setLevel(logging.INFO)
 print_logger.propagate = False
-handler = logging.StreamHandler()
+handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter("%(message)s"))
 print_logger.addHandler(handler)
 
@@ -111,7 +114,6 @@ Runs in either master (control-plane) or agent (data-plane) mode.
 Common patterns:\n
   - Start master: yr start --master\n
   - Start agent:  yr start\n
-  - Override config: yr start -s 'values.log_level="DEBUG"'
 """,
 )
 @click.option(
@@ -141,13 +143,41 @@ Common patterns:\n
             - Agent mode deploys ds_worker, function_proxy and function_agent.
     """,
 )
+@click.option(
+    "--master_address",
+    "function_master_addr",
+    help="""
+        Address of function_master in http(s)://host:port format for service discovery.\n
+        If using https://, TLS cert paths must be provided via --config or -s in values.fs.tls
+        (cert_file, key_file, ca_file, with optional base_path).
+    """,
+)
 @click.pass_context
-def start(ctx: click.Context, overrides: tuple[str, ...], master_mode: Optional[bool]) -> None:
+def start(
+    ctx: click.Context,
+    overrides: tuple[str, ...],
+    master_mode: Optional[bool],
+    function_master_addr: Optional[str],
+) -> None:
     """Start the YuanRong system in master or agent mode."""
     config_path: Path = ctx.obj["config_path"]
     cli_dir: Path = ctx.obj["cli_dir"]
     mode = StartMode.MASTER if master_mode else StartMode.AGENT
     logger.info(f"Starting yr in {mode.value} mode")
+    if function_master_addr:
+        logger.info(f"Discovering services from function_master at {function_master_addr}...")
+        try:
+            overrides = discovery.resolve_overrides_from_function_master(
+                config_path=config_path,
+                cli_dir=cli_dir,
+                mode=mode,
+                overrides=overrides,
+                function_master_addr=function_master_addr,
+            )
+            logger.debug(f"Final config overrides after adding service discovery info: {overrides}")
+        except Exception as e:
+            logger.error(f"Failed to get service discovery info from function_master: {e}")
+            ctx.exit(1)
 
     launcher = SystemLauncher(config_path, cli_dir, mode, overrides=overrides)
     launcher.load_components()
@@ -318,7 +348,7 @@ def config_template(ctx: click.Context) -> None:
 
 
 def main(cmdargs: Optional[list[str]] = None) -> None:
-    cli.main(args=cmdargs, prog_name="yrexp", standalone_mode=True)
+    cli.main(args=cmdargs, prog_name="yr", standalone_mode=True)
 
 
 if __name__ == "__main__":

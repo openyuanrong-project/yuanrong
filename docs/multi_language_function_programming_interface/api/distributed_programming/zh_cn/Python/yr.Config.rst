@@ -91,8 +91,6 @@ yr.Config
          - 函数主节点地址列表。
        * - :ref:`dedup_logs <dedup_logs_cn>`
          - 用于对作业中的函数进程标准输出日志去重。
-       * - :ref:`log_to_driver <log_to_driver_cn>`
-         - 作业中的函数进程标准输出日志定位到 Driver 端。
 
     **方法**：
 
@@ -146,5 +144,4 @@ yr.Config
     yr.Config.custom_envs
     yr.Config.master_addr_list
     yr.Config.dedup_logs
-    yr.Config.log_to_driver
     yr.Config.__init__

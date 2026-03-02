@@ -85,6 +85,7 @@ public class TestContextImpl {
         Assert.assertNotNull(context.getDelegateDecrypt());
         context.setState(new String("stateID"));
         Assert.assertNull(context.getState());
+        context.setTraceID("traceID");
 
         ContextImpl context1 = new ContextImpl();
         context1.canEqual(context);
@@ -101,9 +102,14 @@ public class TestContextImpl {
         context2.setExtendedMetaData(context.getExtendedMetaData());
         context2.setStartTime(context.getStartTime());
         context2.setState(context.getState());
+        context2.setStream(context.getStream());
+        context2.setTraceID(context.getTraceID());
+
+        ContextImpl context3 = new ContextImpl(context);
 
         Assert.assertTrue(context.canEqual(context2));
-        Assert.assertTrue(context.equals(context2));
+        Assert.assertEquals(context, context2);
+        Assert.assertNotEquals(context, context3);
     }
 
     @Test

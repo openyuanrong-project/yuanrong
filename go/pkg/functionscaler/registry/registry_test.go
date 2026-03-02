@@ -122,14 +122,18 @@ func TestInstanceWatcherFilter(t *testing.T) {
 				Kvs: []*mvccpb.KeyValue{
 					{
 						Key:   []byte("/sn/instance/business/yrk/tenant/0/function/0-system-faasscheduler/version/$latest/defaultaz/8c1e66d5f21be4fc00/45a6e8e0-d99a-46ec-afb1-feb6f640f37d"),
-						Value: []byte("{}"),
+						Value: []byte("{\"instanceID\":\"scheduler-faas-scheduler-6c776f9b98-jl2cq\",\"runtimeID\":\"scheduler-faas-scheduler-6c776f9b98-jl2cq\",\"runtimeAddress\":\"127.0.0.1:0\",\"functionProxyID\":\"dxxxxx9\",\"function\":\"0/0-system-faasscheduler/$latest\",\"instanceStatus\":{\"code\":3},\"jobID\":\"runtime-62865730\",\"tenantID\":\"0\",\"isSystemFunc\":true,\"extensions\":{\"source\":\"driver\"}}"),
+					},
+					{
+						Key:   []byte("/sn/instance/business/yrk/tenant/12345678901234561234567890123456/function/0-system-faasExecutorGo1.x/version/$latest/defaultaz/f1d87744e81c386100/db547379-0000-4000-8000-00d8318e1989"),
+						Value: []byte("{\"instanceID\":\"db547379-0000-4000-8000-00d8318e1989\",\"requestID\":\"f1d87744e81c386100\",\"runtimeID\":\"runtime-db547379-0000-4000-8000-00d8318e1989-6457919349af\",\"runtimeAddress\":\"127.0.0.1:0\",\"functionAgentID\":\"custom-function-agent-00d8318e1989-500m-500mi-4e001e94000000006\",\"functionProxyID\":\"dggphis191119\",\"function\":\"12345678901234561234567890123456/0-system-faasExecutorGo1.x/$latest\",\"resources\":{\"resources\":{\"Memory\":{\"name\":\"Memory\",\"scalar\":{\"value\":500}},\"CPU\":{\"name\":\"CPU\",\"scalar\":{\"value\":500}}}},\"scheduleOption\":{\"schedPolicyName\":\"monopoly\",\"affinity\":{\"instanceAffinity\":{},\"resource\":{},\"instance\":{\"scope\":\"NODE\"}},\"initCallTimeOut\":300,\"resourceSelector\":{\"resource.owner\":\"78000000-0000-4000-bc60-371c01ba313f\"},\"extension\":{\"schedule_policy\":\"monopoly\",\"DELEGATE_DIRECTORY_QUOTA\":\"512\"},\"range\":{},\"scheduleTimeoutMs\":\"5000\"},\"createOptions\":{\"init_call_timeout\":\"300\",\"INVOKE_TIMEOUT\":\"61\",\"FUNCTION_KEY_NOTE\":\"0aae5ae9ea9a42c3adc43dd368efb29b/0@default@hello/latest\",\"ConcurrentNum\":\"5\",\"DELEGATE_POD_LABELS\":\"\",\"lifecycle\":\"detached\",\"GRACEFUL_SHUTDOWN_TIME\":\"900\",\"DELEGATE_HOST_ALIASES\":\"{\\\"10.34.244.163\\\":[\\\"axxx.xxx.cn\\\"],\\\"127.0.0.1\\\":[\\\"wiseguard-rms.hwcloudtest.cn\\\"]}\",\"DELEGATE_CONTAINER\":\"\",\"DELEGATE_VOLUMES\":\"\",\"DELEGATE_AGENT_VOLUME_MOUNTS\":\"null\",\"INSTANCE_TYPE_NOTE\":\"reserved\",\"DELEGATE_VOLUME_MOUNTS\":\"\",\"DATA_AFFINITY_ENABLED\":\"false\",\"SCHEDULER_ID_NOTE\":\"scheduler-faas-scheduler-5f6cf4f58b-bk6ct-temporary\",\"RESOURCE_SPEC_NOTE\":\"\",\"call_timeout\":\"61\",\"DELEGATE_CONTAINER_ID\":\"252420214fc46dc2dc123ad6f0a9d2ff7797b027b737b5ff0b2383330c5b97e8\",\"DELEGATE_POD_INIT_LABELS\":\"{\\\"securityGroup\\\":\\\"0aae5ae9ea9a42c3adc43dd368efb29b\\\"}\",\"FUNCTION_SIGNATURE\":\"3854191954\",\"DELEGATE_ENCRYPT\":\"\",\"RecoverRetryTimes\":\"0\",\"DELEGATE_DIRECTORY_QUOTA\":\"512\",\"schedule_policy\":\"monopoly\",\"DELEGATE_DIRECTORY_INFO\":\"/tmp\",\"DELEGATE_ENV_VAR\":\"null\",\"DELEGATE_RUNTIME_MANAGER\":\"{\\\"env\\\":null}\",\"tenantId\":\"0aae5ae9ea9a42c3adc43dd368efb29b\"},\"labels\":[\"faas\"],\"instanceStatus\":{\"code\":3,\"msg\":\"running\"},\"jobID\":\"job-ime-74613546\",\"schedulerChain\":[\"custom-function-agent-00d8318e1989-500m-500mi-4e001e94000000006\"],\"parentID\":\"scheduler-faas-scheduler-5f6cf4f58b-bk6ct\",\"parentFunctionProxyAID\":\"dggphis191118-LocalSchedInstanceCtrlActor@7.227.25.28:22423\",\"storageType\":\"local\",\"scheduleTimes\":1,\"deployTimes\":1,\"args\":[{\"value\":\"\"}],\"version\":\"3\",\"dataSystemHost\":\"7.227.27.16\",\"detached\":true,\"gracefulShutdownTime\":\"900\",\"extensions\":{\"receivedTimestamp\":\"1765445562326\",\"pid\":\"116\",\"createTimestamp\":\"1765445562\",\"updateTimestamp\":\"1765445625\"},\"unitID\":\"custom-function-agent-00d8318e1989-500m-500mi-4e001e94000000006\"}"),
 					},
 				},
 			}
 			return getRsp, nil
 		}).Reset()
 		insList := ir.EtcdList()
-		convey.So(len(insList), convey.ShouldEqual, 0)
+		convey.So(len(insList), convey.ShouldEqual, 1)
 	})
 }
 
@@ -453,7 +457,7 @@ func TestInstanceRegistryWatcherHandler(t *testing.T) {
 		case msg = <-recvMsg:
 		default:
 		}
-		convey.So(msg, convey.ShouldResemble, SubEvent{})
+		convey.So(msg.EventType, convey.ShouldEqual, SubEventTypeSynced)
 	})
 	convey.Convey("etcd put invalid instanceID", t, func() {
 		event.Type = etcd3.PUT
@@ -812,10 +816,14 @@ func TestFunctionRegistryWatcherHandler(t *testing.T) {
 		convey.So(res.FuncKey, convey.ShouldEqual, "1234/test-func/latest")
 	})
 	convey.Convey("EtcdList", t, func() {
-		defer ApplyFunc(etcd3.GetRouterEtcdClient, func() *etcd3.EtcdClient {
-			return &etcd3.EtcdClient{}
+		client, _ := clientv3.New(clientv3.Config{Endpoints: []string{"127.0.0.1"}})
+		etcdClient := &etcd3.EtcdClient{
+			Client: client,
+		}
+		defer ApplyFunc(etcd3.GetMetaEtcdClient, func() *etcd3.EtcdClient {
+			return etcdClient
 		}).Reset()
-		defer ApplyMethod(reflect.TypeOf(&etcd3.EtcdClient{}), "Get", func(_ *etcd3.EtcdClient, ctx etcd3.EtcdCtxInfo,
+		defer ApplyMethodFunc(client, "Get", func(ctx context.Context,
 			key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
 			getRsp := &clientv3.GetResponse{
 				Kvs: []*mvccpb.KeyValue{
@@ -936,8 +944,8 @@ func TestStartRegistry(t *testing.T) {
 		FaaSManagerRegistry:   NewFaaSManagerRegistry(stopCh),
 	}
 	ew := &etcd3.EtcdWatcher{}
-	GlobalRegistry.FaaSSchedulerRegistry.functionSchedulerWatcher = ew
-	GlobalRegistry.FaaSSchedulerRegistry.moduleSchedulerWatcher = ew
+	GlobalRegistry.FaaSSchedulerRegistry.schedulerInstanceWatcher = ew
+	GlobalRegistry.FaaSSchedulerRegistry.schedulerHashWatcher = ew
 	GlobalRegistry.FunctionRegistry.watcher = ew
 	GlobalRegistry.FunctionRegistry.userAgencyRegistry = &UserAgencyRegistry{watcher: ew}
 	GlobalRegistry.InstanceRegistry.watcher = ew
@@ -1037,25 +1045,25 @@ func TestMiscellaneous(t *testing.T) {
 		stopCh := make(chan struct{})
 		fsr := NewFaasSchedulerRegistry(stopCh)
 		convey.Convey("instance success", func() {
-			res := fsr.functionSchedulerFilter(&etcd3.Event{
+			res := fsr.schedulerInstanceFilter(&etcd3.Event{
 				Key: "/sn/instance/business/yrk/tenant/1234567890123456/function/0-system-faasscheduler/version/$latest/defaultaz/task-29eea890-fd17/a16e7302-0000-4000-80de-84e02e5d6717",
 			})
 			convey.So(res, convey.ShouldBeFalse)
 		})
 		convey.Convey("instance failed1", func() {
-			res := fsr.functionSchedulerFilter(&etcd3.Event{
+			res := fsr.schedulerInstanceFilter(&etcd3.Event{
 				Key: "/sn/instance/business/yrk/302-0000-4000-80de-84e02e5d6717",
 			})
 			convey.So(res, convey.ShouldBeTrue)
 		})
 		convey.Convey("module success", func() {
-			res := fsr.moduleSchedulerFilter(&etcd3.Event{
-				Key: "/sn/faas-scheduler/instances/cluster001/127.0.0.1/faas-scheduler-59ddbc4b75-8xdjf",
+			res := fsr.schedulerHashFilter(&etcd3.Event{
+				Key: "/sn/faas-scheduler/instances/cluster001/7.218.100.25/faas-scheduler-59ddbc4b75-8xdjf",
 			})
 			convey.So(res, convey.ShouldBeFalse)
 		})
 		convey.Convey("module failed1", func() {
-			res := fsr.moduleSchedulerFilter(&etcd3.Event{
+			res := fsr.schedulerHashFilter(&etcd3.Event{
 				Key: "/sn/instance/business/yrk/302-0000-4000-80de-84e02e5d6717",
 			})
 			convey.So(res, convey.ShouldBeTrue)
@@ -1104,7 +1112,7 @@ func TestInstancesInfoRegistryWatcherHandler(t *testing.T) {
 		Rev:       1,
 	}
 
-	Patches := ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "CheckFuncOwner",
+	Patches := ApplyMethod(reflect.TypeOf(&selfregister.SchedulerProxy{}), "IsFuncOwner",
 		func(_ *selfregister.SchedulerProxy, funcKey string) bool {
 			return true
 		})
@@ -1150,7 +1158,7 @@ func TestInstancesInfoRegistryWatcherHandler(t *testing.T) {
 			FuncKey: "12345678901234561234567890123456/0@yrservice@test-faas-scheduler-reserved-exist/$latest",
 		})
 	})
-	convey.Convey("CheckFuncOwner does not allow", t, func() {
+	convey.Convey("IsFuncOwner does not allow", t, func() {
 		Patches.Reset()
 		event.Type = etcd3.PUT
 		ifr.watcherHandler(event)
@@ -1233,6 +1241,7 @@ func TestAliasRegistry_RunWatcher(t *testing.T) {
 				p.Reset()
 			}
 		}()
+		os.Setenv(constant.EnableAgentCRDRegistry, "")
 		GlobalRegistry = &Registry{
 			FaaSSchedulerRegistry:     NewFaasSchedulerRegistry(stopCh),
 			FunctionRegistry:          NewFunctionRegistry(stopCh),
@@ -1244,6 +1253,7 @@ func TestAliasRegistry_RunWatcher(t *testing.T) {
 			FaaSFrontendRegistry:      NewFaaSFrontendRegistry(stopCh),
 			TenantQuotaRegistry:       NewTenantQuotaRegistry(stopCh),
 			RolloutRegistry:           NewRolloutRegistry(stopCh),
+			AgentRegistry:             NewAgentRegistry(stopCh),
 		}
 		ProcessETCDList()
 		convey.Convey("update", func() {
@@ -1318,11 +1328,11 @@ func TestAliasRegistry_RunWatcher(t *testing.T) {
 }
 
 func TestGetSchedulerInfo(t *testing.T) {
-	convey.Convey("GetSchedulerInfo", t, func() {
+	convey.Convey("GetAllSchedulerInfo", t, func() {
 		schedulerRegistry := NewFaasSchedulerRegistry(make(chan struct{}))
 		selfregister.GlobalSchedulerProxy.Add(&commonTypes.InstanceInfo{InstanceName: "scheduler1",
 			InstanceID: "scheduler1-id"}, "")
-		info := schedulerRegistry.GetSchedulerInfo()
+		info := schedulerRegistry.GetAllSchedulerInfo()
 		convey.So(info.SchedulerIDList[0], convey.ShouldEqual, "scheduler1")
 		convey.So(info.SchedulerInstanceList[0].InstanceID, convey.ShouldEqual, "scheduler1-id")
 		convey.So(info.SchedulerInstanceList[0].InstanceName, convey.ShouldEqual, "scheduler1")
@@ -1511,6 +1521,7 @@ func TestFunctionAvailableRegistry_RunWatcher(t *testing.T) {
 			FaaSFrontendRegistry:      NewFaaSFrontendRegistry(stopCh),
 			TenantQuotaRegistry:       NewTenantQuotaRegistry(stopCh),
 			RolloutRegistry:           NewRolloutRegistry(stopCh),
+			AgentRegistry:             NewAgentRegistry(stopCh),
 		}
 		ProcessETCDList()
 		convey.Convey("update and delete", func() {

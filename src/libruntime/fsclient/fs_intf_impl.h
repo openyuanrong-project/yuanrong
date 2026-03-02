@@ -327,6 +327,15 @@ inline std::shared_ptr<StreamingMessage> GenStreamMsg(const std::string &message
     return streamMsg;
 }
 
+template <>
+inline std::shared_ptr<StreamingMessage> GenStreamMsg(const std::string &messageId, const EventRequest &msg)
+{
+    auto streamMsg = std::make_shared<StreamingMessage>();
+    streamMsg->mutable_eventreq()->CopyFrom(msg);
+    streamMsg->set_messageid(messageId);
+    return streamMsg;
+}
+
 struct WiredRequest : public std::enable_shared_from_this<WiredRequest> {
     WiredRequest() = default;
     WiredRequest(std::function<void(StreamingMessage, ErrorInfo, std::function<void(bool)>)> cb,
@@ -501,7 +510,8 @@ public:
     // ipAddr is fs Ip while client mode
     // port is
     FSIntfImpl(const std::string &ipAddr, int port, FSIntfHandlers handlers, bool isDriver,
-               std::shared_ptr<Security> sec, std::shared_ptr<ClientsManager> clientsMgr, bool enableClientMode);
+               std::shared_ptr<Security> sec, std::shared_ptr<ClientsManager> clientsMgr, bool enableClientMode,
+               bool enableEvent = false);
     ~FSIntfImpl();
 
     ErrorInfo Start(const std::string &jobID, const std::string &instanceID = "", const std::string &runtimeID = "",
@@ -519,6 +529,8 @@ public:
     void StateLoadAsync(const StateLoadRequest &req, StateLoadCallBack callback);
     void CreateRGroupAsync(const CreateResourceGroupRequest &req, CreateResourceGroupCallBack callback,
                            int timeoutSec = -1);
+    void EventAsync(const std::shared_ptr<EventMessageSpec> &req, int timeoutSec = -1);
+    void UpdateEventServerInfo(const std::string &ip, int port, const std::string &instaceId);
     void ResendRequests(const std::string &dstInstanceID);
     void NotifyDisconnected(const std::string &dstInstanceID);
     bool NeedResendReq(const std::shared_ptr<StreamingMessage> &message);
@@ -532,16 +544,20 @@ public:
     }
     void RemoveInsRtIntf(const std::string &instanceId) override;
     bool IsHealth() override;
+    int GetSelfPort() const;
 
 protected:
     void Write(const std::shared_ptr<StreamingMessage> &msg, std::function<void(ErrorInfo)> callback = nullptr);
     void TryDirectWrite(const std::string &dstInstanceID, const std::shared_ptr<StreamingMessage> &msg,
                         std::function<void(bool, ErrorInfo)> callback, std::function<void(bool)> preWrite = nullptr);
+    void TryDirectWriteEvent(const std::string &dstInstanceID, const std::shared_ptr<StreamingMessage> &msg,
+                                        std::function<void(bool, ErrorInfo)> callback);
     std::pair<bus_service::DiscoverDriverResponse, ErrorInfo> NotifyDriverDiscovery(const std::string &jobId,
                                                                                     const std::string &instanceId,
                                                                                     const std::string &functionName,
                                                                                     int listeningPort);
-    ErrorInfo StartService(const std::string &jobID, const std::string &instanceID, const std::string &runtimeID);
+    ErrorInfo StartService(const std::string &jobID, const std::string &instanceID, const std::string &runtimeID,
+                           bool enableDirectCall, bool enableEvent = false);
 
     std::string fsIp;
     std::string listeningIpAddr;
@@ -550,6 +566,7 @@ protected:
     bool isDriver;
     bool enableClientMode = false;
     bool enableDirectCall = false;
+    bool enableEvent = false;
     mutable absl::Mutex mu;
     std::unordered_map<std::string, std::shared_ptr<WiredRequest>> wiredRequests ABSL_GUARDED_BY(mu);
     std::shared_ptr<TimerWorker> timerWorker;
@@ -574,6 +591,7 @@ private:
     bool NeedRepeat(const std::string requestId);
     void WriteCallback(const std::string requestId, const ErrorInfo &status);
     void NewRTIntfClient(const std::string &remote, const NotifyRequest &req);
+    std::shared_ptr<FSIntfReaderWriter> NewOrGetEventIntfClient(const std::string &dstInstanceID);
 
     template <typename RespType>
     void WriteResponse(const std::string messageId, const RespType &resp);
@@ -590,10 +608,20 @@ private:
     void RecvSignalRequest(const std::string &, const std::shared_ptr<StreamingMessage> &);
     void RecvHeartbeatRequest(const std::string &, const std::shared_ptr<StreamingMessage> &);
     void RecvCreateOrInvokeResponse(const std::string &, const std::shared_ptr<StreamingMessage> &);
+    void RecvEventRequest(const std::string &, const std::shared_ptr<StreamingMessage> &);
     void RecvResponse(const std::string &, const std::shared_ptr<StreamingMessage> &);
     std::unordered_map<BodyCase, MsgHdlr> fsMsgHdlrs;
     std::unordered_map<BodyCase, MsgHdlr> rtMsgHdlrs;
+    std::unordered_map<BodyCase, MsgHdlr> eventMsgHdlrs;
     SubscribeFunc reSubscribeCb;
+    struct EventServerInfo {
+        std::string eventServerIp;
+        int eventServerPort;
+        std::mutex dstMu;
+    };
+    std::unordered_map<std::string, std::shared_ptr<EventServerInfo>> eventServerInfos;
+    std::mutex eventMu_;
+    std::mutex eventInfosMu_;
 };
 }  // namespace Libruntime
 }  // namespace YR

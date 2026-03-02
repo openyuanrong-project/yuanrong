@@ -35,7 +35,7 @@ from yr.fnruntime import Consumer, Producer, auto_get_cluster_access_info
 from yr.npu_object import NpuObject
 from yr.object_ref import ObjectRef
 from yr.resource_group_ref import RgObjectRef
-from yr.runtime import ExistenceOpt, WriteMode, CacheType, SetParam, MSetParam, CreateParam, GetParams
+from yr.base_runtime import ExistenceOpt, WriteMode, CacheType, SetParam, MSetParam, CreateParam, GetParams
 from yr.stream import ProducerConfig, SubscriptionConfig
 from yr.decorator.function_proxy import FunctionProxy
 from yr.decorator.instance_proxy import InstanceCreator, InstanceProxy

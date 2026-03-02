@@ -503,8 +503,8 @@ func TestNewDynamicClient_Singleton(t *testing.T) {
 	oldInClusterConfig := inClusterConfigFunc
 	inClusterConfigFunc = mock.InClusterConfig
 	defer func() { inClusterConfigFunc = oldInClusterConfig }()
-	client1 := NewDynamicClient()
-	client2 := NewDynamicClient()
+	client1 := GetDynamicClient()
+	client2 := GetDynamicClient()
 	if client1 != client2 {
 		t.Error("Expected singleton instance, got different clients")
 	}

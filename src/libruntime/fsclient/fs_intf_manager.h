@@ -40,19 +40,29 @@ public:
                                                                 const std::string &runtimeID,
                                                                 const ReaderWriterClientOption &option,
                                                                 ProtocolType type);
+    virtual std::shared_ptr<FSIntfReaderWriter> NewEventIntfClient(const std::string &srcInstance,
+                                                                const std::string &dstInstance,
+                                                                const std::string &runtimeID,
+                                                                const ReaderWriterClientOption &option,
+                                                                ProtocolType type);
     // if direct runtime rw is not exist, return system intf rw
     virtual std::shared_ptr<FSIntfReaderWriter> TryGet(const std::string &instanceID);
     virtual std::shared_ptr<FSIntfReaderWriter> Get(const std::string &instanceID);
     virtual bool Emplace(const std::string &instanceID, const std::shared_ptr<FSIntfReaderWriter> &intf);
     virtual void Remove(const std::string &instanceID);
     virtual void Clear();
+    virtual std::shared_ptr<FSIntfReaderWriter> TryGetEventIntfs(const std::string &instanceID);
+    virtual std::shared_ptr<FSIntfReaderWriter> GetEventIntfs(const std::string &instanceID);
+    virtual bool EmplaceEventIntfs(const std::string &instanceID, const std::shared_ptr<FSIntfReaderWriter> &intf);
 
     void UpdateSystemIntf(const std::shared_ptr<FSIntfReaderWriter> &intf);
     std::shared_ptr<FSIntfReaderWriter> GetSystemIntf();
 
 protected:
     mutable absl::Mutex mu;
+    mutable absl::Mutex eventMu;
     std::unordered_map<std::string, std::shared_ptr<FSIntfReaderWriter>> rtIntfs;
+    std::unordered_map<std::string, std::shared_ptr<FSIntfReaderWriter>> eventIntfs;
     std::shared_ptr<FSIntfReaderWriter> systemIntf;
     std::shared_ptr<ClientsManager> clientsMgr;
 };

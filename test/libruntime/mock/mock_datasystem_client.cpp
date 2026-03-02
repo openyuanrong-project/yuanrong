@@ -176,6 +176,11 @@ int ObjectClient::QueryGlobalRefNum(const std::string &id)
     return 1;
 }
 
+Status ObjectClient::ReleaseGRefs(const std::string &remoteClientId)
+{
+    return Status::OK();
+}
+
 Status ObjectClient::GenerateKey(const std::string &prefix, std::string &key)
 {
     key = prefix;

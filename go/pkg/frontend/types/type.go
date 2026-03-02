@@ -21,16 +21,16 @@ import (
 	"encoding/json"
 	"time"
 
-	"frontend/pkg/common/faas_common/alarm"
-	"frontend/pkg/common/faas_common/crypto"
-	"frontend/pkg/common/faas_common/etcd3"
-	"frontend/pkg/common/faas_common/localauth"
-	"frontend/pkg/common/faas_common/logger/config"
-	"frontend/pkg/common/faas_common/redisclient"
-	"frontend/pkg/common/faas_common/sts/raw"
-	"frontend/pkg/common/faas_common/tls"
-	"frontend/pkg/common/faas_common/types"
-	wisecloudTypes "frontend/pkg/common/faas_common/wisecloudtool/types"
+	"yuanrong.org/kernel/pkg/common/faas_common/alarm"
+	"yuanrong.org/kernel/pkg/common/faas_common/crypto"
+	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
+	"yuanrong.org/kernel/pkg/common/faas_common/localauth"
+	"yuanrong.org/kernel/pkg/common/faas_common/logger/config"
+	"yuanrong.org/kernel/pkg/common/faas_common/redisclient"
+	"yuanrong.org/kernel/pkg/common/faas_common/sts/raw"
+	"yuanrong.org/kernel/pkg/common/faas_common/tls"
+	"yuanrong.org/kernel/pkg/common/faas_common/types"
+	wisecloudTypes "yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/types"
 )
 
 // FunctionRequestInfo function response info
@@ -127,20 +127,30 @@ type Config struct {
 	AlarmConfig          alarm.Config        `json:"alarmConfig" valid:"optional"`
 	Version              string              `json:"version" valid:"optional"`
 	// FunctionGraph config
-	FunctionNameSeparator  string           `json:"functionNameSeparator" valid:"optional"`
-	AlarmServerAddress     string           `json:"alarmServerAddress" valid:"optional"`
-	InvokeMaxRetryTimes    int              `json:"invokeMaxRetryTimes" valid:"optional"`
-	EtcdLeaseConfig        *EtcdLeaseConfig `json:"etcdLeaseConfig" valid:"optional"`
-	HeartbeatConfig        *HeartbeatConfig `json:"heartbeatConfig" valid:"optional"`
-	E2EMaxDelayTime        int64            `json:"e2eMaxDelayTime" valid:"optional"`
-	RetryConfig            *RetryConfig     `json:"retry" valid:"optional"`
-	ShareKeys              ShareKeys        `json:"shareKeys" valid:"optional"`
-	Affinity               string           `json:"affinity"`
-	RPCClientConcurrentNum int              `json:"rpcClientConcurrentNum" valid:"optional"`
-	NodeAffinity           string           `json:"nodeAffinity" valid:"optional"`
-	NodeAffinityPolicy     string           `json:"nodeAffinityPolicy" valid:"optional"`
-	AuthConfig             AuthConfig       `json:"authConfig" valid:"optional"`
-	WiseCloudConfig        WiseCloudConfig  `json:"wiseCloudConfig" valid:"optional"`
+	FunctionNameSeparator   string           `json:"functionNameSeparator" valid:"optional"`
+	AlarmServerAddress      string           `json:"alarmServerAddress" valid:"optional"`
+	InvokeMaxRetryTimes     int              `json:"invokeMaxRetryTimes" valid:"optional"`
+	EtcdLeaseConfig         *EtcdLeaseConfig `json:"etcdLeaseConfig" valid:"optional"`
+	HeartbeatConfig         *HeartbeatConfig `json:"heartbeatConfig" valid:"optional"`
+	E2EMaxDelayTime         int64            `json:"e2eMaxDelayTime" valid:"optional"`
+	RetryConfig             *RetryConfig     `json:"retry" valid:"optional"`
+	ShareKeys               ShareKeys        `json:"shareKeys" valid:"optional"`
+	Affinity                string           `json:"affinity"`
+	RPCClientConcurrentNum  int              `json:"rpcClientConcurrentNum" valid:"optional"`
+	NodeAffinity            string           `json:"nodeAffinity" valid:"optional"`
+	NodeAffinityPolicy      string           `json:"nodeAffinityPolicy" valid:"optional"`
+	AuthConfig              AuthConfig       `json:"authConfig" valid:"optional"`
+	VerifyFilePath          string           `json:"verifyFilePath" valid:"optional"`
+	WiseCloudConfig         WiseCloudConfig  `json:"wiseCloudConfig" valid:"optional"`
+	IamConfig               IamConfig        `json:"iamConfig" valid:"optional"`
+	EnableEvent             bool             `json:"enableEvent" valid:"optional"`
+	WatchedConfigFilePath   string           `json:"watchedConfigFilePath" valid:"optional"`
+	AccessFaaSSchedulerType string           `json:"accessFaaSSchedulerType" valid:"optional"`
+}
+
+// IamConfig -
+type IamConfig struct {
+	Addr string `json:"addr"`
 }
 
 // WiseCloudConfig -
@@ -251,6 +261,7 @@ type InvokeProcessContext struct {
 
 	// stream
 	StreamCtx *StreamContext
+	types.ResponseWriter
 }
 
 // CreateInvokeProcessContext -
@@ -283,6 +294,7 @@ type SystemAuthConfig struct {
 	Enable    bool   `json:"enable" validate:"optional"`
 	AccessKey string `json:"accessKey" validate:"optional"`
 	SecretKey string `json:"secretKey" validate:"optional"`
+	DataKey   string `json:"dataKey" validate:"optional"`
 }
 
 // APIGTriggerResponse extern interface of web response

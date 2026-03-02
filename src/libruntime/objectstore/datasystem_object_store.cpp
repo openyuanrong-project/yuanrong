@@ -412,6 +412,16 @@ std::vector<int> DSCacheObjectStore::QueryGlobalReference(const std::vector<std:
     return counting;
 }
 
+ErrorInfo DSCacheObjectStore::ReleaseGRefs(const std::string &remoteId)
+{
+    OBJ_STORE_INIT_ONCE();
+    ds::Status status = dsClient->ReleaseGRefs(YR::utility::ParseRealJobId(remoteId));
+    auto code =
+        YR::Libruntime::ConvertDatasystemErrorToCore(status.GetCode(), static_cast<ErrorCode>(status.GetCode()));
+    auto msg = status.GetMsg();
+    return ErrorInfo(code, ModuleCode::DATASYSTEM, msg);
+}
+
 ErrorInfo DSCacheObjectStore::GenerateKey(std::string &key, const std::string &prefix, bool isPut)
 {
     // if DS-client is not initialized, do not init here, because it may cause memory occupation

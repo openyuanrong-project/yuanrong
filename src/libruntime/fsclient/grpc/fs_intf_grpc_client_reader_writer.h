@@ -33,6 +33,7 @@ public:
     const std::string TENANT_ACCESS_KEY = "access_key";
     const std::string SIGNATURE = "signature";
     const std::string TIMESTAMP = "timestamp";
+    const std::string TENANT_ID = "tenant_id";
     const std::string SOURCE_ID_META = "source_id";
     const std::string DST_ID_META = "dst_id";
     const std::string JOB_ID_META = "job_id";
@@ -49,7 +50,8 @@ public:
           clientsMgr(clientsMgr),
           resendCb(option.resendCb),
           disconnectedCb(option.disconnectedCb),
-          disconnectedTimeout(option.disconnectedTimeout)
+          disconnectedTimeout(option.disconnectedTimeout),
+          isKeepAlive(option.isKeepAlive)
     {
         disconnTime = std::chrono::steady_clock::now();
     }
@@ -64,6 +66,7 @@ public:
     void PreStart() override {}
     ErrorInfo Start() override;
     bool IsHealth() override;
+    bool IsSameDstAddr(const std::string &dstIp, const int &dstPort) override;
     ErrorInfo Reconnect();
     void Stop() override;
     bool GrpcRead(const std::shared_ptr<StreamingMessage> &message) override;
@@ -94,6 +97,7 @@ private:
     std::function<void(const std::string &)> resendCb;
     std::function<void(const std::string &)> disconnectedCb;
     int disconnectedTimeout;
+    bool isKeepAlive = false;
 };
 }  // namespace Libruntime
 }  // namespace YR

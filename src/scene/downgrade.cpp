@@ -23,7 +23,7 @@ DowngradeController::DowngradeController(const std::string &functionId, std::sha
                                          std::shared_ptr<Security> security)
     : functionId_(functionId), clientsMgr_(clientsMgr), security_(security)
 {
-    YRLOG_DEBUG("[DEBUG] functionId_: {}", functionId);  // delete
+    YRLOG_DEBUG("functionId_: {}", functionId);  // delete
     isFrontendFunction_ = IsFrontendFunction(functionId);
     existIngress_ =
         !YR::GetEnvValue(FRONTEND_ADDRESS_ENV).empty() && !YR::GetEnvValue(INVOCATION_URL_PREFIX_ENV).empty();

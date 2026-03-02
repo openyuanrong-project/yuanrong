@@ -43,6 +43,8 @@ import org.yuanrong.errorcode.ErrorInfo;
 import org.yuanrong.errorcode.ModuleCode;
 import org.yuanrong.errorcode.Pair;
 import org.yuanrong.exception.HandlerNotAvailableException;
+import org.yuanrong.exception.LibRuntimeException;
+import org.yuanrong.jni.LibRuntime;
 import org.yuanrong.libruntime.generated.Libruntime;
 import org.yuanrong.libruntime.generated.Libruntime.FunctionMeta;
 import org.yuanrong.runtime.util.Constants;
@@ -154,6 +156,12 @@ public class FaaSHandler implements HandlerIntf {
     private static final String X_TRACE_ID = "X-Trace-Id";
 
     private static final String ENV_DELEGATE_DECRYPT = "ENV_DELEGATE_DECRYPT";
+
+    private static final String EVENT_HEADER = "Accept";
+
+    private static final String EVENT_HEADER_VALUE = "text/event-stream";
+
+    private static final String EVENT_EOF = "yuanrong_event_EOF";
 
     /**
      * The Gson.
@@ -368,6 +376,7 @@ public class FaaSHandler implements HandlerIntf {
      */
     public String faasCallHandler(List<String> args) throws HandlerNotAvailableException {
         LOG.info("faas call handler called.");
+        ContextImpl callContext = new ContextImpl((ContextImpl) context);
         Object result;
         int innerCode = NONE_ERROR.getCode();
         if (args == null || args.size() < ARGS_MINIMUM_LENGTH) {
@@ -388,11 +397,20 @@ public class FaaSHandler implements HandlerIntf {
             userEvent = (jsonElement.isJsonObject()) ? jsonElement.toString() : jsonElement.getAsString();
         }
 
+        boolean isEventEnable = false;
         if (jsonObject.has(HEADER_STR) && !jsonObject.get(HEADER_STR).isJsonNull()) {
             JsonObject headerObj = jsonObject.getAsJsonObject(HEADER_STR);
             if (headerObj.has(X_TRACE_ID) && !headerObj.get(X_TRACE_ID).isJsonNull()) {
                 String traceId = headerObj.get(X_TRACE_ID).getAsString();
-                context.setTraceID(traceId);
+                callContext.setTraceID(traceId);
+            }
+            if (headerObj.has(EVENT_HEADER) && !headerObj.get(EVENT_HEADER).isJsonNull()) {
+                if (EVENT_HEADER_VALUE.equals(headerObj.get(EVENT_HEADER).getAsString())) {
+                    isEventEnable = true;
+                    Pair<String, String> reqInstanceId = LibRuntime.getRequestAndInstanceID();
+                    callContext.getContextInvokeParams().setInvokeID(reqInstanceId.getFirst());
+                    callContext.setInstanceID(reqInstanceId.getSecond());
+                }
             }
         }
 
@@ -407,7 +425,7 @@ public class FaaSHandler implements HandlerIntf {
         Util.setLogOpts(logType);
         String logGroupId = "";
         String logStreamId = "";
-        LogTankService logTankService = ((ContextImpl) context).getExtendedMetaData().getLogTankService();
+        LogTankService logTankService = callContext.getExtendedMetaData().getLogTankService();
         if (logTankService != null) {
             if (logTankService.getLogGroupId() != null) {
                 logGroupId = logTankService.getLogGroupId();
@@ -418,7 +436,8 @@ public class FaaSHandler implements HandlerIntf {
         }
 
         String[] callInfos = new String[] {
-            context.getInvokeID(), context.getRequestID(), context.getInstanceID(), Util.getFunctionInfo(context),
+            callContext.getInvokeID(), callContext.getRequestID(), callContext.getInstanceID(),
+            Util.getFunctionInfo(callContext),
             logGroupId,
             logStreamId
         };
@@ -427,7 +446,7 @@ public class FaaSHandler implements HandlerIntf {
         long startTime = System.currentTimeMillis();
         try {
             result = callMethod.invoke(udfManager.loadInstance(KEY_USER_CALL_ENTRY),
-                getInputParameters(userEvent, userEventClazz), context);
+                getInputParameters(userEvent, userEventClazz), callContext);
         } catch (IllegalAccessException | IllegalArgumentException e) {
             String errorMsg = getErrorMsg(e);
             String cause = getCausedByString(e);
@@ -443,6 +462,17 @@ public class FaaSHandler implements HandlerIntf {
         }
         Util.clearLogOpts();
         Util.clearInheritableThreadLocal();
+        if (isEventEnable) {
+            try {
+                LibRuntime.streamWrite(EVENT_EOF, callContext.getInvokeID(), callContext.getInstanceID());
+            } catch (LibRuntimeException e) {
+                innerCode = FaasErrorCode.FUNCTION_RUN_ERROR.getCode();
+                String errorMsg = getErrorMsg(e);
+                String cause = getCausedByString(e.getCause());
+                LOG.error("failed to send event EOF, errorMsg: {}, cause : {}", errorMsg, cause);
+                result = errorMsg;
+            }
+        }
         long userFuncTime = System.currentTimeMillis() - startTime;
         return handleResponse(result, innerCode, userFuncTime);
     }

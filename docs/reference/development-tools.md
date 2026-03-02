@@ -2,6 +2,8 @@
 
 本节介绍如何在 Linux 环境中安装一些常用的开发工具。
 
+(tools-minio-client)=
+
 ## MinIO Client(mc)
 
 [Minio Client](https://minio.org.cn/docs/minio/linux/reference/minio-mc.html){target="_blank"} 简称 mc, 是 minio 服务器的客户端。
@@ -28,7 +30,7 @@ echo http://$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.typ
 # mys3: 服务器别名
 # http://x.x.x:30110: 服务器地址
 # <AK> <SK>: 配置的 MinIO AK/SK
-mc alias set mys3 http://x.x.x:9000 <AK> <SK>
+mc alias set mys3 http://x.x.x:30110 <AK> <SK>
 # 查看 mys3 信息
 mc admin info mys3
 ```

@@ -16,6 +16,8 @@
 
 package org.yuanrong.services.runtime;
 
+import org.yuanrong.services.runtime.action.Stream;
+
 import java.util.Map;
 
 /**
@@ -281,4 +283,11 @@ public interface Context {
      * @param extraMap for the user custom param
      */
     void setExtraMap(Map<String, String> extraMap);
+
+    /**
+     * Get stream handler of context.
+     *
+     * @return stream handler of context.
+     */
+    Stream getStream();
 }

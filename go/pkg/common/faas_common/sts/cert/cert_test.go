@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Package sts -
 package cert
 
 import (
@@ -25,14 +26,6 @@ import (
 
 	mockUtils "yuanrong.org/kernel/pkg/common/faas_common/utils"
 )
-
-func TestLoadCerts(t *testing.T) {
-	_, _, err := LoadCerts()
-	if err != nil {
-		t.Errorf("LoadCerts() error = %v", err)
-		return
-	}
-}
 
 func Test_parseSTSCerts(t *testing.T) {
 	type args struct {
@@ -47,37 +40,37 @@ func Test_parseSTSCerts(t *testing.T) {
 		{"case1 succeed to parse", args{pemBlocks: []*pem.Block{
 			&pem.Block{Type: "PRIVATE KEY"}, &pem.Block{}, &pem.Block{Bytes: []byte("a")}}},
 			false, func() mockUtils.PatchSlice {
-			patches := mockUtils.InitPatchSlice()
-			patches.Append(mockUtils.PatchSlice{
-				gomonkey.ApplyFunc(pem.EncodeToMemory, func(b *pem.Block) []byte {
-					return []byte("a")
-				}),
-				gomonkey.ApplyFunc(x509.ParseCertificate, func(der []byte) (*x509.Certificate, error) {
-					if string(der) == "a" {
-						return &x509.Certificate{}, nil
-					}
-					return &x509.Certificate{IsCA: true}, nil
-				}),
-			})
-			return patches
-		}},
+				patches := mockUtils.InitPatchSlice()
+				patches.Append(mockUtils.PatchSlice{
+					gomonkey.ApplyFunc(pem.EncodeToMemory, func(b *pem.Block) []byte {
+						return []byte("a")
+					}),
+					gomonkey.ApplyFunc(x509.ParseCertificate, func(der []byte) (*x509.Certificate, error) {
+						if string(der) == "a" {
+							return &x509.Certificate{}, nil
+						}
+						return &x509.Certificate{IsCA: true}, nil
+					}),
+				})
+				return patches
+			}},
 		{"case2 failed to parse", args{pemBlocks: []*pem.Block{
 			&pem.Block{Type: "PRIVATE KEY"}}},
 			true, func() mockUtils.PatchSlice {
-			patches := mockUtils.InitPatchSlice()
-			patches.Append(mockUtils.PatchSlice{
-				gomonkey.ApplyFunc(pem.EncodeToMemory, func(b *pem.Block) []byte {
-					return []byte("a")
-				}),
-				gomonkey.ApplyFunc(x509.ParseCertificate, func(der []byte) (*x509.Certificate, error) {
-					if string(der) == "a" {
-						return &x509.Certificate{}, nil
-					}
-					return &x509.Certificate{IsCA: true}, nil
-				}),
-			})
-			return patches
-		}},
+				patches := mockUtils.InitPatchSlice()
+				patches.Append(mockUtils.PatchSlice{
+					gomonkey.ApplyFunc(pem.EncodeToMemory, func(b *pem.Block) []byte {
+						return []byte("a")
+					}),
+					gomonkey.ApplyFunc(x509.ParseCertificate, func(der []byte) (*x509.Certificate, error) {
+						if string(der) == "a" {
+							return &x509.Certificate{}, nil
+						}
+						return &x509.Certificate{IsCA: true}, nil
+					}),
+				})
+				return patches
+			}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

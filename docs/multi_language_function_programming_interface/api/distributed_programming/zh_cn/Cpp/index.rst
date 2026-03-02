@@ -106,6 +106,13 @@ C++
    :maxdepth: 1
 
    ParallelFor
+   
+.. toctree::
+   :glob:
+   :hidden:
+   :maxdepth: 1
+
+   struct-RuntimeEnv
 
 .. toctree::
    :glob:
@@ -135,6 +142,7 @@ C++
      - Range 调度使用的配置参数。
    * - :doc:`Exception`
      - openYuanrong 抛出的异常。
+     
 
 
 有状态及无状态函数 API
@@ -309,3 +317,13 @@ KV 缓存 API
    * - :doc:`Affinity`
      - 亲和调度的配置参数。
 
+     
+设置跨语言 python 的 runtime env API
+--------------------------------------
+
+.. list-table::
+   :header-rows: 0
+   :widths: 30 70
+
+   * - :doc:`struct-RuntimeEnv`
+     - 设置跨语言 python 的 runtime env API。

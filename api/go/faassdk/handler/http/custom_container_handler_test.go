@@ -238,6 +238,14 @@ func (f *fakeSDKClient) GetAsync(objectID string, cb api.GetAsyncCallback) {
 	cb([]byte("success"), nil)
 }
 
+func (f *fakeSDKClient) GetEvent(objectID string, cb api.GetEventCallback) {
+	cb([]byte("success"), nil)
+}
+
+func (f *fakeSDKClient) DeleteGetEvent(objectID string) {
+
+}
+
 func (f *fakeSDKClient) GetFormatLogger() api.FormatLogger {
 	//TODO implement me
 	panic("implement me")
@@ -245,6 +253,11 @@ func (f *fakeSDKClient) GetFormatLogger() api.FormatLogger {
 
 func (f *fakeSDKClient) CreateClient(config api.ConnectArguments) (api.KvClient, error) {
 	return &FakeDataSystemClinet{}, nil
+}
+
+func (f *fakeSDKClient) ReleaseGRfs(remoteClientID string) error {
+	// TODO implement me
+	panic("implement me")
 }
 
 func (f *fakeSDKClient) SaveState(state []byte) (string, error) {

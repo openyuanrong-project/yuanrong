@@ -606,6 +606,26 @@ func TestGetAsync(t *testing.T) {
 	)
 }
 
+func TestGetEvent(t *testing.T) {
+	convey.Convey(
+		"Test GetEvent", t, func() {
+			convey.So(func() {
+				GetEvent("", nil)
+			}, convey.ShouldNotPanic)
+		},
+	)
+}
+
+func TestDeleteGetEventCallback(t *testing.T) {
+	convey.Convey(
+		"Test DeleteGetEventCallback", t, func() {
+			convey.So(func() {
+				DeleteGetEventCallback("")
+			}, convey.ShouldNotPanic)
+		},
+	)
+}
+
 func TestDeleteStream(t *testing.T) {
 	convey.Convey(
 		"Test DeleteStream", t, func() {
@@ -826,6 +846,15 @@ func TestGDecreaseRefRaw(t *testing.T) {
 		"Test GDecreaseRefRaw", t, func() {
 			strs, err := GDecreaseRefRaw([]string{"objectID"}, "remoteClientID")
 			convey.So(strs, convey.ShouldBeEmpty)
+			convey.So(err, convey.ShouldBeNil)
+		},
+	)
+}
+
+func TestReleaseGRefs(t *testing.T) {
+	convey.Convey(
+		"Test ReleaseGRefs", t, func() {
+			err := ReleaseGRefs("remoteClientID")
 			convey.So(err, convey.ShouldBeNil)
 		},
 	)

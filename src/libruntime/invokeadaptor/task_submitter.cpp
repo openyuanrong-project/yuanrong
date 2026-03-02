@@ -24,6 +24,7 @@
 #include "src/dto/config.h"
 #include "src/dto/constant.h"
 #include "src/libruntime/fsclient/protobuf/core_service.grpc.pb.h"
+#include "src/libruntime/invoke_spec.h"
 #include "src/libruntime/invokeadaptor/faas_instance_manager.h"
 #include "src/libruntime/invokeadaptor/normal_instance_manager.h"
 #include "src/libruntime/utils/constants.h"
@@ -44,6 +45,7 @@ const int SECONDS_TO_MILLISECONDS_UNIT = 1000;  // millisecond
 const int64_t IDLE_TIMER_INTERNAL = 10;
 const int DEFALUT_CANCEL_DELAY_TIME = 5;  // second
 const int ERASE_DELAY_TIME = 30;
+const static int EVENT_INFO_TIMEOUT = 30000;  // millisecond
 using namespace YR::utility;
 using json = nlohmann::json;
 
@@ -210,16 +212,11 @@ bool TaskSubmitter::HandleFailInvokeIsDelayScaleDown(const NotifyRequest &req, c
     YRLOG_INFO("check if invoke is abnormal notify request code {} requestid {}", fmt::underlying(req.code()),
                req.requestid());
     if (req.code() == common::ErrorCode::ERR_INSTANCE_NOT_FOUND ||
-        req.code() == common::ErrorCode::ERR_INSTANCE_EXITED || req.code() == common::ErrorCode::ERR_INSTANCE_EVICTED) {
+        req.code() == common::ErrorCode::ERR_INSTANCE_EXITED || req.code() == common::ErrorCode::ERR_INSTANCE_EVICTED ||
+        req.code() == common::ErrorCode::ERR_USER_FUNCTION_EXCEPTION) {
         return false;
     }
-    if (req.code() == common::ErrorCode::ERR_INNER_SYSTEM_ERROR && err.IsTimeout()) {
-        return true;
-    }
-    if (req.code() < ::common::ErrorCode::ERR_USER_CODE_LOAD) {
-        return true;
-    }
-    return false;
+    return true;
 }
 
 void TaskSubmitter::HandleFailInvokeNotify(const NotifyRequest &req, const std::shared_ptr<InvokeSpec> spec,
@@ -606,8 +603,8 @@ bool TaskSubmitter::ScheduleRequest(const RequestResource &resource, std::shared
             });
         return false;
     }
-    auto [instanceId, leaseId] = insManagers[invokeSpec->functionMeta.apiType]->GetAvailableIns(resource);
-    if (instanceId.empty()) {
+    auto summary = insManagers[invokeSpec->functionMeta.apiType]->GetAvailableIns(resource);
+    if (summary.instanceId.empty()) {
         atomicLock.unlock();
         YRLOG_DEBUG("invoke request {} can not be scheduled, instanceId is empty", requestId);
         bool needCreate = insManagers[invokeSpec->functionMeta.apiType]->ScaleUp(invokeSpec, requestQueueSize);
@@ -616,10 +613,25 @@ bool TaskSubmitter::ScheduleRequest(const RequestResource &resource, std::shared
     this->EraseFaasCancelTimer(requestId);
     requestQueue->Pop();
     atomicLock.unlock();
-    invokeSpec->invokeInstanceId = instanceId;
-    invokeSpec->invokeLeaseId = leaseId;
-    invokeSpec->requestInvoke->Mutable().set_instanceid(instanceId);
+    invokeSpec->invokeInstanceId = summary.instanceId;
+    invokeSpec->invokeLeaseId = summary.leaseId;
+    invokeSpec->requestInvoke->Mutable().set_instanceid(summary.instanceId);
+    if (summary.forceInvoke) {
+        auto invokeOptions = invokeSpec->requestInvoke->Mutable().mutable_invokeoptions();
+        auto customTag = invokeOptions->mutable_customtag();
+        customTag->insert({"ENABLE_FORCE_INVOKE", ""});
+    }
     invokeSpec->instanceRoute = memoryStore->GetInstanceRoute(invokeSpec->returnIds[0].id);
+    // If event stream is enabled, pass event server info in invoke options.
+    if (libRuntimeConfig->enableEvent) {
+        auto it = resource.opts.invokeLabels.find(INSTANCE_REQUIREMENT_ACCEPT);
+        if (it != resource.opts.invokeLabels.end() && it->second == INSTANCE_REQUIREMENT_ACCEPT_EVENT_STREAM) {
+            auto invokeOptions = invokeSpec->requestInvoke->Mutable().mutable_invokeoptions();
+            auto customTag = invokeOptions->mutable_customtag();
+            (*customTag)[YR_EVENT_SERVER_IP] = fsClient->GetEventServerIP();
+            (*customTag)[YR_EVENT_SERVER_PORT] = std::to_string(fsClient->GetEventServerPort());
+        }
+    }
     SendInvokeReq(resource, invokeSpec);
     return false;
 }

@@ -124,7 +124,6 @@ void GwClient::Clear()
     if (asyncDecreRef_.Push(objectIds, threadLocalTenantId)) {
         asyncDecreRef_.Stop();
     }
-    httpClient_->Stop();
 }
 
 void GwClient::Stop(void)
@@ -858,6 +857,11 @@ ErrorInfo GwClient::ParseDecreaseRefResponse(const std::string &result,
     return decreaseRefRsp.code() == common::ERR_NONE ? ErrorInfo()
                                                      : ErrorInfo(static_cast<ErrorCode>(decreaseRefRsp.code()),
                                                                  ModuleCode::DATASYSTEM, decreaseRefRsp.message());
+}
+
+ErrorInfo GwClient::ReleaseGRefs(const std::string &remoteId)
+{
+    return ErrorInfo(ErrorCode::ERR_PARAM_INVALID, ModuleCode::RUNTIME, "not support out of cluster");
 }
 
 LeaseRequest GwClient::BuildLeaseRequest()

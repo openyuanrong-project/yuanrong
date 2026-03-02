@@ -44,7 +44,7 @@ ds_spill_enable:,ds_spill_directory:,ds_spill_size_limit:,\
 ds_rpc_thread_num:,ds_node_timeout_s:,ds_node_dead_timeout_s:,\
 ds_heartbeat_interval_ms:,ds_client_dead_timeout_s:,ds_max_client_num:,ds_memory_reclamation_time_second:,\
 ds_arena_per_tenant:,ds_enable_fallocate:,ds_enable_huge_tlb:,ds_enable_thp:,\
-enable_faas_frontend:,faas_frontend_http_port:,faas_frontend_grpc_port:,enable_function_scheduler:,\
+enable_faas_frontend:,faas_frontend_http_port:,faas_frontend_grpc_port:,enable_function_scheduler:,enable_event:,\
 enable_meta_service:,meta_service_port:,\
 function_agent_port:,function_proxy_port:,\
 function_proxy_grpc_port:,global_scheduler_port:,runtime_init_port:,\
@@ -254,6 +254,7 @@ ENABLE_FAAS_FRONTEND="false"
 FAAS_FRONTEND_HTTP_PORT=8888
 FAAS_FRONTEND_GRPC_PORT=31223
 ENABLE_FUNCTION_SCHEDULER="false"
+ENABLE_EVENT="false"
 # Data System Configuration
 DS_MASTER_IP=""
 DS_MASTER_PORT=12123
@@ -487,6 +488,7 @@ function usage() {
   echo -e "     --faas_frontend_grpc_port                           faas frontend grpc port (default 31223)"
   echo -e "     --enable_function_scheduler                         enable function scheduler, options:true/false (default false)"
   echo -e "     --schedule_relaxed                                  enable the relaxed scheduling policy. When the relaxed number of available nodes or pods is selected, the scheduling progress exits without traversing all nodes or pods.(default 1)"
+  echo -e "     --enable_event                                      faas frontend enable stream event mode"
   echo -e "     --max_priority                                      schedule max priority (default 0)"
   echo -e "     --enable_preemption                                 enable schedule preemption while higher priority, only valid while max_priority > 0 (default false)"
   echo -e "     --kill_process_timeout_seconds                      time interval send kill -9 after send kill -2, unit second(default 5)"
@@ -634,6 +636,7 @@ function parse_opt() {
     --fs_health_check_retry_times) FS_HEALTH_CHECK_RETRY_TIMES=$2 && shift 2 ;;
     --fs_health_check_retry_interval) FS_HEALTH_CHECK_RETRY_INTERVAL=$2 && shift 2 ;;
     --enable_faas_frontend) ENABLE_FAAS_FRONTEND=$2 && shift 2 ;;
+    --enable_event) ENABLE_EVENT=$2 && shift 2 ;;
     --faas_frontend_http_port) FAAS_FRONTEND_HTTP_PORT=$2 && port_policy_table["faas_frontend_http_port"]="FIX" && shift 2 ;;
     --faas_frontend_grpc_port) FAAS_FRONTEND_GRPC_PORT=$2 && port_policy_table["faas_frontend_grpc_port"]="FIX" && shift 2 ;;
     --enable_function_scheduler) ENABLE_FUNCTION_SCHEDULER=$2 && shift 2 ;;

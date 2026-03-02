@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/agiledragon/gomonkey"
 	. "github.com/agiledragon/gomonkey/v2"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,7 @@ import (
 	"yuanrong.org/kernel/pkg/functionscaler/selfregister"
 	"yuanrong.org/kernel/pkg/functionscaler/state"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
+	"yuanrong.org/kernel/pkg/functionscaler/utils"
 )
 
 var (
@@ -477,12 +479,14 @@ func TestAcquireInstanceThreadWithVPC(t *testing.T) {
 	}
 
 	// test create instance fail
-	instance, err := insPool.createInstance("", types.InstanceTypeScaled, resspeckey.ResSpecKey{}, nil)
+	instance, err := insPool.createInstance("",
+		"", types.InstanceTypeScaled, resspeckey.ResSpecKey{}, nil)
 	time.Sleep(10 * time.Millisecond)
 	assert.NotNil(t, err)
 
 	// test create instance fail
-	instance, err = insPool.createInstance("", types.InstanceTypeScaled, resspeckey.ResSpecKey{CustomResources: `{"npu":1}`}, nil)
+	instance, err = insPool.createInstance("",
+		"", types.InstanceTypeScaled, resspeckey.ResSpecKey{CustomResources: `{"npu":1}`}, nil)
 	time.Sleep(10 * time.Millisecond)
 	assert.NotNil(t, err)
 
@@ -490,7 +494,8 @@ func TestAcquireInstanceThreadWithVPC(t *testing.T) {
 	patches[0].Reset()
 	patche := mockInstanceOperation()
 	defer unMockInstanceOperation(patche)
-	instance, err = insPool.createInstance("", types.InstanceTypeScaled, resspeckey.ResSpecKey{}, nil)
+	instance, err = insPool.createInstance("",
+		"", types.InstanceTypeScaled, resspeckey.ResSpecKey{}, nil)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.NotNil(t, instance)
@@ -1348,4 +1353,67 @@ func TestGenericInstancePool_judgeExceedInstance(t *testing.T) {
 		InvokeLabel:         "",
 	}, logger)
 	assert.Equal(t, i, 1)
+}
+
+func TestGenericInstancePool_ResetInstanceScheduler(t *testing.T) {
+	convey.Convey("Given a GenericInstancePool", t, func() {
+		patches := gomonkey.NewPatches()
+		defer patches.Reset()
+
+		funcSpec := &types.FunctionSpecification{InstanceMetaData: commonTypes.InstanceMetaData{SchedulePolicy: types.InstanceSchedulePolicyConcurrency}, FuncKey: "test-func"}
+		pool0 := &GenericInstancePool{
+			FuncSpec:       funcSpec,
+			insAcqReqQueue: make(map[resspeckey.ResSpecKey]*requestqueue.InsAcqReqQueue),
+		}
+		resKey := resspeckey.ResSpecKey{}
+		queue := CreateScaledInstanceQueue(types.InstanceTypeScaled)
+
+		err := pool0.resetInstanceScheduler(queue, resKey)
+		convey.So(err, convey.ShouldBeNil)
+	})
+}
+
+func TestGenericInstancePool_notifyInfo(t *testing.T) {
+	convey.Convey("test updateInstanceAliasData", t, func() {
+		p, _ := NewGenericInstancePool(&types.FunctionSpecification{}, faasManagerInfo{})
+
+		convey.So(func() {
+			gp, _ := p.(*GenericInstancePool)
+			gp.scaledInstanceQueue[resspeckey.ResSpecKey{}] = CreateScaledInstanceQueue(types.InstanceTypeScaled)
+			gp.reservedInstanceQueue[resspeckey.ResSpecKey{}] = CreateScaledInstanceQueue(types.InstanceTypeReserved)
+			gp.updateInstanceAliasData()
+			gp.HandleFaaSSchedulerEvent()
+			gp.HandleAliasEvent(registry.SubEventTypeUpdate, "")
+		}, convey.ShouldNotPanic)
+	})
+}
+
+func TestGenericInstancePool_handleInstanceSynced(t *testing.T) {
+	cnt := 0
+	defer ApplyFunc((*instancequeue.ScaledInstanceQueue).HandleInstanceSync,
+		func(_ *instancequeue.ScaledInstanceQueue, fn utils.RecoverSessionCallback) {
+			cnt++
+		}).Reset()
+
+	reservedQueue := map[resspeckey.ResSpecKey]*instancequeue.ScaledInstanceQueue{
+		resspeckey.ResSpecKey{}: CreateScaledInstanceQueue(types.InstanceTypeReserved),
+	}
+	scaledQueue := map[resspeckey.ResSpecKey]*instancequeue.ScaledInstanceQueue{
+		resspeckey.ResSpecKey{CPU: 300, Memory: 128}: CreateScaledInstanceQueue(types.InstanceTypeScaled),
+	}
+	gi := &GenericInstancePool{
+		faasManagerInfo: faasManagerInfo{
+			funcKey:    "faasManager-0123",
+			instanceID: "01234567",
+		},
+		FuncSpec: &types.FunctionSpecification{
+			FuncKey: "mock-funcKey-123",
+		},
+		reservedInstanceQueue: reservedQueue,
+		scaledInstanceQueue:   scaledQueue,
+		sessionRecordMap:      map[string]sessionRecord{},
+		instanceSessionMap:    make(map[string]map[string]struct{}),
+	}
+	gi.handleInstanceSynced()
+	assert.Equal(t, 2, cnt)
 }

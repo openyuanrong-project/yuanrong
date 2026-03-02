@@ -55,7 +55,10 @@ func TestReplicaScaler_TriggerScale(t *testing.T) {
 }
 
 func TestReplicaScaler_GetExpectInstanceNumber(t *testing.T) {
-	rs := &ReplicaScaler{concurrentNum: 100}
+	rs := &ReplicaScaler{
+		concurrentNum: 100,
+		logger:        log.GetLogger(),
+	}
 	rs.scaleUpHandler = func(i int, callback ScaleUpCallback) {}
 	rs.SetEnable(true)
 	convey.Convey("increase", t, func() {
@@ -69,7 +72,10 @@ func TestReplicaScaler_GetExpectInstanceNumber(t *testing.T) {
 }
 
 func TestReplicaScaler_pendingInsNumOperation(t *testing.T) {
-	rs := &ReplicaScaler{concurrentNum: 100}
+	rs := &ReplicaScaler{
+		concurrentNum: 100,
+		logger:        log.GetLogger(),
+	}
 	convey.Convey("increase", t, func() {
 		rs.handlePendingInsNumIncrease(1)
 		convey.So(rs.pendingRsvInsNum, convey.ShouldEqual, 1)

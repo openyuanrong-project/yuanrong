@@ -45,7 +45,6 @@ type CollectorConfig struct {
 	Port                 string
 	Address              string
 	ManagerAddress       string
-	DatasystemPort       int
 	LogRoot              string
 	UserLogPath          string
 	EtcdConfig           etcd3.EtcdConfig
@@ -98,8 +97,6 @@ func registerCmdArgs(rootCmd *cobra.Command) {
 	rootCmd.Flags().StringVarP(&CollectorConfigs.Port, "port", "", "", "the port of collector for manager to access")
 	rootCmd.Flags().StringVarP(&CollectorConfigs.ManagerAddress, "manager_address", "", "",
 		"manager address to register collector")
-	rootCmd.Flags().IntVarP(&CollectorConfigs.DatasystemPort, "datasystem_port", "", 0,
-		"datasystem port to publish stream logs")
 	rootCmd.Flags().StringVarP(&CollectorConfigs.LogRoot, "log_root", "", "", "the default root path of all logs")
 	rootCmd.Flags().StringVarP(&CollectorConfigs.UserLogPath, "user_log_path", "", "",
 		"optional; specified only if user log is in other directory than log root path")
@@ -180,10 +177,6 @@ func validateCmdArgs() error {
 	}
 	if p, err := strconv.Atoi(port); err != nil || p < portLowerBound || p > portUpperBound {
 		return fmt.Errorf("manager address %s has invalid port", CollectorConfigs.ManagerAddress)
-	}
-
-	if CollectorConfigs.DatasystemPort < portLowerBound || CollectorConfigs.DatasystemPort > portUpperBound {
-		return fmt.Errorf("datasystem has invalid port %d", CollectorConfigs.DatasystemPort)
 	}
 
 	if err := checkPath(CollectorConfigs.LogRoot); err != nil {

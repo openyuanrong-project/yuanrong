@@ -36,6 +36,7 @@ import (
 	"yuanrong.org/kernel/pkg/functionscaler"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
 	"yuanrong.org/kernel/pkg/functionscaler/registry"
+	"yuanrong.org/kernel/pkg/functionscaler/selfregister"
 	"yuanrong.org/kernel/pkg/functionscaler/state"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
 )
@@ -109,6 +110,9 @@ func TestInitHandler(t *testing.T) {
 		ApplyMethod(reflect.TypeOf(&etcd3.EtcdClient{}), "EtcdHeatBeat", func(e *etcd3.EtcdClient) error {
 			return nil
 		}),
+		ApplyMethod(reflect.TypeOf(&etcd3.EtcdRegister{}), "Register", func(e *etcd3.EtcdRegister) error {
+			return nil
+		}),
 	}
 	defer func() {
 		for _, patch := range patches {
@@ -116,6 +120,7 @@ func TestInitHandler(t *testing.T) {
 			patch.Reset()
 		}
 	}()
+	selfregister.SetSelfInstanceSpec(&commonTypes.InstanceSpecification{})
 	_, err = InitHandlerLibruntime(nil, &mockUtils.FakeLibruntimeSdkClient{})
 	assert.Equal(t, "init args empty", err.Error())
 	_, err = InitHandlerLibruntime(testArgs, &mockUtils.FakeLibruntimeSdkClient{})

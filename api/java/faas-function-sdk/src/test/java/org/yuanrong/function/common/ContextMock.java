@@ -19,6 +19,7 @@ package org.yuanrong.function.common;
 import org.yuanrong.services.runtime.Context;
 import org.yuanrong.services.runtime.RuntimeLogger;
 import org.yuanrong.services.runtime.action.ExtendedMetaData;
+import org.yuanrong.services.runtime.action.Stream;
 
 import java.util.Map;
 
@@ -231,5 +232,10 @@ public class ContextMock implements Context {
         public void setKey(String key) {
             this.key = key;
         }
+    }
+
+    @Override
+    public Stream getStream() {
+        return null;
     }
 }

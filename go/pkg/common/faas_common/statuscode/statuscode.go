@@ -269,6 +269,9 @@ const (
 	LeaseIDIllegalMsg   = "lease id is illegal"
 	LeaseIDNotFoundCode = 150463
 	LeaseIDNotFoundMsg  = "lease id is not found"
+
+	// AcquireNonOwnerSchedulerErrorCode -
+	AcquireNonOwnerSchedulerErrorCode = 150464
 )
 
 var (

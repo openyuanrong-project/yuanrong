@@ -22,12 +22,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/agiledragon/gomonkey"
 	. "github.com/agiledragon/gomonkey/v2"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
@@ -198,69 +198,6 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestParseInstanceOperation(t *testing.T) {
-	convey.Convey("success", t, func() {
-		args := []*api.Arg{
-			{
-				Type: api.Value,
-				Data: []byte("acquire#TestFuncKey"),
-			},
-			{
-				Type: api.Value,
-				Data: []byte("qwerdf"),
-			},
-		}
-		insOp, targetName, extraData := parseInstanceOperation(args, "")
-		convey.So(insOp, convey.ShouldEqual, "acquire")
-		convey.So(targetName, convey.ShouldEqual, "TestFuncKey")
-		convey.So(extraData, convey.ShouldResemble, []byte("qwerdf"))
-	})
-	convey.Convey("args length error", t, func() {
-		args := []*api.Arg{
-			{
-				Type: api.Value,
-				Data: []byte("acquire#TestFuncKey"),
-			},
-		}
-		insOp, targetName, extraData := parseInstanceOperation(args, "")
-		convey.So(insOp, convey.ShouldEqual, insOpUnknown)
-		convey.So(targetName, convey.ShouldEqual, "")
-		convey.So(extraData, convey.ShouldEqual, nil)
-	})
-	convey.Convey("Type error", t, func() {
-		args := []*api.Arg{
-			{
-				Type: 1,
-				Data: []byte("acquire#TestFuncKey"),
-			},
-			{
-				Type: 1,
-				Data: []byte("qwerdf"),
-			},
-		}
-		insOp, targetName, extraData := parseInstanceOperation(args, "")
-		convey.So(insOp, convey.ShouldEqual, insOpUnknown)
-		convey.So(targetName, convey.ShouldEqual, "")
-		convey.So(extraData, convey.ShouldEqual, nil)
-	})
-	convey.Convey("extraData success with multi step", t, func() {
-		args := []*api.Arg{
-			{
-				Type: api.Value,
-				Data: []byte("acquire#TestFuncKey#qwe#qwe"),
-			},
-			{
-				Type: api.Value,
-				Data: []byte("qwerdf"),
-			},
-		}
-		insOp, targetName, extraData := parseInstanceOperation(args, "")
-		convey.So(string(insOp), convey.ShouldEqual, "acquire")
-		convey.So(targetName, convey.ShouldEqual, "TestFuncKey#qwe#qwe")
-		convey.So(extraData, convey.ShouldResemble, []byte("qwerdf"))
-	})
-}
-
 func TestProcessSubscription(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -404,7 +341,7 @@ func TestProcessInstanceRequest(t *testing.T) {
 			return []string{}
 		}),
 		ApplyFunc((*instancepool.PoolManager).ReleaseAbnormalInstance, func(_ *instancepool.PoolManager,
-			instance *types.Instance) {
+			instance *types.Instance, logger api.FormatLogger) {
 		}),
 		ApplyFunc(state.Update, func(value interface{}, tags ...string) {
 		}),
@@ -989,10 +926,10 @@ func TestProcessInstanceRequest(t *testing.T) {
 	})
 }
 
-func Test_parseInstanceOperationLibruntime(t *testing.T) {
-	convey.Convey("test parseInstanceOperationLibruntime", t, func() {
+func Test_parseInstanceOperation(t *testing.T) {
+	convey.Convey("test parseInstanceOperation", t, func() {
 		convey.Convey("baseline", func() {
-			op, name, data, _ := parseInstanceOperationLibruntime([]api.Arg{
+			op, name, data, _ := parseInstanceOperation([]api.Arg{
 				{
 					Type:            0,
 					Data:            []byte("acquire#aaa"),
@@ -1017,7 +954,7 @@ func Test_parseInstanceOperationLibruntime(t *testing.T) {
 			convey.So(data, convey.ShouldBeNil)
 		})
 		convey.Convey("error args", func() {
-			op, name, data, _ := parseInstanceOperationLibruntime([]api.Arg{
+			op, name, data, _ := parseInstanceOperation([]api.Arg{
 				{
 					Type:            0,
 					Data:            []byte("acquire#aaa"),
@@ -1030,7 +967,7 @@ func Test_parseInstanceOperationLibruntime(t *testing.T) {
 			convey.So(data, convey.ShouldBeNil)
 		})
 		convey.Convey("error types", func() {
-			op, name, data, _ := parseInstanceOperationLibruntime([]api.Arg{
+			op, name, data, _ := parseInstanceOperation([]api.Arg{
 				{
 					Type:            1,
 					Data:            []byte("acquire#aaa"),
@@ -1055,7 +992,7 @@ func Test_parseInstanceOperationLibruntime(t *testing.T) {
 			convey.So(data, convey.ShouldBeNil)
 		})
 		convey.Convey("error operationArg", func() {
-			op, name, data, _ := parseInstanceOperationLibruntime([]api.Arg{
+			op, name, data, _ := parseInstanceOperation([]api.Arg{
 				{
 					Type:            0,
 					Data:            []byte("acquire"),
@@ -1372,7 +1309,7 @@ func TestHandleInstanceCreate(t *testing.T) {
 				PoolManager: &instancepool.PoolManager{},
 			}
 
-			patches := gomonkey.NewPatches()
+			patches := NewPatches()
 			defer patches.Reset()
 
 			patches.ApplyFunc(registry.GlobalRegistry.GetFuncSpec,
@@ -1420,6 +1357,15 @@ func TestFaaSScheduler_parseExtraData(t *testing.T) {
 			dataBytes, _ := json.Marshal(data)
 			_, err := parseExtraData(dataBytes)
 			convey.So(err.Code(), convey.ShouldEqual, statuscode.InstanceSessionInvalidErrCode)
+		})
+		convey.Convey("invalid session concurrency", func() {
+			data := map[string][]byte{
+				"instanceSessionConfig": []byte(`{"sessionID":"test","sessionTTL":10,"concurrency":-1}`),
+			}
+			dataBytes, _ := json.Marshal(data)
+			dataInfo, err := parseExtraData(dataBytes)
+			convey.So(err, convey.ShouldBeNil)
+			convey.So(dataInfo.instanceSession.Concurrency, convey.ShouldEqual, 1)
 		})
 	})
 }
@@ -1736,7 +1682,7 @@ func TestSyncAllocRecord(t *testing.T) {
 				PoolManager: &instancepool.PoolManager{},
 			}
 
-			patches := gomonkey.NewPatches()
+			patches := NewPatches()
 			defer patches.Reset()
 			defer ApplyMethod(reflect.TypeOf(registry.GlobalRegistry), "GetFuncSpec",
 				func(_ *registry.Registry, funcKey string) *types.FunctionSpecification {
@@ -1765,7 +1711,7 @@ func TestSyncAllocRecord(t *testing.T) {
 }
 
 func TestReacquireLease(t *testing.T) {
-	patches := gomonkey.NewPatches()
+	patches := NewPatches()
 	defer patches.Reset()
 	patches.ApplyFunc((*instancepool.PoolManager).AcquireInstanceThread, func(_ *instancepool.PoolManager, req *types.InstanceAcquireRequest) (*types.InstanceAllocation, snerror.SNError) {
 		return &types.InstanceAllocation{Instance: &types.Instance{
@@ -1791,4 +1737,75 @@ func TestReacquireLease(t *testing.T) {
 	}
 	resp := fs.handleInstanceBatchRetain("e58bd817-1132-4b5b-8000-00000000009c-thread5f0d3377-59", []byte("{\"e58bd817-1132-4b5b-8000-00000000009c-thread5f0d3377-59\":{\"avgProcTime\":307,\"functionKey\":\"12345678901234561234567890123456/0@functest@functest/latest\",\"isAbnormal\":false,\"maxProcTime\":323,\"procReqNum\":217,\"reacquireData\":[123,34,114,101,115,111,117,114,99,101,115,68,97,116,97,34,58,91,49,50,51,44,51,52,44,54,55,44,56,48,44,56,53,44,51,52,44,53,56,44,53,52,44,52,56,44,52,56,44,52,52,44,51,52,44,55,55,44,49,48,49,44,49,48,57,44,49,49,49,44,49,49,52,44,49,50,49,44,51,52,44,53,56,44,53,51,44,52,57,44,53,48,44,49,50,53,93,125]}}"), "aaaaa")
 	assert.Equal(t, len(resp.InstanceAllocSucceed), 1)
+}
+
+func TestSetupAgentCRsManager(t *testing.T) {
+	faasScheduler := &FaaSScheduler{
+		funcSpecCh:  make(chan registry.SubEvent, 1),
+		insConfigCh: make(chan registry.SubEvent, 1),
+	}
+	oldAgentRegistry := registry.GlobalRegistry.AgentRegistry
+	oldInstanceRegistry := registry.GlobalRegistry.InstanceRegistry
+	oldFaaSSchedulerRegistry := registry.GlobalRegistry.FaaSSchedulerRegistry
+	defer func() {
+		registry.GlobalRegistry.AgentRegistry = oldAgentRegistry
+		registry.GlobalRegistry.InstanceRegistry = oldInstanceRegistry
+		registry.GlobalRegistry.FaaSSchedulerRegistry = oldFaaSSchedulerRegistry
+	}()
+	registry.GlobalRegistry.AgentRegistry = &registry.AgentRegistry{}
+	registry.GlobalRegistry.InstanceRegistry = &registry.InstanceRegistry{}
+	registry.GlobalRegistry.FaaSSchedulerRegistry = &registry.FaasSchedulerRegistry{}
+	convey.Convey("Given the setupAgentCRsManager function", t, func() {
+
+		setupAgentCRsManager(nil, faasScheduler)
+		_ = os.Unsetenv(constant.EnableAgentCRDRegistry)
+
+		convey.So(func() { setupAgentCRsManager(nil, faasScheduler) }, convey.ShouldNotPanic)
+		os.Setenv(constant.EnableAgentCRDRegistry, "true")
+		defer os.Unsetenv(constant.EnableAgentCRDRegistry)
+		convey.So(func() { setupAgentCRsManager(nil, faasScheduler) }, convey.ShouldNotPanic)
+	})
+}
+
+func TestAcquireNonOwnerSchedulerErrorCode(t *testing.T) {
+	convey.Convey("Test NoOwnerSchedulerErrorCode", t, func() {
+		faasScheduler := &FaaSScheduler{
+			funcSpecCh:  make(chan registry.SubEvent, 1),
+			insConfigCh: make(chan registry.SubEvent, 1),
+		}
+		expectSchedulerInstanceId := "test-scheduler-1"
+		expectOk := false
+		defer ApplyMethodFunc(selfregister.GlobalSchedulerProxy, "CheckFuncOwner", func(string) (string, bool) {
+			return expectSchedulerInstanceId, expectOk
+		}).Reset()
+		targetName := "target1"
+		testData := make(map[string]*types.InstanceThreadMetrics)
+		testData[targetName] = &types.InstanceThreadMetrics{
+			InsThdID:      "ins-thd-001",
+			ProcNumPS:     120.5,
+			ProcReqNum:    2400,
+			AvgProcTime:   85,
+			MaxProcTime:   210,
+			IsAbnormal:    false,
+			ReacquireData: []byte("reacq-001-data"),
+			FunctionKey:   "ProcessUserRequest",
+		}
+		bytes, _ := json.Marshal(testData)
+
+		resp := faasScheduler.handleInstanceAcquire(targetName, bytes, "traceId-123")
+		convey.So(resp.ErrorCode, convey.ShouldEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
+		convey.So(resp.ErrorMessage, convey.ShouldEqual, expectSchedulerInstanceId)
+		resp1 := faasScheduler.handleInstanceBatchRetain(targetName, bytes, "traceId-123")
+		convey.So(resp1.InstanceAllocFailed, convey.ShouldContainKey, targetName)
+		convey.So(resp1.InstanceAllocFailed[targetName].ErrorCode, convey.ShouldEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
+
+		expectOk = true
+		resp = faasScheduler.handleInstanceAcquire(targetName, bytes, "traceId-123")
+		convey.So(resp.ErrorCode, convey.ShouldNotEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
+		resp1 = faasScheduler.handleInstanceBatchRetain(targetName, bytes, "traceId-123")
+		_, ok := resp1.InstanceAllocFailed[targetName]
+		if ok {
+			convey.So(resp1.InstanceAllocFailed[targetName].ErrorCode, convey.ShouldNotEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
+		}
+	})
 }

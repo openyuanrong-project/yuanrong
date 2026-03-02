@@ -153,4 +153,5 @@ type Config struct {
 	RuntimePublicKeyContextPath     string
 	RuntimePrivateKeyContextPath    string
 	DsPublicKeyContextPath          string
+	EnableEvent                     bool
 }

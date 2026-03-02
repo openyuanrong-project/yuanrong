@@ -41,10 +41,11 @@ std::pair<std::shared_ptr<grpc::Channel>, ErrorInfo> ClientsManager::GetFsConn(c
 
 std::pair<std::shared_ptr<grpc::Channel>, ErrorInfo> ClientsManager::NewFsConn(const std::string &ip, int port,
                                                                                std::shared_ptr<Security> security,
-                                                                               const std::string &dstInstance)
+                                                                               const std::string &dstInstance,
+                                                                               bool isKeepAlive)
 {
     auto addr = GetIpAddr(ip, port);
-    auto [res, error] = InitFunctionSystemConn(addr, security);
+    auto [res, error] = InitFunctionSystemConn(addr, security, isKeepAlive);
     if (!error.OK()) {
         return std::make_pair(nullptr, error);
     }
@@ -164,7 +165,7 @@ ErrorInfo ClientsManager::ReleaseHttpClient(const std::string &ip, int port)
 }
 
 std::pair<std::shared_ptr<grpc::Channel>, ErrorInfo> ClientsManager::InitFunctionSystemConn(
-    std::string target, std::shared_ptr<Security> security)
+    std::string target, std::shared_ptr<Security> security, bool isKeepAlive)
 {
     grpc::ChannelArguments args;
     std::shared_ptr<grpc::Channel> channel;
@@ -176,6 +177,10 @@ std::pair<std::shared_ptr<grpc::Channel>, ErrorInfo> ClientsManager::InitFunctio
     args.SetInt(GRPC_ARG_MAX_RECEIVE_MESSAGE_LENGTH, maxGrpcSize);
     args.SetInt(GRPC_ARG_MAX_SEND_MESSAGE_LENGTH, maxGrpcSize);
     args.SetInt(GRPC_ARG_ENABLE_HTTP_PROXY, Config::Instance().YR_ENABLE_HTTP_PROXY() ? 1 : 0);
+    if (!isKeepAlive) {
+        args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, GRPC_KEEPALIVE_TIME_MS);
+        args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, GRPC_KEEPALIVE_TIMEOUT_MS);
+    }
     if (security != nullptr) {
         std::string serverNameOverride;
         (void)security->GetFunctionSystemConnectionMode(serverNameOverride);

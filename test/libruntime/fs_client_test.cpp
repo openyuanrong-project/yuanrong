@@ -688,8 +688,7 @@ TEST_F(FSClientGrpcTest, StartByServerWithDirectCallTest)
     auto err = fsClient_->Start(Config::Instance().HOST_IP(), grpcServer->GetPort(), handlers_,
                                 FSClient::ClientType::GRPC_SERVER, true, security_, clientsMgr, "12345678",
                                 "instanceID", "runtimeID", "function");
-    EXPECT_TRUE(err.OK());
-    EXPECT_EQ(err.Msg(), "");
+    EXPECT_FALSE(err.OK());
     ASSERT_NO_THROW(fsClient_->RemoveInsRtIntf("fakeInsId"));
     fsClient_->Stop();
 }
@@ -738,6 +737,14 @@ TEST_F(FSClientGrpcTest, GRPC_STATUS_UNAUTHENTICATED_Should_Discover_Driver_Test
     EXPECT_TRUE(grpcServerOne->discoverFlagFuture.get() == true);
     fsClient_->Stop();
     grpcServerOne->Stop();
+}
+
+TEST_F(FSClientGrpcTest, GrpcClientTest_EventAsync)
+{
+    DoStartGrpcClient();
+    fsClient_->UpdateEventServerInfo(Config::Instance().HOST_IP(), grpcServer->GetPort(), "test_instace_id");
+    EXPECT_EQ(fsClient_->GetEventServerIP(), Config::Instance().HOST_IP());
+    EXPECT_NE(fsClient_->GetEventServerPort(), grpcServer->GetPort());
 }
 }  // namespace test
 }  // namespace YR

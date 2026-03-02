@@ -18,9 +18,10 @@ package registry
 
 import (
 	"testing"
-	"yuanrong.org/kernel/pkg/common/faas_common/types"
 
 	"github.com/smartystreets/goconvey/convey"
+
+	"yuanrong.org/kernel/pkg/common/faas_common/types"
 )
 
 func TestInstanceRegistry_GetFunctionInstanceIDMap(t *testing.T) {

@@ -60,7 +60,7 @@ public:
     }
     ~InsManager() = default;
     void DelInsInfo(const std::string &insId, const RequestResource &resource);
-    std::pair<std::string, std::string> GetAvailableIns(const RequestResource &resource);
+    InstanceSummary GetAvailableIns(const RequestResource &resource);
     virtual bool ScaleUp(std::shared_ptr<InvokeSpec> spec, size_t reqNum) = 0;
     virtual void ScaleDown(const std::shared_ptr<InvokeSpec> spec, bool isInstanceNormal = false) = 0;
     virtual void ScaleCancel(const RequestResource &resource, size_t reqNum, bool cleanAll = false) = 0;
@@ -166,8 +166,8 @@ protected:
     std::shared_ptr<YR::utility::TimerWorker> tw_;
 
 private:
-    std::pair<std::string, std::string> ScheduleInsWithDevice(const RequestResource &resource,
-                                                              std::shared_ptr<RequestResourceInfo> resourceInfo);
+    InstanceSummary ScheduleInsWithDevice(const RequestResource &resource,
+                                          std::shared_ptr<RequestResourceInfo> resourceInfo);
 };
 
 RequestResource GetRequestResource(std::shared_ptr<InvokeSpec> spec);

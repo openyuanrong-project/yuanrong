@@ -47,14 +47,14 @@ func TestGetDecryptFromEnv(t *testing.T) {
 		}},
 		{"case2 succeed to unmarshal", map[string]string{"test": "test"},
 			false, func() mockUtils.PatchSlice {
-			patches := mockUtils.InitPatchSlice()
-			patches.Append(mockUtils.PatchSlice{
-				gomonkey.ApplyFunc(os.Getenv, func(key string) string {
-					return `{"test":"test"}`
-				}),
-			})
-			return patches
-		}},
+				patches := mockUtils.InitPatchSlice()
+				patches.Append(mockUtils.PatchSlice{
+					gomonkey.ApplyFunc(os.Getenv, func(key string) string {
+						return `{"test":"test"}`
+					}),
+				})
+				return patches
+			}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

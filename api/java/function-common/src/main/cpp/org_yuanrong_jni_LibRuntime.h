@@ -258,6 +258,11 @@ JNIEXPORT void JNICALL Java_org_yuanrong_jni_LibRuntime_SaveInstanceRoute(JNIEnv
 
 JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_KillSync(JNIEnv *, jclass, jstring);
 
+JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_streamWrite(JNIEnv *, jclass, jstring,
+                                                                       jstring jrequestId, jstring jinstanceId);
+
+JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_getRequestAndInstanceID(JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

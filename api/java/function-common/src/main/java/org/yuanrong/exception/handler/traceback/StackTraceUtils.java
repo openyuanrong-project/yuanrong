@@ -21,6 +21,7 @@ import org.yuanrong.errorcode.ErrorInfo;
 import org.yuanrong.errorcode.ModuleCode;
 import org.yuanrong.errorcode.Pair;
 import org.yuanrong.exception.YRException;
+import org.yuanrong.runtime.util.ExtClasspathLoader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +112,8 @@ public class StackTraceUtils {
         String className = info.getType().isEmpty() ? JAVA_EXCEPTION : info.getType();
         String message = info.getMessage();
         try {
-            Class<Exception> clazz = (Class<Exception>) Class.forName(className);
+            Class<Exception> clazz = (Class<Exception>) Class.forName(className, true,
+                    ExtClasspathLoader.getFunctionClassLoader());
             Constructor<Exception> constructor = clazz.getConstructor(String.class);
             Exception exp = constructor.newInstance(message);
             if (info.getStackTraceElements().size() > 0) {

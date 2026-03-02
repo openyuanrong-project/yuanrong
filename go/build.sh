@@ -27,8 +27,6 @@ PROJECT_DIR=$(cd "$(dirname "$0")"; pwd)
 OUTPUT_DIR="${PROJECT_DIR}/output"
 RUNTIME_OUTPUT_DIR="${PROJECT_DIR}/../output"
 POSIX_DIR="${PROJECT_DIR}/proto/posix"
-YR_DATASYSTEM_DIR="${PROJECT_DIR}/../datasystem"
-DATA_SYSTEM_CACHE=${DATA_SYSTEM_CACHE:-"https://build-logs.openeuler.openatom.cn:38080/temp-archived/openeuler/openYuanrong/yr_cache/$(uname -m)/yr-datasystem.tar.gz"}
 BUILD_TAGS=""
 VERSION="latest"
 FLAGS='-extldflags "-fPIC -fstack-protector-strong -Wl,-z,now,-z,relro,-z,noexecstack,-s -Wall -Werror"'
@@ -57,19 +55,6 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 # resolve missing go.sum entry
 go env -w "GOFLAGS"="-mod=mod"
-
-# download datasystem
-if [ ! -d "${YR_DATASYSTEM_DIR}"/output/sdk/go/stream ]; then
-    echo "start to download datasystem"
-    DS_OUT_DIR="${YR_DATASYSTEM_DIR}/output"
-    rm -rf "${DS_OUT_DIR}"
-    mkdir -p "${DS_OUT_DIR}"
-    pushd "${DS_OUT_DIR}"
-    wget -O datasystem.tar.gz ${DATA_SYSTEM_CACHE}
-    tar --no-same-owner -zxf datasystem.tar.gz --strip-components=1
-    popd
-fi
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"${YR_DATASYSTEM_DIR}/output/sdk/go/lib"
 
 echo "generating fs proto pb objects"
 mkdir -p "${OUTPUT_DIR}"

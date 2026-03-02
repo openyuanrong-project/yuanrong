@@ -45,6 +45,6 @@ type Queue interface {
 	DelByID(objID string) error
 	UpdateObjByID(objID string, obj interface{}) error
 	Len() int
-	Range(f func(obj interface{}) bool)
-	SortedRange(f func(obj interface{}) bool)
+	Range(f func(obj interface{}) bool) bool
+	SortedRange(f func(obj interface{}) bool) bool
 }

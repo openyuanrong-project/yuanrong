@@ -43,6 +43,7 @@ test/st/functions/**/*.xml
 cmake-build-debug
 api/python/build/
 build/
+go/output/
 go/output/bin/client/dist/
 go/pkg/dashboard/client/dist/
 go/pkg/dashboard/client/node_modules/

@@ -465,5 +465,39 @@ TEST_F(MemoryStoreTest, HandleInstanceRouteTest)
     ASSERT_TRUE(res == route);
 }
 
+TEST_F(MemoryStoreTest, TestAddEventCallbackWithData)
+{
+    auto callback = [](const ErrorInfo &err, std::shared_ptr<Buffer> buf) {};
+    memoryStore->AddEventCallbackWithData("testID", callback);
+    ASSERT_TRUE(memoryStore->reqEventCallbackMap_.find("testID") != memoryStore->reqEventCallbackMap_.end());
+}
+
+TEST_F(MemoryStoreTest, TestAddEventData)
+{
+    auto callback = [](const ErrorInfo &err, std::shared_ptr<Buffer> buf) {};
+    auto res = memoryStore->AddEventData("testID", "testData");
+    ASSERT_FALSE(res);
+
+    memoryStore->AddEventCallbackWithData("testID", callback);
+    res = memoryStore->AddEventData("testID", "testData");
+    ASSERT_TRUE(res);
+
+    res = memoryStore->AddEventData("testID", YR::Libruntime::EVENT_EOF);
+    ASSERT_TRUE(res);
+    auto it = memoryStore->reqEventCallbackMap_.find("testID");
+    ASSERT_TRUE(it == memoryStore->reqEventCallbackMap_.end());
+}
+
+TEST_F(MemoryStoreTest, AddEventTimer)
+{
+    memoryStore->AddEventTimer("testID1", 1);
+    auto it = memoryStore->reqEventCallbackMap_.find("testID1");
+    ASSERT_TRUE(it != memoryStore->reqEventCallbackMap_.end());
+
+    memoryStore->AddEventTimer("testID", 1);
+    it = memoryStore->reqEventCallbackMap_.find("testID");
+    ASSERT_TRUE(it != memoryStore->reqEventCallbackMap_.end());
+}
+
 }  // namespace test
 }  // namespace YR

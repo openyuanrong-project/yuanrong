@@ -56,6 +56,8 @@
 namespace YR {
 namespace Libruntime {
 extern thread_local std::string threadLocalTraceId;
+extern thread_local std::string threadLocalRequestId;
+extern thread_local std::string threadLocalInstanceId;
 using FinalizeCallback = std::function<void()>;
 using DebugBreakpointHook = std::function<void()>;
 using SetTenantIdCallback = std::function<void()>;
@@ -115,7 +117,7 @@ public:
 
     virtual void KillAsync(const std::string &instanceId, const std::string &payload, int signal);
     virtual void KillAsyncCB(const std::string &instanceId, const std::string &payload, int signal,
-                             std::function<void(const ErrorInfo &err)> cb);
+                             std::function<void(const ErrorInfo &err)> cb, int timeoutSec = -1);
 
     CallResponse CallReqProcess(const CallRequest &req);
 
@@ -180,6 +182,8 @@ public:
     virtual std::pair<ErrorInfo, std::vector<ResourceUnit>> GetResources(void);
     virtual std::pair<ErrorInfo, ResourceGroupUnit> GetResourceGroupTable(const std::string &resourceGroupId);
     virtual std::pair<ErrorInfo, QueryNamedInsResponse> QueryNamedInstances();
+    ErrorInfo StreamWriteEvent(const std::string &streamMessage, const std::string &requestId,
+                               const std::string &instanceId);
 
 private:
     void CreateResponseHandler(std::shared_ptr<InvokeSpec> spec, const CreateResponse &resp);
@@ -190,6 +194,7 @@ private:
     SignalResponse ExecSignalCallback(const SignalRequest &req);
     ShutdownResponse ShutdownHandler(const ShutdownRequest &req);
     HeartbeatResponse HeartbeatHandler(const HeartbeatRequest &req);
+    void EventHandler(const std::shared_ptr<EventMessageSpec> &req);
     void ExecUserShutdownCallback(uint64_t gracePeriodSec,
                                   const std::shared_ptr<utility::NotificationUtility> &notification);
     ErrorInfo ParseAliasInfo(const SignalRequest &req, std::vector<AliasElement> &aliasInfo);

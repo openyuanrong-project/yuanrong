@@ -44,7 +44,8 @@ static const StreamingMessage INVOKE_RESPONSE = []() {
 }();
 
 FSIntfImpl::FSIntfImpl(const std::string &ipAddr, int port, FSIntfHandlers handlers, bool isDriver,
-                       std::shared_ptr<Security> sec, std::shared_ptr<ClientsManager> clientsMgr, bool enableClientMode)
+                       std::shared_ptr<Security> sec, std::shared_ptr<ClientsManager> clientsMgr, bool enableClientMode,
+                       bool enableEvent)
     : FSIntf(handlers),
       isDriver(isDriver),
       enableClientMode(enableClientMode),
@@ -53,6 +54,7 @@ FSIntfImpl::FSIntfImpl(const std::string &ipAddr, int port, FSIntfHandlers handl
       fsInrfMgr(std::make_shared<FSIntfManager>(clientsMgr))
 {
     enableDirectCall = Config::Instance().RUNTIME_DIRECT_CONNECTION_ENABLE();
+    this->enableEvent = enableEvent;
     if (isDriver) {
         fsPort = port;
         selfPort = 0;
@@ -96,7 +98,10 @@ FSIntfImpl::FSIntfImpl(const std::string &ipAddr, int port, FSIntfHandlers handl
         {StreamingMessage::kCallReq, std::bind(&FSIntfImpl::RecvCallRequest, this, _1, _2)},
         {StreamingMessage::kInvokeRsp, std::bind(&FSIntfImpl::RecvCreateOrInvokeResponse, this, _1, _2)},
         {StreamingMessage::kNotifyReq, std::bind(&FSIntfImpl::RecvNotifyRequest, this, _1, _2)},
-        {StreamingMessage::kCallResultAck, std::bind(&FSIntfImpl::RecvResponse, this, _1, _2)},
+        {StreamingMessage::kCallResultAck, std::bind(&FSIntfImpl::RecvResponse, this, _1, _2)}
+    };
+    eventMsgHdlrs = {
+        {StreamingMessage::kEventReq, std::bind(&FSIntfImpl::RecvEventRequest, this, _1, _2)}
     };
 }
 
@@ -803,6 +808,62 @@ void FSIntfImpl::CreateRGroupAsync(const CreateResourceGroupRequest &req, Create
     }
 }
 
+void FSIntfImpl::EventAsync(const std::shared_ptr<EventMessageSpec> &req, int timeoutSec)
+{
+    YRLOG_DEBUG("Begin to event async, instanceid is {}, reqId is {}", req->Immutable().instanceid(),
+                req->Immutable().requestid());
+    std::string eventReqId = req->Immutable().requestid() + "_event_" + YR::utility::IDGenerator::GenRequestId();
+    auto reqId = std::make_shared<std::string>(eventReqId);
+    auto wr = std::make_shared<WiredRequest>(nullptr, nullptr, timerWorker, req->Immutable().instanceid());
+    wr->SetRequestID(*reqId);
+    wr = SaveWiredRequest(eventReqId, wr);
+    std::weak_ptr<WiredRequest> weakWr(wr);
+    std::shared_ptr<FSIntfImpl> self;
+    try {
+        self = shared_from_this();
+    } catch (const std::exception &e) {
+        YRLOG_ERROR("FSIntfImpl has been destructed");
+    }
+    auto sendMsgHandler = [self, reqId, req, weakWr]() {
+        if (auto wr = weakWr.lock(); wr && self) {
+            auto messageId = YR::utility::IDGenerator::GenMessageId(req->Immutable().requestid(),
+                                                                    static_cast<uint8_t>(wr->retryCount));
+            YRLOG_DEBUG("Send event message, message id {}", messageId);
+            req->SetMessageID(messageId);
+            self->TryDirectWriteEvent(req->Immutable().instanceid(), req->Get(),
+                                 [self, reqId, wr](bool isDirect, ErrorInfo status) {
+                                     if (status.OK()) {
+                                         YRLOG_DEBUG("TryDirectWriteEvent status is ok, reqid : {}", *reqId);
+                                         // If the message is sent successfully, the request is considered successful.
+                                         self->GetWiredRequest(*reqId, true);
+                                         self->EraseWiredRequest(*reqId);
+                                         return;
+                                     }
+                                     if (self->IsCommunicationError(::common::ErrorCode(status.Code()))) {
+                                         (void)self->SaveWiredRequest(*reqId, wr);
+                                         YRLOG_ERROR("Communicate fails for request({}) errcode({}), msg({})", *reqId,
+                                         fmt::underlying(status.Code()), status.Msg());
+                                         return;
+                                     }
+                                     self->WriteCallback(*reqId, status);
+                                 });
+        }
+    };
+    sendMsgHandler();
+    wr->SetupRetry(sendMsgHandler, std::bind(&FSIntfImpl::NeedRepeat, this, *reqId), true);
+}
+
+void FSIntfImpl::UpdateEventServerInfo(const std::string &ip, int port, const std::string &instanceId)
+{
+    std::unique_lock<std::mutex> lock(eventInfosMu_);
+    auto &eventServerInfo = eventServerInfos[instanceId];
+    if (!eventServerInfo) {
+        eventServerInfo = std::make_shared<EventServerInfo>();
+    }
+    eventServerInfo->eventServerIp = ip;
+    eventServerInfo->eventServerPort = port;
+}
+
 template <typename RespType>
 void FSIntfImpl::WriteResponse(const std::string messageId, const RespType &resp)
 {
@@ -846,11 +907,57 @@ void FSIntfImpl::NewRTIntfClient(const std::string &dstInstanceID, const NotifyR
                                  .disconnectedTimeout = RT_DISCONNECT_TIMEOUT_MS,
                                  .security = security,
                                  .resendCb = std::bind(&FSIntfImpl::ResendRequests, this, _1),
-                                 .disconnectedCb = std::bind(&FSIntfImpl::NotifyDisconnected, this, _1)},
+                                 .disconnectedCb = std::bind(&FSIntfImpl::NotifyDisconnected, this, _1),
+                                 .isKeepAlive = false},
         ProtocolType::GRPC);
     rtIntf->RegisterMessageHandler(rtMsgHdlrs);
     (void)rtIntf->Start();
     (void)fsInrfMgr->Emplace(dstInstanceID, rtIntf);
+}
+
+std::shared_ptr<FSIntfReaderWriter> FSIntfImpl::NewOrGetEventIntfClient(const std::string &dstInstanceID)
+{
+    auto eventIntf = fsInrfMgr->TryGetEventIntfs(dstInstanceID);
+    if (eventIntf != nullptr && eventIntf->Available()) {
+        return eventIntf;
+    }
+    std::unique_lock<std::mutex> lock(eventInfosMu_);
+    auto it = eventServerInfos.find(dstInstanceID);
+    if (it == eventServerInfos.end()) {
+        YRLOG_ERROR("No event server infomation of dstInstance: {}", dstInstanceID);
+        return nullptr;
+    }
+    auto eventServerInfo = it->second;
+    lock.unlock();
+    if (eventIntf != nullptr && eventIntf->IsSameDstAddr(eventServerInfo->eventServerIp,
+                                                         eventServerInfo->eventServerPort)) {
+        YRLOG_DEBUG("EventIntfClient is not avaliable but no need to create new client, dstInstance ip: {}, port:{}",
+                    eventServerInfo->eventServerIp,
+                    eventServerInfo->eventServerPort);
+        return eventIntf;
+    }
+    std::unique_lock<std::mutex> dstInstanceLock(eventServerInfo->dstMu);
+    YRLOG_DEBUG("Begin to NewEventIntfClient, ip: {}, port:{}", eventServerInfo->eventServerIp,
+                eventServerInfo->eventServerPort);
+
+    eventIntf = fsInrfMgr->NewEventIntfClient(
+        instanceID, dstInstanceID, runtimeID,
+        ReaderWriterClientOption{.ip = eventServerInfo->eventServerIp,
+                                 .port = eventServerInfo->eventServerPort,
+                                 .disconnectedTimeout = RT_DISCONNECT_TIMEOUT_MS,
+                                 .security = security,
+                                 .resendCb = std::bind(&FSIntfImpl::ResendRequests, this, _1),
+                                 .disconnectedCb = std::bind(&FSIntfImpl::NotifyDisconnected, this, _1),
+                                 .isKeepAlive = false},
+        ProtocolType::GRPC);
+    eventIntf->RegisterMessageHandler(eventMsgHdlrs);
+    auto error = eventIntf->Start();
+    // If NewEventIntfClient return an existing available client, then start() will return ERR_INIT_CONNECTION_FAILED.
+    // If start() fails, it will return ERR_CONNECTION_FAILED. Both cases don't need to execute EmplaceEventIntfs.
+    if (error.OK()) {
+        fsInrfMgr->EmplaceEventIntfs(dstInstanceID, eventIntf);
+    }
+    return eventIntf;
 }
 
 void FSIntfImpl::RecvNotifyRequest(const std::string &from, const std::shared_ptr<StreamingMessage> &message)
@@ -959,6 +1066,13 @@ void FSIntfImpl::RecvCreateOrInvokeResponse(const std::string &, const std::shar
             }
         });
     }
+}
+
+void FSIntfImpl::RecvEventRequest(const std::string &, const std::shared_ptr<StreamingMessage> &message)
+{
+    YRLOG_DEBUG("Begin to receive EventRequest");
+    auto req = std::make_shared<EventMessageSpec>(message);
+    this->HandleEventRequest(req);
 }
 
 void FSIntfImpl::RecvResponse(const std::string &, const std::shared_ptr<StreamingMessage> &message)
@@ -1080,6 +1194,17 @@ void FSIntfImpl::TryDirectWrite(const std::string &dstInstanceID, const std::sha
     CommunicationErrCallback(callback);
 }
 
+void FSIntfImpl::TryDirectWriteEvent(const std::string &dstInstanceID, const std::shared_ptr<StreamingMessage> &msg,
+                                    std::function<void(bool, ErrorInfo)> callback)
+{
+    auto rw = NewOrGetEventIntfClient(dstInstanceID);
+    if (rw != nullptr) {
+        rw->Write(msg, callback);
+        return;
+    }
+    CommunicationErrCallback(callback);
+}
+
 FSIntfImpl::~FSIntfImpl()
 {
     this->ClearAllWiredRequests();
@@ -1132,7 +1257,7 @@ std::pair<bus_service::DiscoverDriverResponse, ErrorInfo> FSIntfImpl::NotifyDriv
 }
 
 ErrorInfo FSIntfImpl::StartService(const std::string &jobID, const std::string &instanceID,
-                                   const std::string &runtimeID)
+                                   const std::string &runtimeID, bool enableDirectCall, bool enableEvent)
 {
     if (service != nullptr) {
         return {};
@@ -1140,11 +1265,16 @@ ErrorInfo FSIntfImpl::StartService(const std::string &jobID, const std::string &
 
     notification = std::make_shared<absl::Notification>();
     service = std::make_shared<GrpcPosixService>(instanceID, runtimeID, listeningIpAddr, selfPort, timerWorker,
-                                                 notification, fsInrfMgr, security);
-    service->RegisterFSHandler(fsMsgHdlrs);
-    service->RegisterRTHandler(rtMsgHdlrs);
-    service->RegisterResendCallback(std::bind(&FSIntfImpl::ResendRequests, this, _1));
-    service->RegisterDisconnectedCallback(std::bind(&FSIntfImpl::NotifyDisconnected, this, _1));
+                                                 notification, fsInrfMgr, security, enableDirectCall, enableEvent);
+    if (enableEvent) {
+        service->RegisterEventHdlrs(eventMsgHdlrs);
+    }
+    if (enableDirectCall || !enableEvent) {
+        service->RegisterFSHandler(fsMsgHdlrs);
+        service->RegisterRTHandler(rtMsgHdlrs);
+        service->RegisterResendCallback(std::bind(&FSIntfImpl::ResendRequests, this, _1));
+        service->RegisterDisconnectedCallback(std::bind(&FSIntfImpl::NotifyDisconnected, this, _1));
+    }
     auto err = service->Start();
     if (!err.OK()) {
         return err;
@@ -1166,12 +1296,16 @@ ErrorInfo FSIntfImpl::Start(const std::string &jobID, const std::string &instanc
     }
     this->instanceID = instanceID.empty() ? "driver-" + jobID : instanceID;
     this->runtimeID = runtimeID;
-    if (!enableClientMode || enableDirectCall) {
-        YRLOG_INFO("start with server mode {} or direct call {}, ready to start service", !enableClientMode,
-                   enableDirectCall);
+    if (!enableClientMode && (enableDirectCall || enableEvent)) {
+        return ErrorInfo(ErrorCode::ERR_PARAM_INVALID, ModuleCode::RUNTIME,
+                         "does not support enable direct call or enableEvent when enable_server_mode is false");
+    }
+    if (!enableClientMode || enableDirectCall || enableEvent) {
+        YRLOG_INFO("start with server mode {} or direct call {} or enableEvent {}, ready to start service",
+                   !enableClientMode, enableDirectCall, enableEvent);
         // The service startup should be shielded in the future. The invoking here should not be aware of the protocol
         // grpc type.
-        if (auto err = StartService(jobID, this->instanceID, runtimeID); !err.OK()) {
+        if (auto err = StartService(jobID, this->instanceID, runtimeID, enableDirectCall, enableEvent); !err.OK()) {
             return err;
         }
     }
@@ -1257,6 +1391,11 @@ bool FSIntfImpl::IsHealth()
         return false;
     }
     return fsIntf->IsHealth();
+}
+
+int FSIntfImpl::GetSelfPort() const
+{
+    return this->selfPort;
 }
 
 }  // namespace Libruntime

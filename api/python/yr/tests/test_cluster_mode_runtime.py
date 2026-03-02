@@ -22,7 +22,7 @@ from yr.err_type import ErrorCode, ErrorInfo, ModuleCode
 from yr.serialization import Serialization
 from yr.libruntime_pb2 import ApiType, FunctionMeta
 from yr.object_ref import ObjectRef
-from yr.runtime import CreateParam
+from yr.base_runtime import CreateParam
 
 
 class TestClusterModeRuntime(unittest.TestCase):

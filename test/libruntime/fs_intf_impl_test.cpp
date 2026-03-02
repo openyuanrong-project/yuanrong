@@ -469,5 +469,41 @@ TEST_F(FSIntfImplTest, TestUpdateRetryInterval)
     EXPECT_EQ(result.first->remainTimeoutSec, -9);
     EXPECT_EQ(result.first->retryIntervalSec, 10);
 }
+
+TEST_F(FSIntfImplTest, EventAsyncWithRetry)
+{
+    FSIntfHandlers handlers;
+    auto mockFsIntfMgr = std::make_shared<MockFSIntfManager>();
+    fsIntfImpl_ = std::make_shared<FSIntfImpl>(Config::Instance().HOST_IP(), 0, handlers, true, nullptr,
+                                               std::make_shared<ClientsManager>(), false);
+    fsIntfImpl_->fsInrfMgr = mockFsIntfMgr;
+    auto mockFsIntfRW = std::make_shared<MockFSIntfReaderWriter>();
+    auto mockNewFsIntfRW = std::make_shared<MockFSIntfReaderWriter>();
+    EXPECT_CALL(*mockFsIntfMgr, GetEventIntfs).WillRepeatedly(Return(mockFsIntfRW));
+    EXPECT_CALL(*mockFsIntfMgr, TryGetEventIntfs).WillRepeatedly(Return(mockFsIntfRW));
+    EXPECT_CALL(*mockFsIntfMgr, NewEventIntfClient).WillRepeatedly(Return(mockNewFsIntfRW));
+    EXPECT_CALL(*mockFsIntfMgr, EmplaceEventIntfs).WillRepeatedly(Return(true));
+    EXPECT_CALL(*mockFsIntfRW, Available).WillRepeatedly(Return(false));
+    EXPECT_CALL(*mockNewFsIntfRW, Available).WillRepeatedly(Return(true));
+
+    auto req = std::make_shared<EventMessageSpec>();
+    std::string reqId = "testRequestId_event";
+    std::string instanceId = "test_instanceId";
+    req->Mutable().set_requestid(reqId);
+    req->Mutable().set_message("test_event_message");
+    req->Mutable().set_instanceid(instanceId);
+
+    EXPECT_CALL(*mockNewFsIntfRW, Write)
+            .WillOnce(Invoke([](const std::shared_ptr<StreamingMessage> &msg,
+                                std::function<void(bool, ErrorInfo)> callback, std::function<void(bool)> preWrite) {
+                callback(true, ErrorInfo(ERR_INNER_COMMUNICATION, "posix stream is closed"));
+            }));
+
+    fsIntfImpl_->UpdateEventServerInfo(Config::Instance().HOST_IP(), 1111, instanceId);
+    fsIntfImpl_->EventAsync(req);
+    auto wr = fsIntfImpl_->GetWiredRequest(reqId, true);
+    EXPECT_EQ(wr, nullptr);
+}
+
 }  // namespace test
 }  // namespace YR
