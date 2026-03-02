@@ -1,0 +1,13 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var end = document.querySelector('.navbar-header-items__end');
+    if (end) {
+        end.style.marginLeft = 'auto';
+        end.style.marginRight = '0';
+    }
+});
+</script>
+{% endblock %}

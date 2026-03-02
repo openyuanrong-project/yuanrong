@@ -125,8 +125,11 @@ html_theme_options = {
     """,
     "navbar_start": [
         "navbar-logo",
-        "version-switcher"
-    ],
+        "navbar-nav",
+         ],
+    "navbar_end": [
+        "version-switcher",
+        ],
     "switcher": {
         "json_url": "http://docs.openyuanrong.org/versions.json",
         "version_match": os.getenv("BUILD_VERSION", "latest"),
