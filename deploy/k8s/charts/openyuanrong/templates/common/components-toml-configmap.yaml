@@ -105,7 +105,7 @@ data:
     bin_path = "/home/sn/bin/function_proxy"
 
     [function_proxy.env]
-    LD_LIBRARY_PATH = "/home/sn/lib"
+    LD_LIBRARY_PATH = "/home/sn/lib:/home/sn/datasystem/lib"
     # previous ENV in chart
     RUNTIME_INSTANCE_DEBUG_ENABLE="false"
     TRACE_CONFIG={{ quote .Values.global.observer.trace.traceConfig }}
