@@ -21,6 +21,7 @@ genrule(
         "//:grpc_strip",
         "@datasystem_sdk//:shared",
         "@metrics_sdk//:shared",
+        "@boringssl//:shared",
         ":go_sources",
     ],
     outs = ["yr_go_pkg.out"],
@@ -31,6 +32,8 @@ genrule(
         DATASYSTEM_DIR=$$(dirname $$BASE_DIR/$$DATASYSTEM_FILE) &&
         METRICS_FILE=$$(echo $(locations @metrics_sdk//:shared) | awk '{print $$1}') &&
         METRICS_DIR=$$(dirname $$BASE_DIR/$$METRICS_FILE) &&
+        BORINGSSL_FILE=$$(echo $(locations @boringssl//:shared) | awk '{print $$1}') &&
+        BORINGSSL_DIR=$$(dirname $$BASE_DIR/$$BORINGSSL_FILE) &&
         mkdir -p $$GO_OUT_DIR &&
         cd $$BASE_DIR &&
         chmod +w $(locations :go_strip) $(locations //:grpc_strip) &&
@@ -38,6 +41,7 @@ genrule(
         cp -ar $(locations :go_strip) $(locations //:grpc_strip) $$GO_OUT_DIR &&
         cp -ar $$DATASYSTEM_DIR/* $$GO_OUT_DIR &&
         cp -ar $$METRICS_DIR/* $$GO_OUT_DIR &&
+        cp -ar $$BORINGSSL_DIR/* $$GO_OUT_DIR &&
         cd $$(realpath $$BASE_DIR/api/go/runtime/) &&
         go mod tidy &&
         LD_LIBRARY_PATH=$${LD_LIBRARY_PATH:+$$LD_LIBRARY_PATH}:$$GO_OUT_DIR CC='gcc -fstack-protector-strong -D_FORTIFY_SOURCE=2 -O2' go build -buildmode=pie -ldflags '-extldflags "-fPIC -fstack-protector-strong -Wl,-z,now,-z,relro,-z,noexecstack,-s -Wall -Werror"' -o $$GO_OUT_DIR/goruntime yr_runtime_main.go &&

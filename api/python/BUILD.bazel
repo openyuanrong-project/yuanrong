@@ -126,8 +126,8 @@ genrule(
             cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/
         fi
         cp -ar $(location //:grpc_strip) $$PYTHON_CODE_DIR/yr/
-        ln -f -s libssl.so.1.1 $$PYTHON_CODE_DIR/yr/libssl.so
-        ln -f -s libcrypto.so.1.1 $$PYTHON_CODE_DIR/yr/libcrypto.so
+        ln -f -s libssl.so.3 $$PYTHON_CODE_DIR/yr/libssl.so
+        ln -f -s libcrypto.so.3 $$PYTHON_CODE_DIR/yr/libcrypto.so
         ln -f -s liblitebus.so.0.0.1 $$PYTHON_CODE_DIR/yr/liblitebus.so
 
         ln -f -s libspdlog.so.1.12.0 $$PYTHON_CODE_DIR/yr/libspdlog.so.1
