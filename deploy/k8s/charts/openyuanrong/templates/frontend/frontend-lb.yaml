@@ -4,17 +4,17 @@ metadata:
   annotations:
     kubernetes.io/elb.id: {{ quote .Values.global.network.elbId }}
   labels:
-    app: faas-frontend
-  name: faas-frontend-lb
+    app: frontend
+  name: frontend-lb
   namespace: {{ .Values.global.namespace }}
 spec:
   externalTrafficPolicy: Cluster
   type: LoadBalancer
   selector:
-    app: faas-frontend
+    app: frontend
   ports:
-    - name: faas-frontend-lb
+    - name: frontend-lb
       protocol: TCP
-      port: {{ .Values.global.port.faasFrontendNodePort }}
-      targetPort: {{ .Values.global.port.fassFrontendPort }}
-      nodePort: {{ .Values.global.port.faasFrontendNodePort }}
+      port: {{ .Values.global.port.frontendNodePort }}
+      targetPort: {{ .Values.global.port.frontendPort }}
+      nodePort: {{ .Values.global.port.frontendNodePort }}

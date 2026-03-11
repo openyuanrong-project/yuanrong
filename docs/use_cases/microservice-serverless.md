@@ -19,7 +19,7 @@ openYuanrong 兼容主流 Java 微服务框架，支持微服务作为 openYuanr
     frontend 服务，它负责接入流量，承担函数调用等功能。
 
     ```bash
-    echo "http://$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}'):$(kubectl get svc faas-frontend-lb -o jsonpath='{.spec.ports[0].nodePort}')"
+    echo "http://$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}'):$(kubectl get svc frontend-lb -o jsonpath='{.spec.ports[0].nodePort}')"
     ```
 
 2. 安装 [MinIO Client](tools-minio-client)，用于上传代码包到 openYuanrong 集群中的 MinIO 服务。

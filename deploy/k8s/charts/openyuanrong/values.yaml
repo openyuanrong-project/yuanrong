@@ -27,14 +27,14 @@ global:
       requests:
         cpu: "500m"
         memory: "1Gi"
-    faasFrontend:
+    frontend:
       limits:
         cpu: "500m"
         memory: "1Gi"
       requests:
         cpu: "500m"
         memory: "1Gi"
-    faasScheduler:
+    functionScheduler:
       limits:
         cpu: "500m"
         memory: "1Gi"
@@ -93,9 +93,9 @@ global:
   # component port
   port:
     iamAdapterHttpPort: 31218
-    fassFrontendPort: 8888
-    faasFrontendNodePort: 31222
-    faasSchedulerPort: 9994
+    frontendPort: 8888
+    frontendNodePort: 31222
+    functionSchedulerPort: 9994
     metaService: 31182
     functionProxyPort: 22423
     functionProxyGrpcPort: 32568
@@ -110,9 +110,9 @@ global:
     functionAgent: 0
     functionMaster: 1
     iamAdaptor: 1
-    faasScheduler: 2
-    faasFrontend: 1
-    faasManager: 1
+    functionScheduler: 2
+    frontend: 1
+    functionManager: 1
     metaService: 1
   # common log config
   log:

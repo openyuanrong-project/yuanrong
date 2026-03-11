@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: faas-scheduler
+  name: function-scheduler
   namespace: {{ .Values.global.namespace }}
 spec:
-  replicas: {{ .Values.global.replicas.faasScheduler }}
+  replicas: {{ .Values.global.replicas.functionScheduler }}
   selector:
     matchLabels:
-      app: faas-scheduler
+      app: function-scheduler
   template:
     metadata:
       labels:
-        app: faas-scheduler
+        app: function-scheduler
     spec:
       volumes:
         - name: volume-config
@@ -89,7 +89,7 @@ spec:
                 [ ! -d {{quote .Values.global.log.functionSystem.path}} ] && mkdir -p {{quote .Values.global.log.functionSystem.path}}
                 python3 -m yr.cli.main -v launch --env-subst RUNTIME_POD_IP,RUNTIME_HOST_IP,RUNTIME_POD_NAME function_scheduler
           ports:
-            - containerPort: {{ .Values.global.port.faasSchedulerPort }}
+            - containerPort: {{ .Values.global.port.functionSchedulerPort }}
               protocol: TCP
           env:
             - name: RUNTIME_HOST_IP
@@ -109,11 +109,11 @@ spec:
                   fieldPath: status.podIP
           resources:
             limits:
-              cpu: {{ .Values.global.resources.faasScheduler.limits.cpu }}
-              memory: {{ .Values.global.resources.faasScheduler.limits.memory }}
+              cpu: {{ .Values.global.resources.functionScheduler.limits.cpu }}
+              memory: {{ .Values.global.resources.functionScheduler.limits.memory }}
             requests:
-              cpu: {{ .Values.global.resources.faasScheduler.requests.cpu }}
-              memory: {{ .Values.global.resources.faasScheduler.requests.memory }}
+              cpu: {{ .Values.global.resources.functionScheduler.requests.cpu }}
+              memory: {{ .Values.global.resources.functionScheduler.requests.memory }}
           volumeMounts:
             - name: volume-config
               mountPath: /home/sn/config
@@ -129,7 +129,7 @@ spec:
               subPath: config.toml
           livenessProbe:
             tcpSocket:
-              port: {{ .Values.global.port.faasSchedulerPort }}
+              port: {{ .Values.global.port.functionSchedulerPort }}
             initialDelaySeconds: 6
             timeoutSeconds: 5
             periodSeconds: 5
@@ -137,7 +137,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             tcpSocket:
-              port: {{ .Values.global.port.faasSchedulerPort }}
+              port: {{ .Values.global.port.functionSchedulerPort }}
             initialDelaySeconds: 6
             timeoutSeconds: 5
             periodSeconds: 5
@@ -157,8 +157,7 @@ spec:
             runAsUser: 1002
             runAsNonRoot: true
       restartPolicy: Always
-      serviceAccount: faas-scheduler
-      serviceAccountName: faas-scheduler
+      serviceAccountName: function-scheduler
       terminationGracePeriodSeconds: 300
       dnsPolicy: ClusterFirst
       securityContext:

@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: faas-frontend
+  name: frontend
   namespace: {{ .Values.global.namespace }}
 spec:
-  replicas: {{ .Values.global.replicas.faasFrontend }}
+  replicas: {{ .Values.global.replicas.frontend }}
   selector:
     matchLabels:
-      app: faas-frontend
+      app: frontend
   template:
     metadata:
       labels:
-        app: faas-frontend
+        app: frontend
     spec:
       volumes:
         - name: config-volume
@@ -93,7 +93,7 @@ spec:
                 [ ! -d {{quote .Values.global.log.functionSystem.path}} ] && mkdir -p {{quote .Values.global.log.functionSystem.path}}
                 python3 -m yr.cli.main -v launch --env-subst RUNTIME_POD_IP,RUNTIME_HOST_IP,RUNTIME_POD_NAME frontend
           ports:
-            - containerPort: {{ .Values.global.port.fassFrontendPort }}
+            - containerPort: {{ .Values.global.port.frontendPort }}
               protocol: TCP
           env:
             - name: RUNTIME_HOST_IP
@@ -113,11 +113,11 @@ spec:
                   fieldPath: status.podIP
           resources:
             limits:
-              cpu: {{ .Values.global.resources.faasFrontend.limits.cpu }}
-              memory: {{ .Values.global.resources.faasFrontend.limits.memory }}
+              cpu: {{ .Values.global.resources.frontend.limits.cpu }}
+              memory: {{ .Values.global.resources.frontend.limits.memory }}
             requests:
-              cpu: {{ .Values.global.resources.faasFrontend.requests.cpu }}
-              memory: {{ .Values.global.resources.faasFrontend.requests.memory }}
+              cpu: {{ .Values.global.resources.frontend.requests.cpu }}
+              memory: {{ .Values.global.resources.frontend.requests.memory }}
           volumeMounts:
             - name: config-volume
               mountPath: /etc/yuanrong/config.toml
@@ -135,7 +135,7 @@ spec:
               mountPath: /home/sn/iam-config
           livenessProbe:
             tcpSocket:
-              port: {{ .Values.global.port.fassFrontendPort }}
+              port: {{ .Values.global.port.frontendPort }}
             initialDelaySeconds: 6
             timeoutSeconds: 5
             periodSeconds: 5
@@ -143,7 +143,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             tcpSocket:
-              port: {{ .Values.global.port.fassFrontendPort }}
+              port: {{ .Values.global.port.frontendPort }}
             initialDelaySeconds: 6
             timeoutSeconds: 5
             periodSeconds: 5
