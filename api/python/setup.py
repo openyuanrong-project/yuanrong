@@ -228,18 +228,21 @@ def copy_openyuanrong_cpp_sdk(ctx):
 
 def copy_openyuanrong(ctx):
     """copy openyuanrong"""
-    root_dir = os.path.join(ROOT_DIR, "../../output/openyuanrong")
+    # Copy third_party from source tree
     third_party_files_to_include = []
-    third_party_dir = os.path.join(root_dir, "third_party")
-    for root, _, fs in os.walk(third_party_dir):
-        for i in fs:
-            third_party_files_to_include.append(os.path.join(root, i))
-    for filename in third_party_files_to_include:
-        copy_file(
-            os.path.join(ctx.build_lib, "yr/third_party"), filename, third_party_dir
-        )
+    third_party_source_dir = os.path.join(ROOT_DIR, "yr", "third_party")
+    if os.path.exists(third_party_source_dir):
+        for root, _, fs in os.walk(third_party_source_dir):
+            for i in fs:
+                third_party_files_to_include.append(os.path.join(root, i))
+        for filename in third_party_files_to_include:
+            copy_file(
+                os.path.join(ctx.build_lib, "yr/third_party"), filename, third_party_source_dir
+            )
+    # Copy deploy from output directory
+    output_root_dir = os.path.join(ROOT_DIR, "../../output/openyuanrong")
     deploy_files_to_include = []
-    deploy_dir = os.path.join(root_dir, "deploy/process")
+    deploy_dir = os.path.join(output_root_dir, "deploy/process")
     for root, _, fs in os.walk(deploy_dir):
         for i in fs:
             deploy_files_to_include.append(os.path.join(root, i))

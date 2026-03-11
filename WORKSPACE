@@ -63,7 +63,7 @@ maven_install(
 
 local_patched_repository(
     name = "spdlog",
-    path = "../thirdparty/spdlog/",
+    path = "./thirdparty/spdlog/",
     build_file = "@//bazel:spdlog.bzl",
     patch_files = [
          "@yuanrong_multi_language_runtime//patch:spdlog-change-namespace-and-library-name-with-yr.patch",
@@ -122,7 +122,7 @@ grpc_extra_deps()
 new_local_repository(
     name = "boost",
     build_file = "@//bazel:boost.bzl",
-    path = "../thirdparty/boost/",
+    path = "./thirdparty/boost/",
 )
 
 http_archive(
@@ -178,7 +178,7 @@ http_archive(
 
 local_patched_repository(
     name = "gloo",
-    path = "../thirdparty/gloo",
+    path = "./thirdparty/gloo",
     build_file = "@//bazel:gloo.bzl",
     patch_files = [
         "@//patch:gloo-fix-sign-compare.patch",
@@ -189,5 +189,16 @@ maybe(
     new_local_repository,
     name = "securec",
     build_file = "@//bazel:securec.bzl",
-    path = "../thirdparty/libboundscheck",
+    path = "./thirdparty/libboundscheck",
+)
+
+# etcd source for python package
+http_archive(
+    name = "etcd_source",
+    build_file = "//bazel:etcd.BUILD",
+    strip_prefix = "etcd-3.5.24",
+    urls = [
+        "https://github.com/etcd-io/etcd/archive/refs/tags/v3.5.24.zip",
+        "https://gitee.com/mirrors/etcd/repository/archive/v3.5.24.zip",
+    ],
 )

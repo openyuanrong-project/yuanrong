@@ -47,7 +47,7 @@ def preload_grpc():
     
     local_patched_repository(
         name = "com_github_grpc_grpc",
-        path = "../thirdparty/grpc",
+        path = "./thirdparty/grpc",
         patch_files = [
          "@yuanrong_multi_language_runtime//patch:grpc_1.65.patch",
          "@yuanrong_multi_language_runtime//patch:grpc_1_65_4_gcc_7_3.patch"
@@ -62,7 +62,7 @@ def preload_grpc():
     native.new_local_repository(
         name = "boringssl",
         build_file = "//bazel:openssl.bazel",
-        path = "../thirdparty/openssl/"
+        path = "./thirdparty/openssl/"
     )
 
     http_archive(

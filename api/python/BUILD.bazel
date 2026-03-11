@@ -93,6 +93,8 @@ genrule(
         "//:grpc_strip",
         "//api/python:cp_yr_so",
         ":python_sources",
+        "@etcd_source//:etcd",
+        "@etcd_source//:etcdctl",
     ],
     outs = ["yr_python_pkg.out"],
     cmd = """
@@ -107,6 +109,7 @@ genrule(
         chmod +w $$PYTHON_CODE_DIR/yr &&
         chmod +w $$PYTHON_SERVICE_DIR/ &&
         chrpath -r '$$ORIGIN' $(location py_strip) &&
+        PYTHON3_BIN_PATH=$${PYTHON3_BIN_PATH:-python3}
         PYTHON_VERSION=$$($$PYTHON3_BIN_PATH --version 2>&1) &&
         echo $$PYTHON_VERSION > $@
         ARCH=$$(uname -m) &&
@@ -133,6 +136,13 @@ genrule(
         ln -f -s libspdlog.so.1.12.0 $$PYTHON_CODE_DIR/yr/libspdlog.so.1
         ln -f -s libspdlog.so.1 $$PYTHON_CODE_DIR/yr/libspdlog.so
         ln -f -s libspdlog.so.1 $$PYTHON_CODE_DIR/yr/libspdlog.so
+
+        # Copy etcd binaries
+        mkdir -p $$PYTHON_CODE_DIR/yr/third_party/etcd
+        cp -f $(location @etcd_source//:etcd) $$PYTHON_CODE_DIR/yr/third_party/etcd/
+        cp -f $(location @etcd_source//:etcdctl) $$PYTHON_CODE_DIR/yr/third_party/etcd/
+        chmod +x $$PYTHON_CODE_DIR/yr/third_party/etcd/etcd
+        chmod +x $$PYTHON_CODE_DIR/yr/third_party/etcd/etcdctl
 
         cd $$BASE_DIR
         echo "$$BASE_DIR" >> $@

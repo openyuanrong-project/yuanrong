@@ -11,6 +11,10 @@ build --nojava_header_compilation
 build --per_file_copt=+com_google_protobuf@-fvisibility=hidden
 build --per_file_copt="\\.cc$@-w"
 build --platforms=@local_config_platform//:host
+build --@opentelemetry_cpp//api:with_abseil=true
+build --experimental_cc_shared_library=true
+build --verbose_failures
+build --strategy=CcStrip=standalone
 # asan build
 build:sanitize_address --define sanitize=address
 build:sanitize_address --copt=-fsanitize=address # Enable ASan in Compile Phase
@@ -29,8 +33,6 @@ build:sanitize_thread --copt=-fno-omit-frame-pointer
 build:sanitize_thread --copt=-g
 build:sanitize_thread --copt=-Wno-error=maybe-uninitialized
 build:sanitize_thread --strip=never
-# Replace external dependencies with huaweicloud mirror.
-build --experimental_downloader_config=.bazel_redirect.cfg
 #default build with optimization enabled
 build -c opt
 build:release --copt '-fPIC'
