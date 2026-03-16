@@ -59,8 +59,7 @@ cc_library(
 cc_binary(
     name = "libyr-api.so",
     copts = COPTS,
-    dynamic_deps = ["//:grpc_dynamic"],
-    linkopts = LOPTS,
+    linkopts = LOPTS + ["-Wl,-Bsymbolic"],
     linkshared = True,
     linkstatic = True,
     visibility = ["//visibility:public"],
@@ -115,7 +114,6 @@ cc_library(
 cc_binary(
     name = "libfunctionsdk.so",
     copts = COPTS,
-    dynamic_deps = ["//:grpc_dynamic"],
     linkopts = LOPTS,
     linkshared = True,
     linkstatic = True,
@@ -168,7 +166,6 @@ genrule(
     name = "yr_cpp_pkg",
     srcs = [
         ":cpp_strip",
-        "//:grpc_strip",
         "@boringssl//:shared",
         ":cpp_include",
     ],
@@ -221,9 +218,9 @@ genrule(
         cp -rf $$BASE_DIR/external/boost/boost/*.h $$CPP_SDK_DIR/include/boost
         cp -rf $$BASE_DIR/external/nlohmann_json/single_include/nlohmann/json.hpp $$CPP_SDK_DIR/include
         cp -rf $$BASE_DIR/external/boringssl/install/lib/lib*.so* $$CPP_SDK_DIR/lib
-        chmod +w $(locations :cpp_strip) $(locations //:grpc_strip) &&
-        chrpath -d $(locations :cpp_strip) $(locations //:grpc_strip) &&
-        cp -rf $(locations :cpp_strip) $(locations //:grpc_strip) $$CPP_SDK_DIR/lib/ &&
+        chmod +w $(locations :cpp_strip) &&
+        chrpath -d $(locations :cpp_strip) &&
+        cp -rf $(locations :cpp_strip) $$CPP_SDK_DIR/lib/ &&
         cp -rf $(locations :cpp_strip) $$CPP_SDK_DIR/bin/ &&
         rm -rf $$CPP_SDK_DIR/bin/libyr-api.so $$CPP_SDK_DIR/bin/libfunctionsdk.so
         cp -rf $$BASE_DIR/api/cpp/include $$CPP_SDK_DIR/ &&

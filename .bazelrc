@@ -9,6 +9,7 @@ build --define=grpc_no_ares=true
 build --define ENABLE_GLOO=false
 build --nojava_header_compilation
 build --per_file_copt=+com_google_protobuf@-fvisibility=hidden
+build --per_file_copt=+com_github_grpc_grpc@-fvisibility=hidden
 build --per_file_copt="\\.cc$@-w"
 build --platforms=@local_config_platform//:host
 build --@opentelemetry_cpp//api:with_abseil=true

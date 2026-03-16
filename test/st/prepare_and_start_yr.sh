@@ -105,7 +105,6 @@ function start_yr() {
     if [ "X${RUNTIME_DIRECT_CONNECTION_ENABLE}" == "Xtrue" ]; then
         direct_call="true"
     fi
-    export LD_LIBRARY_PATH="${YUANRONG_DIR}/runtime/sdk/cpp/lib/:${LD_LIBRARY_PATH}"
     bash deploy/process/yr_master.sh -d ${DEPLOY_PATH}/yr_master \
         -a ${LOCAL_IP} -l DEBUG -s 2048 -c 10000 -m 22048 \
         -o ${DEPLOY_PATH}/yr_master/master.info \

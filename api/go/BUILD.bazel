@@ -18,7 +18,6 @@ genrule(
     name = "yr_go_pkg",
     srcs = [
         "go_strip",
-        "//:grpc_strip",
         "@datasystem_sdk//:shared",
         "@metrics_sdk//:shared",
         "@boringssl//:shared",
@@ -36,9 +35,9 @@ genrule(
         BORINGSSL_DIR=$$(dirname $$BASE_DIR/$$BORINGSSL_FILE) &&
         mkdir -p $$GO_OUT_DIR &&
         cd $$BASE_DIR &&
-        chmod +w $(locations :go_strip) $(locations //:grpc_strip) &&
-        chrpath -d $(locations :go_strip) $(locations //:grpc_strip) &&
-        cp -ar $(locations :go_strip) $(locations //:grpc_strip) $$GO_OUT_DIR &&
+        chmod +w $(locations :go_strip) &&
+        chrpath -d $(locations :go_strip) &&
+        cp -ar $(locations :go_strip) $$GO_OUT_DIR &&
         cp -ar $$DATASYSTEM_DIR/* $$GO_OUT_DIR &&
         cp -ar $$METRICS_DIR/* $$GO_OUT_DIR &&
         cp -ar $$BORINGSSL_DIR/* $$GO_OUT_DIR &&

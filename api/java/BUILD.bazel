@@ -313,7 +313,6 @@ genrule(
         "//src/proto:libruntime_java_proto",
         "//src/proto:socket_java_proto",
         "//api/java/function-common/src/main/cpp:libruntime_lib_jni.so",
-        "//:grpc_strip",
         "@datasystem_sdk//:shared",
         "@metrics_sdk//:shared",
         "@boringssl//:shared",
@@ -328,7 +327,6 @@ genrule(
     rm -rf $$WORKING_DIR $$JAVA_SDK_DIR
     mkdir -p $$NATIVE_DIR $$JAVA_SDK_DIR
     chmod +w $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so) && chrpath -r '$$ORIGIN' $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so) &&
-    chmod +w $(locations //:grpc_strip) && chrpath -d $(locations //:grpc_strip)
     # decompress jars to WORKING_DIR
     cd $$WORKING_DIR
     jar xf $$BASE_DIR/$(locations //api/java:lib_yr_api_sdk)
@@ -341,7 +339,6 @@ genrule(
     cd $$BASE_DIR
     NATIVE_LIB=$$(echo $(locations @datasystem_sdk//:shared))
     NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations @metrics_sdk//:shared))
-    NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations //:grpc_strip))
     NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations @boringssl//:shared))
     NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so))
     LIB_REQUIRED=(
@@ -358,8 +355,17 @@ genrule(
         "libssl.so.3"
         "libcrypto.so.3"
         "libaddress_sorting.so.42.0.0"
+        "libupb_json_lib.so.42.0.0"
+        "libupb_textformat_lib.so.42.0.0"
+        "libutf8_range_lib.so.42.0.0"
+        "libupb_message_lib.so.42.0.0"
+        "libupb_base_lib.so.42.0.0"
+        "libupb_mem_lib.so.42.0.0"
+        "libgpr.so.42.0.0"
+        "libgrpc.so.42.0.0"
+        "libgrpc++.so.1.65.4"
+        "libetcdapi_proto.so"
         "libdatasystem.so"
-        "libgrpc_dynamic.so.1.65.4"
         "libspdlog.so.1.12.0"
         "libyrlogs.so"
         "liblitebus.so.0.0.1"
@@ -382,6 +388,9 @@ genrule(
             continue
         fi
         cp -a $$f $$NATIVE_DIR
+        if [[ "$$filename" == "libdatasystem.so" || "$$filename" == "libetcdapi_proto.so" ]];then
+            patchelf --set-rpath '$$ORIGIN' $$NATIVE_DIR/$$filename 2>/dev/null || true
+        fi
         echo $$f $$filename
         sha256value=$$(sha256sum $$f | awk '{{print $$1}}')
         echo "$$filename=$$sha256value" >> $$NATIVE_DIR/so.properties
@@ -410,7 +419,6 @@ genrule(
     name = "yr_java_pkg",
     srcs = [
         ":java_strip",
-        "//:grpc_strip",
         "yr_runtime_deploy.jar",
         ":lib_faas_function_sdk",
         ":create_native_jar",
@@ -426,14 +434,24 @@ genrule(
         cp -rf $$BASE_DIR/api/java/yr-runtime/src/main/resources/* $$JAVA_SERVICE_DIR/ &&
         cp -rf $(locations :lib_faas_function_sdk) $$JAVA_SDK_DIR/faas-function-sdk-$$BUILD_VERSION.jar &&
         mkdir -p $$JAVA_SERVICE_DIR/lib &&
-        chmod +w $(locations :java_strip) $(locations //:grpc_strip) &&
+        chmod +w $(locations :java_strip) &&
         chrpath -r '$$ORIGIN' $(locations :java_strip) &&
-        chrpath -d $(locations //:grpc_strip)
-        cp -fr $(locations :java_strip) $(locations //:grpc_strip) $$JAVA_SERVICE_DIR/lib &&
+        cp -fr $(locations :java_strip) $$JAVA_SERVICE_DIR/lib &&
         DATASYSTEM_DIR=$$BASE_DIR/external/datasystem_sdk &&
         METRICS_DIR=$$BASE_DIR/external/metrics_sdk &&
         cp -rf $$DATASYSTEM_DIR/lib/* $$JAVA_SERVICE_DIR/lib &&
         cp -rf $$METRICS_DIR/lib/* $$JAVA_SERVICE_DIR/lib &&
+        ln -f -s libgrpc++.so.1.65.4 $$JAVA_SERVICE_DIR/lib/libgrpc++.so.1.65 &&
+        ln -f -s libgrpc.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libgrpc.so.42 &&
+        ln -f -s libupb_json_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_json_lib.so.42 &&
+        ln -f -s libupb_textformat_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_textformat_lib.so.42 &&
+        ln -f -s libutf8_range_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libutf8_range_lib.so.42 &&
+        ln -f -s libupb_message_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_message_lib.so.42 &&
+        ln -f -s libupb_base_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_base_lib.so.42 &&
+        ln -f -s libupb_mem_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_mem_lib.so.42 &&
+        ln -f -s libgpr.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libgpr.so.42 &&
+        patchelf --set-rpath '$$ORIGIN' $$JAVA_SERVICE_DIR/lib/libdatasystem.so 2>/dev/null || true &&
+        patchelf --set-rpath '$$ORIGIN' $$JAVA_SERVICE_DIR/lib/libetcdapi_proto.so 2>/dev/null || true &&
         echo "$$BASE_DIR" > $@
     """,
     local = True,

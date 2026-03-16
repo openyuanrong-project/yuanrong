@@ -47,7 +47,7 @@ pyx_library(
     ]),
     cc_kwargs = dict(
         copts = COPTS,
-        dynamic_deps = ["//:grpc_dynamic"],
+        linkopts = ["-Wl,-Bsymbolic"],
     ),
     visibility = ["__subpackages__"],
     deps = [
@@ -90,7 +90,6 @@ genrule(
     name = "yr_python_pkg",
     srcs = [
         "py_strip",
-        "//:grpc_strip",
         "//api/python:cp_yr_so",
         ":python_sources",
         "@etcd_source//:etcd",
@@ -104,8 +103,7 @@ genrule(
         PYTHON_CODE_DIR=$$BASE_DIR/api/python
         mkdir -p $$PYTHON_SERVICE_DIR/fnruntime
         mkdir -p $$PYTHON_SDK_DIR/
-        chmod +w $(location py_strip) $(location //:grpc_strip) &&
-        chrpath -d $(location //:grpc_strip) &&
+        chmod +w $(location py_strip) &&
         chmod +w $$PYTHON_CODE_DIR/yr &&
         chmod +w $$PYTHON_SERVICE_DIR/ &&
         chrpath -r '$$ORIGIN' $(location py_strip) &&
@@ -128,7 +126,6 @@ genrule(
         else
             cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/
         fi
-        cp -ar $(location //:grpc_strip) $$PYTHON_CODE_DIR/yr/
         ln -f -s libssl.so.3 $$PYTHON_CODE_DIR/yr/libssl.so
         ln -f -s libcrypto.so.3 $$PYTHON_CODE_DIR/yr/libcrypto.so
         ln -f -s liblitebus.so.0.0.1 $$PYTHON_CODE_DIR/yr/liblitebus.so

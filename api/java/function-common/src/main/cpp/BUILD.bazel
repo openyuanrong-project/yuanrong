@@ -7,7 +7,6 @@ cc_binary(
         "//:runtime_lib",
         "@bazel_tools//tools/jdk:jni",
     ],
-    dynamic_deps = ["//:grpc_dynamic"],
     copts = COPTS,
     linkstatic = True,
     linkshared = True,

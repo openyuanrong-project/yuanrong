@@ -32,8 +32,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.InvalidPropertiesFormatException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -50,6 +52,34 @@ public class LoadUtil {
 
     private static final int READ_SIZE = 8192; // 8KB
 
+    private static final Map<String, String> SYMLINK_MAP = new HashMap<>();
+
+    static {
+        SYMLINK_MAP.put("libgrpc++.so.1.65.4", "libgrpc++.so.1.65");
+        SYMLINK_MAP.put("libgrpc.so.42.0.0", "libgrpc.so.42");
+        SYMLINK_MAP.put("libupb_json_lib.so.42.0.0", "libupb_json_lib.so.42");
+        SYMLINK_MAP.put("libupb_textformat_lib.so.42.0.0", "libupb_textformat_lib.so.42");
+        SYMLINK_MAP.put("libutf8_range_lib.so.42.0.0", "libutf8_range_lib.so.42");
+        SYMLINK_MAP.put("libupb_message_lib.so.42.0.0", "libupb_message_lib.so.42");
+        SYMLINK_MAP.put("libupb_base_lib.so.42.0.0", "libupb_base_lib.so.42");
+        SYMLINK_MAP.put("libupb_mem_lib.so.42.0.0", "libupb_mem_lib.so.42");
+        SYMLINK_MAP.put("libgpr.so.42.0.0", "libgpr.so.42");
+    }
+
+    // Libraries that only need to be extracted and symlinked, not loaded explicitly
+    private static final String[] EXTRACT_ONLY_LIBS = {
+        "libgrpc++.so.1.65.4",
+        "libgrpc.so.42.0.0",
+        "libupb_json_lib.so.42.0.0",
+        "libupb_textformat_lib.so.42.0.0",
+        "libutf8_range_lib.so.42.0.0",
+        "libupb_message_lib.so.42.0.0",
+        "libupb_base_lib.so.42.0.0",
+        "libupb_mem_lib.so.42.0.0",
+        "libgpr.so.42.0.0",
+        "libaddress_sorting.so.42.0.0"
+    };
+
     // .so files depend on each other and need to be read in a specific sequence.
 
     private static final String[] LOADING_SEQUENCE = {
@@ -64,13 +94,13 @@ public class LoadUtil {
         "libprotobuf.so.25.5.0",
         "librpc_option_protos.so",
         "libcommon_flags.so",
+        "libetcdapi_proto.so",
         "libdatasystem.so",
         "libspdlog.so.1.12.0",
         "libyrlogs.so",
         "liblitebus.so.0.0.1",
         "libobservability-metrics.so",
         "libobservability-metrics-sdk.so",
-        "libgrpc_dynamic.so.1.65.4",
         "libruntime_lib_jni.so"
     };
 
@@ -92,27 +122,76 @@ public class LoadUtil {
             if (!jniDir.exists() && !jniDir.mkdirs()) {
                 throw new ExceptionInInitializerError("Failed to create folder: " + jniDir.getAbsolutePath());
             }
+
+            // Phase 1: Extract libraries that only need symlinks (not loaded explicitly)
+            extractAndSymlink(properties, libPath, EXTRACT_ONLY_LIBS);
+
+            // Phase 2: Extract and create symlinks for libraries in LOADING_SEQUENCE
+            extractAndSymlink(properties, libPath, LOADING_SEQUENCE);
+
+            // Phase 3: Load all so files in LOADING_SEQUENCE
             for (String soFileName : LOADING_SEQUENCE) {
-                String soFileHash = properties.getProperty(soFileName);
-                if (soFileHash == null) {
-                    throw new InvalidPropertiesFormatException("the hash is empty for " + soFileName);
-                }
-                String soFilePath = Paths.get(libPath, soFileName).toString();
                 File localSoFile = Paths.get(DEFAULT_JNI_FOLDER, soFileName).toFile();
-                boolean isSoFileExist = localSoFile.exists();
-                boolean isCheckSumMatch = checkSHA256(localSoFile, soFileHash);
-
-                if (isSoFileExist && isCheckSumMatch) {
-                    System.load(localSoFile.getCanonicalPath());
-                    continue;
-                }
-
-                if (!copyAndLoadSoFile(soFilePath, localSoFile)) {
-                    copyAndLoadTempSoFile(soFileName, soFilePath);
-                }
+                System.load(localSoFile.getCanonicalPath());
             }
         } catch (IOException e) {
             throw new ExceptionInInitializerError(e);
+        }
+    }
+
+    private static void extractAndSymlink(Properties properties, String libPath, String[] libs) throws IOException {
+        for (String soFileName : libs) {
+            String soFileHash = properties.getProperty(soFileName);
+            if (soFileHash == null) {
+                throw new InvalidPropertiesFormatException("the hash is empty for " + soFileName);
+            }
+            String soFilePath = Paths.get(libPath, soFileName).toString();
+            File localSoFile = Paths.get(DEFAULT_JNI_FOLDER, soFileName).toFile();
+            boolean isSoFileExist = localSoFile.exists();
+            boolean isCheckSumMatch = checkSHA256(localSoFile, soFileHash);
+
+            if (!isSoFileExist || !isCheckSumMatch) {
+                copySoFile(soFilePath, localSoFile);
+            }
+            createSymlink(soFileName);
+        }
+    }
+
+    private static void copySoFile(String soFilePath, File localSoFile) throws IOException {
+        if (!localSoFile.exists()) {
+            if (!localSoFile.createNewFile() && !localSoFile.exists()) {
+                throw new ExceptionInInitializerError("Failed to create file: " + localSoFile.getAbsolutePath());
+            }
+        }
+        try (FileChannel outChannel = FileChannel.open(localSoFile.toPath(), StandardOpenOption.WRITE,
+                StandardOpenOption.APPEND); FileLock soLock = outChannel.lock()) {
+            if (soLock == null) {
+                LOGGER.info("Not get lock of file: {}", localSoFile.getAbsolutePath());
+                return;
+            }
+            if (outChannel.size() == 0) {
+                copyJarSoToLocal(soFilePath, outChannel);
+                if (!localSoFile.setReadOnly()) {
+                    LOGGER.warn("set file: {} read permission failed.", localSoFile.getAbsolutePath());
+                }
+            }
+        }
+    }
+
+    private static void createSymlink(String soFileName) {
+        String linkName = SYMLINK_MAP.get(soFileName);
+        if (linkName == null) {
+            return;
+        }
+        try {
+            File linkFile = Paths.get(DEFAULT_JNI_FOLDER, linkName).toFile();
+            File targetFile = Paths.get(DEFAULT_JNI_FOLDER, soFileName).toFile();
+            if (linkFile.exists()) {
+                linkFile.delete();
+            }
+            Files.createSymbolicLink(linkFile.toPath(), targetFile.toPath());
+        } catch (IOException e) {
+            LOGGER.warn("Failed to create symlink for {}: {}", soFileName, e.getMessage());
         }
     }
 

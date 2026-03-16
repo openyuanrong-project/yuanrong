@@ -18,7 +18,6 @@ cc_library(
 
 cc_binary(
     name = "libcpplibruntime.so",
-    dynamic_deps = ["//:grpc_dynamic"],
     deps = select(
         {
             "test_mode": [":mockcpplibruntime_lib"],

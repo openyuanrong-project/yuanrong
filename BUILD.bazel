@@ -6,24 +6,6 @@ config_setting(
     values = {"define": "ENABLE_GLOO=false"},
 )
 
-cc_shared_library(
-    name = "grpc_dynamic",
-    shared_lib_name = "libgrpc_dynamic.so.1.65.4",
-    visibility = ["//visibility:public"],
-    deps = [
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_google_protobuf//upb/wire",
-    ],
-)
-
-cc_strip(
-    name = "grpc_strip",
-    srcs = [
-        "//:grpc_dynamic",
-    ],
-    visibility = ["//visibility:public"],
-)
-
 cc_library(
     name = "runtime_lib",
     srcs = glob([
@@ -97,6 +79,7 @@ cc_library(
         "-lboost_fiber",
         "-lboost_context",
         "-lboost_filesystem",
+        "-Wl,-Bsymbolic",
     ],
     linkstatic = True,
     visibility = ["//visibility:public"],
@@ -107,8 +90,7 @@ cc_library(
         "//src/utility:yr_utils",
         "@boost",
         "@boringssl//:boringssl_sdk",
-        "@com_github_grpc_grpc//:grpc++_public_hdrs",
-        "@com_github_grpc_grpc//:grpc_core_credentials_header",
+        "@com_github_grpc_grpc//:grpc++",
         "@datasystem_sdk//:lib_datasystem_sdk",
         "@metrics_sdk//:lib_metrics_sdk",
         "@msgpack",
@@ -170,8 +152,7 @@ cc_library(
         "//src/proto:libruntime_cc_proto_hdrs",
         "//src/proto:socket_cc_proto_hdrs",
         "//src/utility:yr_utils_hdrs",
-        "@com_github_grpc_grpc//:grpc++_public_hdrs",
-        "@com_github_grpc_grpc//:grpc_core_credentials_header",
+        "@com_github_grpc_grpc//:grpc++",
         "@datasystem_sdk//:lib_datasystem_sdk",
         "@metrics_sdk//:lib_metrics_sdk",
         "@securec",
