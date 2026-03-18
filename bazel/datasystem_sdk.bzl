@@ -10,6 +10,7 @@ cc_library(
         "lib/librpc_option_protos.so",
         "lib/libabseil_dll.so.2407.0.0",
         "lib/libcommon_flags.so",
+        "lib/libaddress_sorting.so.42",
         "lib/libetcdapi_proto.so",
         "lib/libgrpc++.so.1.65",
         "lib/libgrpc.so.42",

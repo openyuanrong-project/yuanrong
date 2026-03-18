@@ -47,7 +47,6 @@ pyx_library(
     ]),
     cc_kwargs = dict(
         copts = COPTS,
-        linkopts = ["-Wl,-Bsymbolic"],
     ),
     visibility = ["__subpackages__"],
     deps = [

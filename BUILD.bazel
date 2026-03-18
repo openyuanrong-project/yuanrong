@@ -79,7 +79,6 @@ cc_library(
         "-lboost_fiber",
         "-lboost_context",
         "-lboost_filesystem",
-        "-Wl,-Bsymbolic",
     ],
     linkstatic = True,
     visibility = ["//visibility:public"],

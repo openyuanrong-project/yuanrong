@@ -77,7 +77,7 @@ function download_datasystem() {
 function download_metrics() {
     # check whether datasystem exist
     if [ -d "${YR_METRICS_BIN_DIR}"/lib ]; then
-        echo "datasystem sdk exist."
+        echo "metrics exist."
         return
     fi
     cd ${RUNTIME_SRC_DIR}

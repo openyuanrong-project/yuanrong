@@ -59,7 +59,7 @@ cc_library(
 cc_binary(
     name = "libyr-api.so",
     copts = COPTS,
-    linkopts = LOPTS + ["-Wl,-Bsymbolic"],
+    linkopts = LOPTS,
     linkshared = True,
     linkstatic = True,
     visibility = ["//visibility:public"],
