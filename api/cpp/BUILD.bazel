@@ -103,8 +103,7 @@ cc_library(
     strip_include_prefix = "include/faas",
     visibility = ["//visibility:public"],
     deps = [
-        "yr_cpp_lib",
-        "//:runtime_lib_hdrs",
+        "yr_api_lib",
         "@msgpack",
         "@nlohmann_json",
     ],
