@@ -1818,7 +1818,7 @@ std::pair<YR::Libruntime::FunctionMeta, ErrorInfo> Libruntime::GetInstance(const
         auto insId = nameSpace.empty() ? this->config->ns + "-" + name : nameSpace + "-" + name;
         YRLOG_WARN("instance： {} not exist, need kill directly", insId);
         this->invokeAdaptor->KillAsync(nameSpace.empty() ? this->config->ns + "-" + name : nameSpace + "-" + name, "",
-                                       libruntime::Signal::KillInstance);
+                                       libruntime::Signal::killInstanceSync);
     }
     if (err.OK() && meta.needOrder) {
         this->invokeOrderMgr->RegisterInstance(nameSpace.empty() ? this->config->ns + "-" + name
