@@ -74,6 +74,7 @@ class ConfigResolver:
                     "time": self.runtime_context["time"],
                     "deploy_path": f"{SESSIONS_DIR}/{self.runtime_context['time']}",
                     "ld_library_path": self.runtime_context["ld_library_path"],
+                    "python_path": self.runtime_context["python_path"],
                 },
             )
             self.jinja_env.filters["check_port"] = port_or_free
@@ -165,6 +166,7 @@ class ConfigResolver:
         timestamp = time.time()
         time_str = time.strftime("%Y%m%d_%H%M%S", time.localtime())
         ld_library_path = os.environ.get("LD_LIBRARY_PATH", "")
+        python_path = os.environ.get("PYTHONPATH", "")
         return {
             "yr_package_path": self.yr_package_path,
             "hostname": hostname,
@@ -178,6 +180,7 @@ class ConfigResolver:
             "deploy_path": Path(f"{SESSIONS_DIR}/{time_str}"),
             "cwd": Path.cwd(),
             "ld_library_path": ld_library_path,
+            "python_path": python_path,
         }
 
     def _apply_env_subst(self, text: str) -> str:

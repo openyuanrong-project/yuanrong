@@ -9,6 +9,7 @@ node_id = "{{ node_id }}"
 log_level = "INFO"
 pid = "{{ pid }}"
 ld_library_path = "{{ ld_library_path }}"
+python_path = "{{ python_path }}"
 
 [values.meta_store]
 enable = false
