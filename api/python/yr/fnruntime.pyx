@@ -929,6 +929,14 @@ cdef parse_invoke_opts(CInvokeOptions & opts, opt: yr.InvokeOptions, group_info:
     create_opt = runtime_env.parse_runtime_env(opt)
     if runtime_env.WORKING_DIR_KEY in create_opt:
         opts.workingDir = create_opt.pop(runtime_env.WORKING_DIR_KEY)
+    runtime_env_vars = create_opt.pop("env_vars", {})
+    merged_env_vars = {}
+    for key, value in runtime_env_vars.items():
+        merged_env_vars[key] = value
+    for key, value in opt.env_vars.items():
+        merged_env_vars[key] = value
+    for key, value in merged_env_vars.items():
+        opts.envVars.insert(pair[string, string](key, value))
     for key, value in create_opt.items():
         opts.createOptions.insert(pair[string, string](key, value))
     opts.cpu = opt.cpu
@@ -967,8 +975,6 @@ cdef parse_invoke_opts(CInvokeOptions & opts, opt: yr.InvokeOptions, group_info:
     opts.recoverRetryTimes = opt.recover_retry_times
     opts.needOrder = opt.need_order
     opts.traceId = opt.trace_id
-    for key, value in opt.env_vars.items():
-        opts.envVars.insert(pair[string, string](key, value))
     opts.preemptedAllowed = opt.preempted_allowed
     opts.instancePriority = opt.instance_priority
     opts.scheduleTimeoutMs = opt.schedule_timeout_ms

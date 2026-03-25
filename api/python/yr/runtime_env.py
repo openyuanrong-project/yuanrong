@@ -119,8 +119,9 @@ def _process_env_vars(opt: InvokeOptions, create_opt: Dict):
                 "runtime_env.get('env_vars') must be of type "
                 f"Dict[str, str], but the value {val} is of type {type(val)}"
             )
-        if not opt.env_vars.get(key):
-            opt.env_vars[key] = val
+    # Instead of modifying opt.env_vars, we will place runtime_env["env_vars"] into create_opt,
+    # where the priority of opt.env_vars will be handled in parse_invoke_opts
+    create_opt["env_vars"] = env_vars
 
 
 def _process_shared_dir(opt: InvokeOptions, create_opt: Dict):
