@@ -185,8 +185,8 @@ public:
     virtual std::pair<ErrorInfo, QueryNamedInsResponse> QueryNamedInstances();
     ErrorInfo StreamWriteEvent(const std::string &streamMessage, const std::string &requestId,
                                const std::string &instanceId);
-    std::pair<std::string, ErrorInfo> LoadCurrentSession(const std::string &sessionId);
-    ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
+    virtual std::pair<std::string, ErrorInfo> LoadCurrentSession(const std::string &sessionId);
+    virtual ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
 
 private:
     void CreateResponseHandler(std::shared_ptr<InvokeSpec> spec, const CreateResponse &resp);
@@ -256,6 +256,7 @@ private:
     std::shared_ptr<ResourceGroupManager> rGroupManager_;
     std::shared_ptr<FMClient> functionMasterClient_;
     std::shared_ptr<AgentSessionManager> agentSessionManager_;
+    bool agentSessionEnabled_ = false;
     std::mutex finishTaskMtx;
     DebugBreakpointHook setDebugBreakpoint_ = nullptr;
     SetTenantIdCallback setTenantIdCb_;

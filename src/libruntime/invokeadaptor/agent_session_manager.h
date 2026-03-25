@@ -48,7 +48,7 @@ class AgentSessionManager {
 public:
     AgentSessionManager(std::shared_ptr<LibruntimeConfig> config, std::shared_ptr<RuntimeContext> runtimeContext);
 
-    ErrorInfo AcquireInvokeSession(const CallRequest &req, const libruntime::MetaData &meta);
+    ErrorInfo AcquireInvokeSession(const std::string &sessionId, const libruntime::MetaData &meta);
 
     ErrorInfo PersistAndReleaseInvokeSession(const std::string &sessionId);
 
@@ -57,10 +57,6 @@ public:
     ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
 
 private:
-    bool IsEnabled(const CallRequest &req) const;
-
-    std::string GetSessionId(const CallRequest &req) const;
-
     std::shared_ptr<AgentSessionContext> GetOrCreateSessionContext(const std::string &sessionKey);
 
     std::shared_ptr<AgentSessionContext> GetActiveSessionContext(const std::string &sessionId);

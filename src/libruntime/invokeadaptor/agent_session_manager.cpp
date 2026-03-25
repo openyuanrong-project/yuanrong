@@ -16,9 +16,6 @@
 
 #include "agent_session_manager.h"
 
-#include <algorithm>
-#include <cctype>
-#include <cstdlib>
 #include <nlohmann/json.hpp>
 
 #include "src/dto/buffer.h"
@@ -32,37 +29,16 @@ namespace YR {
 namespace Libruntime {
 using json = nlohmann::json;
 
-namespace {
-bool IsTruthyEnv(const char *value)
-{
-    if (value == nullptr) {
-        return false;
-    }
-    std::string normalized(value);
-    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    return normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on";
-}
-}  // namespace
-
 AgentSessionManager::AgentSessionManager(std::shared_ptr<LibruntimeConfig> config,
                                          std::shared_ptr<RuntimeContext> runtimeContext)
     : librtConfig_(std::move(config)), runtimeContext_(std::move(runtimeContext))
 {
 }
 
-ErrorInfo AgentSessionManager::AcquireInvokeSession(const CallRequest &req, const libruntime::MetaData &meta)
+ErrorInfo AgentSessionManager::AcquireInvokeSession(const std::string &sessionId, const libruntime::MetaData &meta)
 {
-    if (!IsEnabled(req)) {
-        return ErrorInfo();
-    }
-    const std::string sessionId = GetSessionId(req);
     if (sessionId.empty()) {
         return ErrorInfo();
-    }
-    if (GetActiveSessionContext(sessionId) != nullptr) {
-        return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME,
-                         "agent session is already acquired for current sessionId");
     }
     const std::string sessionKey = BuildSessionKey(meta, sessionId);
     auto sessionCtx = GetOrCreateSessionContext(sessionKey);
@@ -113,24 +89,6 @@ ErrorInfo AgentSessionManager::UpdateCurrentSession(const std::string &sessionId
     }
     current->value.sessionData = sessionData;
     return ErrorInfo();
-}
-
-bool AgentSessionManager::IsEnabled(const CallRequest &req) const
-{
-    if (!IsTruthyEnv(std::getenv(USE_AGENT_SESSION_ENV))) {
-        return false;
-    }
-    auto iter = req.createoptions().find(YR_AGENT_SESSION_ID);
-    return iter != req.createoptions().end() && !iter->second.empty();
-}
-
-std::string AgentSessionManager::GetSessionId(const CallRequest &req) const
-{
-    auto iter = req.createoptions().find(YR_AGENT_SESSION_ID);
-    if (iter == req.createoptions().end()) {
-        return "";
-    }
-    return iter->second;
 }
 
 std::shared_ptr<AgentSessionContext> AgentSessionManager::GetOrCreateSessionContext(const std::string &sessionKey)

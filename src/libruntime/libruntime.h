@@ -1085,6 +1085,10 @@ public:
     virtual ErrorInfo StreamWrite(const std::string &streamMessage, const std::string &requestId,
                                   const std::string &instanceId);
 
+    virtual std::pair<std::string, ErrorInfo> LoadCurrentSession(const std::string &sessionId);
+
+    virtual ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
+
     virtual std::pair<std::string, std::string> GetRequestAndInstanceID();
 
     std::pair<ErrorInfo, std::string> GetNodeId(void);

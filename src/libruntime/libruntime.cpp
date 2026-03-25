@@ -1936,6 +1936,22 @@ ErrorInfo Libruntime::StreamWrite(const std::string &streamMessage, const std::s
     return invokeAdaptor->StreamWriteEvent(streamMessage, requestId, instanceId);
 }
 
+std::pair<std::string, ErrorInfo> Libruntime::LoadCurrentSession(const std::string &sessionId)
+{
+    if (invokeAdaptor == nullptr) {
+        return {"", ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "invoke adaptor is nullptr")};
+    }
+    return invokeAdaptor->LoadCurrentSession(sessionId);
+}
+
+ErrorInfo Libruntime::UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData)
+{
+    if (invokeAdaptor == nullptr) {
+        return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "invoke adaptor is nullptr");
+    }
+    return invokeAdaptor->UpdateCurrentSession(sessionId, sessionData);
+}
+
 std::pair<std::string, std::string> Libruntime::GetRequestAndInstanceID()
 {
     if (threadLocalRequestId.empty() || threadLocalInstanceId.empty()) {

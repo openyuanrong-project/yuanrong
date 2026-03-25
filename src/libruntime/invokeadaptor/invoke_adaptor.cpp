@@ -16,13 +16,16 @@
 
 #include "invoke_adaptor.h"
 
+#include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 
 #include "absl/synchronization/notification.h"
+#include "agent_session_manager.h"
 #include "general_execution_manager.h"
 #include "ordered_execution_manager.h"
 #include "src/libruntime/fsclient/protobuf/common.pb.h"
@@ -47,6 +50,28 @@ int g_killTimeout = 30000;
 const static std::string DEFAULT_FUNCTION_LIB_PATH = "/dcache/layer/func";
 const static std::string HETERO_NAME = "device";
 const static int SCHEDULER_DATA_INDEX = 2;
+
+namespace {
+bool IsTruthyEnv(const char *value)
+{
+    if (value == nullptr) {
+        return false;
+    }
+    std::string normalized(value);
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on";
+}
+
+std::string GetAgentSessionId(const CallRequest &req)
+{
+    auto iter = req.createoptions().find(YR_AGENT_SESSION_ID);
+    if (iter == req.createoptions().end()) {
+        return "";
+    }
+    return iter->second;
+}
+}  // namespace
 
 template <typename T>
 void SetResponse(T &response, int code)
@@ -157,7 +182,8 @@ InvokeAdaptor::InvokeAdaptor(
       invokeOrderMgr(invokeOrderMgr),
       clientsMgr(clientsMgr),
       metricsAdaptor(inputMetricsAdaptor),
-      map_(genIdMapper)
+      map_(genIdMapper),
+      agentSessionEnabled_(IsTruthyEnv(std::getenv(USE_AGENT_SESSION_ENV)))
 {
     ar = std::make_shared<AliasRouting>();
     this->fsClient = fsClient;
@@ -362,36 +388,43 @@ void InvokeAdaptor::CallHandler(const std::shared_ptr<CallMessageSpec> &req)
                 threadLocalInstanceId = req->Immutable().senderid();
                 auto startTime = std::chrono::high_resolution_clock::now();
                 std::vector<std::string> objectsInDs;
-                auto sessionErr = agentSessionManager_->AcquireInvokeSession(req->Immutable(), metaData);
-                if (!sessionErr.OK()) {
-                    this->EraseCallTimer(req->Immutable().requestid());
-                    auto result = std::make_shared<CallResultMessageSpec>();
-                    auto &callResult = result->Mutable();
-                    callResult.set_requestid(req->Immutable().requestid());
-                    callResult.set_instanceid(req->Immutable().senderid());
-                    callResult.set_code(common::ERR_INNER_SYSTEM_ERROR);
-                    callResult.set_message(sessionErr.Msg());
-                    fsClient->ReturnCallResult(result, false, [this, objectsInDs](const CallResultAck &resp) {
-                        if (resp.code() != common::ERR_NONE) {
-                            YRLOG_WARN("failed to send CallResult, code: {}, message: {}", fmt::underlying(resp.code()),
-                                       resp.message());
-                        }
-                        this->memStore->DecreGlobalReference(objectsInDs);
+                const std::string sessionId = GetAgentSessionId(req->Immutable());
+                const bool manageAgentSession = agentSessionEnabled_ && !sessionId.empty();
+                if (manageAgentSession) {
+                    ErrorInfo sessionErr(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME,
+                                         "agent session manager is nullptr");
+                    if (agentSessionManager_ != nullptr) {
+                        sessionErr = agentSessionManager_->AcquireInvokeSession(sessionId, metaData);
+                    }
+                    if (!sessionErr.OK()) {
+                        this->EraseCallTimer(req->Immutable().requestid());
+                        auto result = std::make_shared<CallResultMessageSpec>();
+                        auto &callResult = result->Mutable();
+                        callResult.set_requestid(req->Immutable().requestid());
+                        callResult.set_instanceid(req->Immutable().senderid());
+                        callResult.set_code(common::ERR_INNER_SYSTEM_ERROR);
+                        callResult.set_message(sessionErr.Msg());
+                        fsClient->ReturnCallResult(result, false, [this, objectsInDs](const CallResultAck &resp) {
+                            if (resp.code() != common::ERR_NONE) {
+                                YRLOG_WARN("failed to send CallResult, code: {}, message: {}",
+                                           fmt::underlying(resp.code()), resp.message());
+                            }
+                            this->memStore->DecreGlobalReference(objectsInDs);
+                            return;
+                        });
                         return;
-                    });
-                    return;
+                    }
                 }
                 auto res = Call(req->Immutable(), metaData, librtConfig->libruntimeOptions, objectsInDs);
-                auto sessionIdIt = req->Immutable().createoptions().find(YR_AGENT_SESSION_ID);
-                const std::string sessionId =
-                    (sessionIdIt == req->Immutable().createoptions().end()) ? "" : sessionIdIt->second;
-                auto saveErr = agentSessionManager_->PersistAndReleaseInvokeSession(sessionId);
-                if (!saveErr.OK()) {
-                    YRLOG_ERROR("failed to persist agent session, request id {}, session err {}",
-                                req->Immutable().requestid(), saveErr.Msg());
-                    if (res.code() == common::ERR_NONE) {
-                        res.set_code(common::ERR_INNER_SYSTEM_ERROR);
-                        res.set_message(saveErr.Msg());
+                if (manageAgentSession) {
+                    auto saveErr = agentSessionManager_->PersistAndReleaseInvokeSession(sessionId);
+                    if (!saveErr.OK()) {
+                        YRLOG_ERROR("failed to persist agent session, request id {}, session err {}",
+                                    req->Immutable().requestid(), saveErr.Msg());
+                        if (res.code() == common::ERR_NONE) {
+                            res.set_code(common::ERR_INNER_SYSTEM_ERROR);
+                            res.set_message(saveErr.Msg());
+                        }
                     }
                 }
                 auto endTime = std::chrono::high_resolution_clock::now();
