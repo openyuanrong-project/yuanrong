@@ -18,6 +18,8 @@ package org.yuanrong.services.session;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 
 import org.yuanrong.errorcode.ErrorCode;
@@ -109,7 +111,7 @@ public class ManagedSessionObj implements SessionObj {
             }
             List<String> h = dto.histories != null ? dto.histories : new ArrayList<>();
             return new ManagedSessionObj(dto.sessionID != null ? dto.sessionID : "", h);
-        } catch (Exception e) {
+        } catch (JsonSyntaxException | JsonIOException e) {
             return new ManagedSessionObj("", new ArrayList<>());
         }
     }

@@ -20,6 +20,7 @@ import org.yuanrong.services.runtime.Context;
 import org.yuanrong.services.runtime.RuntimeLogger;
 import org.yuanrong.services.runtime.action.ExtendedMetaData;
 import org.yuanrong.services.runtime.action.Stream;
+import org.yuanrong.services.session.SessionService;
 
 import java.util.Map;
 
@@ -236,6 +237,16 @@ public class ContextMock implements Context {
 
     @Override
     public Stream getStream() {
+        return null;
+    }
+
+    @Override
+    public String getSessionId() {
+        return "";
+    }
+
+    @Override
+    public SessionService getSessionService() {
         return null;
     }
 }
