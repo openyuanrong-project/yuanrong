@@ -21,6 +21,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 typedef struct tagCInvokeLabels {
     char *key;
     char *value;
@@ -125,6 +126,7 @@ typedef struct tagCLibruntimeConfig {
     char *functionSystemAddress;
     char *dataSystemAddress;
     char *grpcAddress;
+    char *iamAddress;
     char *jobId;
     char *runtimeId;
     char *instanceId;
@@ -143,6 +145,8 @@ typedef struct tagCLibruntimeConfig {
     char *systemAuthAccessKey;
     char *systemAuthSecretKey;
     int systemAuthSecretKeySize;
+    char *systemAuthDataKey;
+    int systemAuthDataKeySize;
     char *encryptPrivateKeyPasswd;
     char *primaryKeyStoreFile;
     char *standbyKeyStoreFile;

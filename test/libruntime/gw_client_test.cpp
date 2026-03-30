@@ -1015,5 +1015,39 @@ TEST_F(GwClientTest, TestUnsupportedReq3)
     ASSERT_EQ(err.Code(), ERR_PARAM_INVALID);
 }
 
+class VerbTest : public ::testing::Test {
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(VerbTest, GetMethodTest)
+{
+    std::string method = "GET";
+    EXPECT_EQ(StringToVerb(method), boost::beast::http::verb::get);
+}
+
+TEST_F(VerbTest, PostMethodTest)
+{
+    std::string method = "POST";
+    EXPECT_EQ(StringToVerb(method), boost::beast::http::verb::post);
+}
+
+TEST_F(VerbTest, PutMethodTest)
+{
+    std::string method = "PUT";
+    EXPECT_EQ(StringToVerb(method), boost::beast::http::verb::put);
+}
+
+TEST_F(VerbTest, DeleteMethodTest)
+{
+    std::string method = "DELETE";
+    EXPECT_EQ(StringToVerb(method), boost::beast::http::verb::delete_);
+}
+
+TEST_F(VerbTest, UnknownMethodTest)
+{
+    std::string method = "INVALID_METHOD";
+    EXPECT_EQ(StringToVerb(method), boost::beast::http::verb::unknown);
+}
 }  // namespace test
 }  // namespace YR

@@ -188,6 +188,9 @@ struct LibruntimeConfig {
     std::string dataSystemIpAddr = "";
     int dataSystemPort = 0;
 
+    // iamAdreess is address to request iamAdapter
+    std::string iamAddress = "";
+
     // functionMasters is IP address list of function masters for get resources or other info from master
     std::vector<std::string> functionMasters;
 
@@ -245,6 +248,7 @@ struct LibruntimeConfig {
     SensitiveValue token = "";
     std::string ak_ = "";
     SensitiveValue sk_ = "";
+    SensitiveValue dk_ = "";
 
     using SubmitHook = std::function<void(std::function<void(void)> &&)>;
     SubmitHook funcExecSubmitHook = nullptr;

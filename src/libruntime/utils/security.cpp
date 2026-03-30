@@ -97,6 +97,9 @@ ErrorInfo Security::InitWithDriver(std::shared_ptr<LibruntimeConfig> librtConfig
         this->sk_ = SensitiveValue(librtConfig->sk_);
         this->isCredential_ = true;
         this->dsConf_.authEnable = true;
+        if (!librtConfig->dk_.Empty()) {
+            this->dk_ = SensitiveValue(librtConfig->dk_);
+        }
     }
     return ErrorInfo();
 }
@@ -235,8 +238,8 @@ bool Security::ReadOnce()
         this->sk_ = SensitiveValue(tlsConf.securitykey());
     }
 
-    if (tlsConf.has_tenantcredentials()) {
-        this->dk_ = tlsConf.tenantcredentials().datakey();
+    if (tlsConf.has_tenantcredentials() && !tlsConf.tenantcredentials().datakey().empty()) {
+        this->dk_ = SensitiveValue(tlsConf.tenantcredentials().datakey());
     }
 
     if (tlsConf.has_tenantcredentials()) {
@@ -304,6 +307,13 @@ void Security::GetAKSK(std::string &ak, SensitiveValue &sk)
     sk = this->sk_;
 }
 
+void Security::GetAKSKDK(std::string &ak, SensitiveValue &sk, SensitiveValue &dk)
+{
+    ak = this->ak_;
+    sk = this->sk_;
+    dk = this->dk_;
+}
+
 void Security::WhenTokenUpdated(std::function<void(const SensitiveValue &)> updateTokenHandler)
 {
     if (ak_.empty() && sk_.Empty()) {
@@ -335,7 +345,9 @@ bool Security::IsFsAuthEnable()
 
 Credential Security::GetCredential()
 {
-    return Credential{ak : this->ak_, sk : std::string(this->sk_.GetData(), this->sk_.GetSize()), dk : this->dk_};
+    return Credential{ak : this->ak_,
+                      sk : std::string(this->sk_.GetData(), this->sk_.GetSize()),
+                      dk : std::string(this->dk_.GetData(), this->dk_.GetSize())};
 }
 
 void Security::SetAKSKAndCredential(const std::string &ak, const SensitiveValue &sk)

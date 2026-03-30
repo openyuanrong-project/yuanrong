@@ -22,7 +22,7 @@ import (
 	"errors"
 	"os"
 
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/localauth"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
@@ -56,6 +56,9 @@ type pwdAuth struct {
 // GetEtcdAuthType etcd authentication type
 func GetEtcdAuthType(etcdConfig EtcdConfig) EtcdAuth {
 	if etcdConfig.SslEnable {
+		if os.Getenv(sts.EnvSTSEnable) == "true" {
+			return &tlsAuth{}
+		}
 		return &tlsAuth{
 			caFile:   etcdConfig.CaFile,
 			certFile: etcdConfig.CertFile,

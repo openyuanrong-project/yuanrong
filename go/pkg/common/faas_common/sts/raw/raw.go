@@ -17,9 +17,19 @@
 // Package raw define the sts structure
 package raw
 
+// StsConfig -
+type StsConfig struct {
+	StsEnable           bool             `json:"stsEnable,omitempty"`
+	SensitiveConfigs    SensitiveConfigs `json:"sensitiveConfigs,omitempty"`
+	ServerConfig        ServerConfig     `json:"serverConfig,omitempty"`
+	MgmtServerConfig    MgmtServerConfig `json:"mgmtServerConfig"`
+	StsDomainForRuntime string           `json:"stsDomainForRuntime"`
+}
+
 // SensitiveConfigs -
 type SensitiveConfigs struct {
 	ShareKeys map[string]string `json:"shareKeys"`
+	Auth      Auth              `json:"auth"`
 }
 
 // ServerConfig -
@@ -31,4 +41,12 @@ type ServerConfig struct {
 // MgmtServerConfig -
 type MgmtServerConfig struct {
 	Domain string `json:"domain,omitempty"`
+}
+
+// Auth -
+type Auth struct {
+	EnableIam string `json:"enableIam"`
+	AccessKey string `json:"accessKey"`
+	SecretKey string `json:"secretKey"`
+	DataKey   string `json:"dataKey"`
 }

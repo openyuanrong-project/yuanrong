@@ -14,34 +14,36 @@
  * limitations under the License.
  */
 
-// Package crypto for auth
-package crypto
+// Package common for tools
+package common
 
-// SCCInitialized -
-func SCCInitialized() bool {
-	return false
+import (
+	"encoding/json"
+	"os"
+
+	"yuanrong.org/kernel/runtime/libruntime/common/faas/logger"
+)
+
+func loadStsConfig(configPath string) {
+	if configPath == "" {
+		return
+	}
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		logger.GetLogger().Warnf("read config failed, err %s", err.Error())
+		return
+	}
+	c := &GlobalConfig{}
+	err = json.Unmarshal(data, c)
+	if err != nil {
+		logger.GetLogger().Warnf("unmarshal config failed, err %s", err.Error())
+		return
+	}
+	if !c.RawStsConfig.StsEnable {
+		return
+	}
 }
 
-// GetSCCAlgorithm -
-func GetSCCAlgorithm(algorithm string) int {
-	return 0
-}
-
-// InitializeSCC -
-func InitializeSCC(config SccConfig) bool {
-	return false
-}
-
-// FinalizeSCC -
-func FinalizeSCC() {
-}
-
-// SCCDecrypt -
-func SCCDecrypt(cipher []byte) (string, error) {
-	return "", nil
-}
-
-// SCCEncrypt -
-func SCCEncrypt(plainInput string) ([]byte, error) {
-	return []byte{}, nil
+func loadSensitiveConfig(c *GlobalConfig) {
+	return
 }

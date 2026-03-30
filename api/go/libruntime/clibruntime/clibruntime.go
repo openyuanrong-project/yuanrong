@@ -626,6 +626,8 @@ func Init(conf config.Config) error {
 	defer C.free(unsafe.Pointer(cGrpcAddress))
 	cDataSystemAddress := C.CString(conf.DataSystemAddress)
 	defer C.free(unsafe.Pointer(cDataSystemAddress))
+	cIamAddress := C.CString(conf.IamAddress)
+	defer C.free(unsafe.Pointer(cIamAddress))
 
 	cJobId := C.CString(conf.JobID)
 	defer C.free(unsafe.Pointer(cJobId))
@@ -656,6 +658,9 @@ func Init(conf config.Config) error {
 	cSystemAuthSecretKey := C.CString(conf.SystemAuthSecretKey)
 	defer C.free(unsafe.Pointer(cSystemAuthSecretKey))
 	cSystemAuthSecretKeySize := C.int(len(conf.SystemAuthSecretKey))
+	cSystemAuthDataKey := C.CString(conf.SystemAuthDataKey)
+	defer C.free(unsafe.Pointer(cSystemAuthDataKey))
+	cSystemAuthDataKeySize := C.int(len(conf.SystemAuthDataKey))
 	cEncryptPrivateKeyPasswd := C.CString(conf.EncryptPrivateKeyPasswd)
 	defer C.free(unsafe.Pointer(cEncryptPrivateKeyPasswd))
 	cPrimaryKeyStoreFile := C.CString(conf.PrimaryKeyStoreFile)
@@ -676,6 +681,7 @@ func Init(conf config.Config) error {
 		functionSystemAddress:        cFunctionSystemAddress,
 		grpcAddress:                  cGrpcAddress,
 		dataSystemAddress:            cDataSystemAddress,
+		iamAddress:                   cIamAddress,
 		jobId:                        cJobId,
 		runtimeId:                    cRuntimeId,
 		instanceId:                   cInstanceId,
@@ -694,6 +700,8 @@ func Init(conf config.Config) error {
 		systemAuthAccessKey:          cSystemAuthAccessKey,
 		systemAuthSecretKey:          cSystemAuthSecretKey,
 		systemAuthSecretKeySize:      cSystemAuthSecretKeySize,
+		systemAuthDataKey:            cSystemAuthDataKey,
+		systemAuthDataKeySize:        cSystemAuthDataKeySize,
 		encryptPrivateKeyPasswd:      cEncryptPrivateKeyPasswd,
 		primaryKeyStoreFile:          cPrimaryKeyStoreFile,
 		standbyKeyStoreFile:          cStandbyKeyStoreFile,

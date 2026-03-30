@@ -29,6 +29,7 @@
 #include "src/libruntime/invokeadaptor/request_manager.h"
 #include "src/libruntime/metricsadaptor/metrics_adaptor.h"
 #include "src/libruntime/objectstore/memory_store.h"
+#include "src/libruntime/utils/ak_sk_manager.h"
 #include "src/libruntime/utils/serializer.h"
 #include "src/utility/id_generator.h"
 #include "src/utility/string_utility.h"
@@ -92,6 +93,7 @@ ErrorInfo Libruntime::Init(std::shared_ptr<FSClient> fsClient, YR::Libruntime::D
         functionId = config->functionName;
     }
     this->downgrade_ = std::make_shared<YR::scene::DowngradeController>(functionId, clientsMgr, security_);
+    TenantAKSKManager::GetInstance().Initialize(clientsMgr, security_, config);
     this->invokeAdaptor = std::make_shared<InvokeAdaptor>(
         config, dependencyResolver, fsClient, memStore, runtimeContext, cb, waitingObjectManager, invokeOrderMgr,
         clientsMgr, metricsAdaptor, mapper, generatorReceiver_, generatorNotifier_, downgrade_);

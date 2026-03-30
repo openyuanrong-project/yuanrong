@@ -164,6 +164,21 @@ std::string VerbToString(const boost::beast::http::verb &v)
     }
 }
 
+boost::beast::http::verb StringToVerb(const std::string &method)
+{
+    if (method == "GET") {
+        return boost::beast::http::verb::get;
+    } else if (method == "POST") {
+        return boost::beast::http::verb::post;
+    } else if (method == "PUT") {
+        return boost::beast::http::verb::put;
+    } else if (method == "DELETE") {
+        return boost::beast::http::verb::delete_;
+    } else {
+        return boost::beast::http::verb::unknown;
+    }
+}
+
 ErrorInfo GwClient::HandleLease(const std::string &url, const http::verb &verb)
 {
     auto req = this->BuildLeaseRequest();
@@ -1099,6 +1114,38 @@ void GwClient::InvocationAsync(const std::string &url, const std::shared_ptr<Inv
                 callback(*requestId, ErrorCode::ERR_OK, TransformJson(statusCode, result));
             }
         });
+}
+
+void GwClient::InvocationSync(const std::string &method, const std::string &path,
+                              const std::unordered_map<std::string, std::string> &headers,
+                              const std::string &body, const InvocationCallback &callback)
+{
+    YRLOG_DEBUG("start request to method: {}, path: {}", method, path);
+    auto verb = StringToVerb(method);
+    auto requestId = std::make_shared<std::string>(YR::utility::IDGenerator::GenTraceId());
+    httpClient_->SubmitInvokeRequest(
+        verb, path, headers, body, requestId,
+        [requestId, callback](const std::string &result, const boost::beast::error_code &errorCode,
+                              const uint statusCode) {
+            if (errorCode) {
+                std::stringstream ss;
+                ss << "invocation network error between client and frontend, error_code: " << errorCode.message()
+                   << ", requestId: " << *requestId;
+                YRLOG_ERROR(ss.str());
+                callback(*requestId, ErrorCode::ERR_INNER_COMMUNICATION, ss.str());
+            } else if (!IsResponseSuccessful(statusCode)) {
+                YRLOG_ERROR("invocation response, status_code: {}, result: {}, requestId: {}", statusCode, result,
+                            *requestId);
+                if (IsResponseServerError(statusCode)) {
+                    callback(*requestId, ErrorCode::ERR_INNER_COMMUNICATION, result);
+                } else {
+                    callback(*requestId, ErrorCode::ERR_INNER_SYSTEM_ERROR, result);
+                }
+            } else {
+                YRLOG_DEBUG("invocation response, http status code: {}, requestId: {}", statusCode, *requestId);
+                callback(*requestId, ErrorCode::ERR_OK, result);
+            }
+    });
 }
 }  // namespace Libruntime
 }  // namespace YR

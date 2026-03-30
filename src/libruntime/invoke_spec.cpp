@@ -501,6 +501,9 @@ bool RequestResource::operator==(const RequestResource &r) const
     if (r.opts.device.name != opts.device.name) {
         return false;
     }
+    if (r.opts.debug.enable != opts.debug.enable) {
+        return false;
+    }
     if (r.opts.envVars.size() != opts.envVars.size()) {
         return false;
     }

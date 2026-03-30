@@ -393,5 +393,27 @@ TEST_F(SecurityTest, NoStdinShouldTimeoutFailedTest)
     unsetenv("ENABLE_DS_AUTH");
     Libruntime::Config::Instance() = Libruntime::Config();
 }
+
+TEST_F(SecurityTest, GetAKSK)
+{
+    auto s = std::make_shared<Security>();
+    std::string ak;
+    SensitiveValue sk;
+    s->GetAKSK(ak, sk);
+    EXPECT_TRUE(ak.empty());
+    EXPECT_TRUE(sk.Empty());
+}
+
+TEST_F(SecurityTest, GetAKSKDK)
+{
+    auto s = std::make_shared<Security>();
+    std::string ak;
+    SensitiveValue sk;
+    SensitiveValue dk;
+    s->GetAKSKDK(ak, sk, dk);
+    EXPECT_TRUE(ak.empty());
+    EXPECT_TRUE(sk.Empty());
+    EXPECT_TRUE(dk.Empty());
+}
 }  // namespace test
 }  // namespace YR

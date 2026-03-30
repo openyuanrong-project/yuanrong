@@ -29,6 +29,7 @@ import (
 	"yuanrong.org/kernel/pkg/common/faas_common/etcd3"
 	"yuanrong.org/kernel/pkg/common/faas_common/localauth"
 	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
+	"yuanrong.org/kernel/pkg/common/faas_common/sts"
 	"yuanrong.org/kernel/pkg/common/faas_common/utils"
 	"yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/serviceaccount"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
@@ -111,6 +112,17 @@ func loadFunctionConfig(GlobalConfig *types.Configuration) error {
 			log.GetLogger().Warnf("cannot set default env DOCKER_ROOT_DIR")
 		}
 	}
+	if GlobalConfig.RawStsConfig.StsEnable {
+		if err := sts.InitStsSDK(GlobalConfig.RawStsConfig.ServerConfig); err != nil {
+			log.GetLogger().Errorf("failed to init sts sdk, err: %s", err.Error())
+			return err
+		}
+		if err = os.Setenv(sts.EnvSTSEnable, "true"); err != nil {
+			log.GetLogger().Errorf("failed to set env of %s, err: %s", sts.EnvSTSEnable, err.Error())
+			return err
+		}
+		GlobalConfig.SystemAuthConfig = sts.DecryptSystemAuthConfig(GlobalConfig.RawStsConfig.SensitiveConfigs.Auth)
+	}
 	if len(GlobalConfig.Scenario) == 0 {
 		GlobalConfig.Scenario = types.ScenarioWiseCloud
 	}
@@ -134,10 +146,17 @@ func loadFunctionConfig(GlobalConfig *types.Configuration) error {
 }
 
 func setServiceAccountJwt(cfg *types.Configuration) error {
+	if cfg.RawStsConfig.StsEnable && len(cfg.ServiceAccountJwt.ServiceAccountKeyStr) > 0 {
+		if cfg.ServiceAccountJwt.ServiceAccount, err :=
+			serviceaccount.ParseServiceAccount(cfg.ServiceAccountJwt.ServiceAccountKeyStr); err != nil {
+			return err
+		}
+	}
 	if cfg.ServiceAccountJwt.TlsConfig != nil &&
 		len(cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuitesStr) > 0 {
 		var err error
-		cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuites, err = serviceaccount.ParseTlsCipherSuites(cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuitesStr)
+		cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuites, err =
+			serviceaccount.ParseTlsCipherSuites(cfg.ServiceAccountJwt.TlsConfig.TlsCipherSuitesStr)
 		if err != nil {
 			return err
 		}

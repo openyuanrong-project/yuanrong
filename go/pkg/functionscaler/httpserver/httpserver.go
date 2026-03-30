@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -156,6 +157,10 @@ func auth(ctx *fasthttp.RequestCtx) error {
 		return nil
 	}
 	sign := string(ctx.Request.Header.Peek(constant.HeaderAuthorization))
+	if strings.HasPrefix(sign, localauth.AuthPrefixHmacSha256) {
+		return localauth.VerifySignWithHmacSha256(ctx, config.GlobalConfig.SystemAuthConfig.AccessKey,
+			config.GlobalConfig.SystemAuthConfig.SecretKey)
+	}
 	timestamp := string(ctx.Request.Header.Peek(constant.HeaderAuthTimestamp))
 	return localauth.AuthCheckLocally(config.GlobalConfig.LocalAuth.AKey, config.GlobalConfig.LocalAuth.SKey, sign,
 		timestamp, config.GlobalConfig.LocalAuth.Duration)

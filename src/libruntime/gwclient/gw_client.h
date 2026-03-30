@@ -31,7 +31,6 @@ using YR::utility::TimerWorker;
 extern const std::string REMOTE_CLIENT_ID_KEY;
 extern const std::string REMOTE_CLIENT_ID_KEY_NEW;
 extern const std::string TRACE_ID_KEY;
-extern const std::string TRACE_ID_KEY_NEW;
 extern const std::string TENANT_ID_KEY;
 extern const std::string TENANT_ID_KEY_NEW;
 
@@ -56,6 +55,8 @@ using InvocationCallback =
     std::function<void(const std::string &requestId, YR::Libruntime::ErrorCode code, const std::string &result)>;
 
 thread_local static std::string threadLocalTenantId;
+
+boost::beast::http::verb StringToVerb(const std::string &method);
 
 class GwClient : public FSIntf,
                  public ObjectStore,
@@ -86,6 +87,9 @@ public:
                      int timeoutSec = -1) override;
     void InvocationAsync(const std::string &url, const std::shared_ptr<InvokeSpec> spec,
                          const InvocationCallback &callback);
+    virtual void InvocationSync(const std::string &method, const std::string &path,
+                                const std::unordered_map<std::string, std::string> &headers,
+                                const std::string &body, const InvocationCallback &callback);
     void CallResultAsync(const std::shared_ptr<CallResultMessageSpec> req, CallResultCallBack callback)
     {
         STDERR_AND_THROW_EXCEPTION(ERR_INNER_SYSTEM_ERROR, RUNTIME,

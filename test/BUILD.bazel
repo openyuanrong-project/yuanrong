@@ -136,6 +136,7 @@ cc_test(
     "libruntime/resource_group_test.cpp",
     "libruntime/request_queue_test.cpp",
     "libruntime/http_utils_test.cpp",
+    "libruntime/aes_crypto_test.cpp",
   ],
   deps = [
     "@gtest//:gtest_main",
@@ -145,6 +146,22 @@ cc_test(
   ],
   copts = [
           "-fno-access-control",
+  ],
+  linkstatic = True,
+)
+
+cc_test(
+  name = "tenant_ak_sk_test",
+  srcs = [
+    "libruntime/ak_sk_manager_test.cpp",
+  ],
+  deps = [
+    "@gtest//:gtest_main",
+    "//src/utility:yr_utils",
+    "//:runtime_lib",
+  ],
+  copts = [
+    "-fno-access-control",
   ],
   linkstatic = True,
 )

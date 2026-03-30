@@ -409,12 +409,12 @@ void FuncExecSubmitHook(std::function<void(void)> &&f)
     GoFunctionExecutionPoolSubmit(funcPtr);
 }
 
-CErrorInfo CInit(CLibruntimeConfig *config)
+void ParseAndSetBasicConfig(CLibruntimeConfig *config, LibruntimeConfig &librtCfg)
 {
-    LibruntimeConfig librtCfg{};
     YR::ParseIpAddr(config->functionSystemAddress, librtCfg.functionSystemIpAddr, librtCfg.functionSystemPort);
     YR::ParseIpAddr(config->grpcAddress, librtCfg.functionSystemRtServerIpAddr, librtCfg.functionSystemRtServerPort);
     YR::ParseIpAddr(config->dataSystemAddress, librtCfg.dataSystemIpAddr, librtCfg.dataSystemPort);
+    librtCfg.iamAddress = config->iamAddress;
     librtCfg.runtimeId = config->runtimeId;
     librtCfg.instanceId = config->instanceId;
     librtCfg.functionName = config->functionName;
@@ -423,28 +423,34 @@ CErrorInfo CInit(CLibruntimeConfig *config)
     librtCfg.selfApiType = static_cast<libruntime::ApiType>(config->apiType);
     librtCfg.inCluster = config->inCluster != 0;
     librtCfg.isDriver = config->isDriver != 0;
+}
 
+void SetMTLSConfig(CLibruntimeConfig *config, LibruntimeConfig &librtCfg)
+{
     librtCfg.enableMTLS = config->enableMTLS != 0;
     librtCfg.privateKeyPath = config->privateKeyPath;
     librtCfg.certificateFilePath = config->certificateFilePath;
     librtCfg.verifyFilePath = config->verifyFilePath;
     librtCfg.primaryKeyStoreFile = config->primaryKeyStoreFile;
     librtCfg.standbyKeyStoreFile = config->standbyKeyStoreFile;
+}
+
+ErrorInfo SetEncryptConfig(CLibruntimeConfig *config, LibruntimeConfig &librtCfg)
+{
     librtCfg.encryptEnable = config->enableDsEncrypt != 0;
     librtCfg.runtimePublicKeyPath = config->runtimePublicKeyContextPath;
     librtCfg.runtimePrivateKeyPath = config->runtimePrivateKeyContextPath;
     librtCfg.dsPublicKeyPath = config->dsPublicKeyContextPath;
     librtCfg.ak_ = config->systemAuthAccessKey;
     librtCfg.sk_ = datasystem::SensitiveValue(config->systemAuthSecretKey, config->systemAuthSecretKeySize);
-    auto len = sizeof(config->privateKeyPaaswd);
-    (void)memcpy_s(librtCfg.privateKeyPaaswd, len, config->privateKeyPaaswd, len);
-    auto decryptErr = librtCfg.Decrypt();
-    if (!decryptErr.OK()) {
-        return ErrorInfoToCError(decryptErr);
-    }
+    librtCfg.dk_ = datasystem::SensitiveValue(config->systemAuthDataKey, config->systemAuthDataKeySize);
+    size_t len = strlen(config->privateKeyPaaswd) + 1;
+    (void)memcpy_s(librtCfg.privateKeyPaaswd, YR::Libruntime::MAX_PASSWD_LENGTH, config->privateKeyPaaswd, len);
+    return librtCfg.Decrypt();
+}
 
-    librtCfg.functionIds[libruntime::LanguageType::Golang] = config->functionId;
-    librtCfg.selfLanguage = libruntime::LanguageType::Golang;
+void SetCallbacks(CLibruntimeConfig *config, LibruntimeConfig &librtCfg)
+{
     librtCfg.libruntimeOptions.loadFunctionCallback = LoadFunctionsWrapper;
     librtCfg.libruntimeOptions.functionExecuteCallback = FunctionExecutionWrapper;
     librtCfg.libruntimeOptions.checkpointCallback = CheckpointWrapper;
@@ -456,11 +462,30 @@ CErrorInfo CInit(CLibruntimeConfig *config)
     } else {
         librtCfg.libruntimeOptions.healthCheckCallback = nullptr;
     }
+}
+
+void SetFinalConfig(CLibruntimeConfig *config, LibruntimeConfig &librtCfg)
+{
+    librtCfg.functionIds[libruntime::LanguageType::Golang] = config->functionId;
+    librtCfg.selfLanguage = libruntime::LanguageType::Golang;
     librtCfg.jobId = config->jobId;
     librtCfg.funcExecSubmitHook = FuncExecSubmitHook;
     librtCfg.maxConcurrencyCreateNum = config->maxConcurrencyCreateNum;
     librtCfg.enableSigaction = config->enableSigaction;
     librtCfg.enableEvent = config->enableEvent != 0;
+}
+
+CErrorInfo CInit(CLibruntimeConfig *config)
+{
+    LibruntimeConfig librtCfg{};
+    ParseAndSetBasicConfig(config, librtCfg);
+    SetMTLSConfig(config, librtCfg);
+    auto decryptErr = SetEncryptConfig(config, librtCfg);
+    if (!decryptErr.OK()) {
+        return ErrorInfoToCError(decryptErr);
+    }
+    SetCallbacks(config, librtCfg);
+    SetFinalConfig(config, librtCfg);
     auto err = LibruntimeManager::Instance().Init(librtCfg);
     return ErrorInfoToCError(err);
 }

@@ -66,6 +66,8 @@ type Configuration struct {
 	FunctionConfig               []FunctionDefaultConfig          `json:"functionConfig"`
 	HTTPSConfig                  *tls.InternalHTTPSConfig         `json:"httpsConfig" valid:"optional"`
 	LocalAuth                    localauth.AuthConfig             `json:"localAuth"`
+	RawStsConfig                 raw.StsConfig                    `json:"rawStsConfig,omitempty"`
+	SystemAuthConfig             raw.Auth                         `json:"systemAuthConfig,omitempty" valid:"optional"`
 	XpuNodeLabels                []XpuNodeLabel                   `json:"xpuNodeLabels,omitempty"`
 	ServiceAccountJwt            wisecloudTypes.ServiceAccountJwt `json:"serviceAccountJwt,omitempty"`
 	Version                      string                           `json:"version"`

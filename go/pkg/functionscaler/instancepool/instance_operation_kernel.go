@@ -45,6 +45,7 @@ import (
 	"yuanrong.org/kernel/pkg/functionscaler/config"
 	"yuanrong.org/kernel/pkg/functionscaler/selfregister"
 	"yuanrong.org/kernel/pkg/functionscaler/signalmanager"
+	"yuanrong.org/kernel/pkg/functionscaler/sts"
 	"yuanrong.org/kernel/pkg/functionscaler/tenantquota"
 	"yuanrong.org/kernel/pkg/functionscaler/types"
 	"yuanrong.org/kernel/pkg/functionscaler/utils"
@@ -142,8 +143,7 @@ func createInstanceForKernel(request createInstanceRequest) (instance *types.Ins
 }
 
 func deleteInstanceForKernel(funcSpec *types.FunctionSpecification, faasManagerInfo faasManagerInfo,
-	instance *types.Instance,
-) error {
+	instance *types.Instance) error {
 	log.GetLogger().Debugf("start to delete instance %s for function %s", instance.InstanceID, funcSpec.FuncKey)
 	// maybe we should wait for delete response
 	var err error
@@ -228,8 +228,7 @@ func getExecutorFuncKey(funcSpec *types.FunctionSpecification) string {
 }
 
 func generateOptionAndArgsForCreate(request createInstanceRequest, resSpec *resspeckey.ResourceSpecification) (
-	map[string]string, []api.Arg, error,
-) {
+	map[string]string, []api.Arg, error) {
 	createOpt, err := prepareCreateOptions(request, resSpec)
 	if err != nil || createOpt == nil {
 		return nil, nil, err
@@ -243,8 +242,7 @@ func generateOptionAndArgsForCreate(request createInstanceRequest, resSpec *ress
 }
 
 func prepareSchedulingOptions(funcSpec *types.FunctionSpecification,
-	resSpec *resspeckey.ResourceSpecification,
-) *types.SchedulingOptions {
+	resSpec *resspeckey.ResourceSpecification) *types.SchedulingOptions {
 	schedulingOptions := &types.SchedulingOptions{}
 	schedulingOptions.Resources = generateResources(resSpec)
 	if config.GlobalConfig.DeployMode == constant.DeployModeProcesses {
@@ -276,8 +274,7 @@ func prepareSchedulingOptions(funcSpec *types.FunctionSpecification,
 }
 
 func createInvokeOptions(funcSpec *types.FunctionSpecification, schedulingOptions *types.SchedulingOptions,
-	createOpt map[string]string, poolLabel string,
-) api.InvokeOptions {
+	createOpt map[string]string, poolLabel string) api.InvokeOptions {
 	codeEntrys := []string{funcSpec.ExtendedMetaData.Initializer.Handler, funcSpec.FuncMetaData.Handler}
 	if funcSpec.ExtendedMetaData.PreStop.Handler != "" {
 		codeEntrys = append(codeEntrys, funcSpec.ExtendedMetaData.PreStop.Handler)
@@ -326,8 +323,7 @@ func generateScheduleAffinity(scheduleAffinity []api.Affinity, label string) []a
 }
 
 func createPATService(traceID string, funcSpec *types.FunctionSpecification, faasManagerInfo faasManagerInfo,
-	extMetaData commonTypes.ExtendedMetaData, vpcConfig *commonTypes.VpcConfig,
-) ([]commonTypes.NATConfigure, error) {
+	extMetaData commonTypes.ExtendedMetaData, vpcConfig *commonTypes.VpcConfig) ([]commonTypes.NATConfigure, error) {
 	createErr := errors.New("failed to create pat service")
 	faasManagerFuncKey := faasManagerInfo.funcKey
 	faasManagerInstanceID := faasManagerInfo.instanceID
@@ -436,8 +432,7 @@ func setCreateOptionForInvokeTimeout(funcSpec *types.FunctionSpecification, crea
 
 // CreateOption contains params for runtime not for user code
 func prepareCreateOptions(request createInstanceRequest, resSpec *resspeckey.ResourceSpecification) (map[string]string,
-	error,
-) {
+	error) {
 	createOpt := make(map[string]string, constant.DefaultMapSize)
 	setCreateOptionForFuncSpec(request.funcSpec, createOpt)
 	setFunctions := []func(*types.FunctionSpecification, map[string]string) error{
@@ -481,8 +476,7 @@ func setCreateOptionForImagePullSecrets(funcSpec *types.FunctionSpecification, c
 }
 
 func setCreateOptionForPostStartExec(funcSpec *types.FunctionSpecification,
-	createOpt map[string]string,
-) error {
+	createOpt map[string]string) error {
 	if createOpt == nil {
 		return errors.New("createOpt is nil")
 	}
@@ -881,8 +875,7 @@ func setCreateOptionForInitContainerEnv(funcSpec *types.FunctionSpecification, c
 }
 
 func setCreateOptionForLabel(instanceType types.InstanceType, funcSpec *types.FunctionSpecification,
-	resSpec *resspeckey.ResourceSpecification, createOpt map[string]string,
-) error {
+	resSpec *resspeckey.ResourceSpecification, createOpt map[string]string) error {
 	if createOpt == nil {
 		return errors.New("createOpt is nil")
 	}
@@ -909,8 +902,7 @@ func setCreateOptionForLabel(instanceType types.InstanceType, funcSpec *types.Fu
 }
 
 func getPodLabel(funcSpec *types.FunctionSpecification, resSpec *resspeckey.ResourceSpecification,
-	instanceType types.InstanceType,
-) ([]byte, error) {
+	instanceType types.InstanceType) ([]byte, error) {
 	version := funcSpec.FuncMetaData.Version
 	// $ is an illegal character in k8s label
 	if strings.HasPrefix(version, "$") {
@@ -939,8 +931,7 @@ func getPodLabel(funcSpec *types.FunctionSpecification, resSpec *resspeckey.Reso
 }
 
 func setCreateOptionForNote(instanceType types.InstanceType, funcSpec *types.FunctionSpecification,
-	resSpec *resspeckey.ResourceSpecification, createOpt map[string]string,
-) error {
+	resSpec *resspeckey.ResourceSpecification, createOpt map[string]string) error {
 	if createOpt == nil {
 		return nil
 	}
@@ -981,8 +972,7 @@ func buildDelegateNodeAffinity(xpuNodeLabel types.XpuNodeLabel) *v1.NodeAffinity
 }
 
 func setCreateOptionForAscendNPU(funcSpec *types.FunctionSpecification, resSpec *resspeckey.ResourceSpecification,
-	createOpt map[string]string,
-) error {
+	createOpt map[string]string) error {
 	if createOpt == nil || resSpec == nil {
 		return nil
 	}
@@ -1148,6 +1138,7 @@ func prepareCreateParamsData(funcSpec *types.FunctionSpecification, resKey ressp
 }
 
 func prepareCustomUserArg(funcSpec *types.FunctionSpecification) ([]byte, error) {
+	faasExecutorStsServerConfig := sts.GetStsServerConfig(funcSpec)
 	localAuth := localauth.AuthConfig{
 		AKey:     config.GlobalConfig.LocalAuth.AKey,
 		SKey:     config.GlobalConfig.LocalAuth.SKey,
@@ -1158,6 +1149,7 @@ func prepareCustomUserArg(funcSpec *types.FunctionSpecification) ([]byte, error)
 		ClusterName:       config.GlobalConfig.ClusterName,
 		DiskMonitorEnable: config.GlobalConfig.DiskMonitorEnable,
 		LocalAuth:         localAuth,
+		StsServerConfig:   faasExecutorStsServerConfig,
 	}
 	customUserArgData, err := json.Marshal(customUserArgInfo)
 	if err != nil {
@@ -1386,8 +1378,7 @@ func generateNetworkConfig(natConfig commonTypes.NATConfigure) types.NetworkConf
 }
 
 func setCreateOptionForNuwaRuntimeInfo(nuwaRuntimeInfo *wisecloudTypes.NuwaRuntimeInfo,
-	createOpt map[string]string,
-) error {
+	createOpt map[string]string) error {
 	if config.GlobalConfig.Scenario != types.ScenarioWiseCloud {
 		return nil
 	}
@@ -1407,8 +1398,7 @@ func setCreateOptionForNuwaRuntimeInfo(nuwaRuntimeInfo *wisecloudTypes.NuwaRunti
 }
 
 func prepareCreatePATServiceArguments(traceID string, namespace string,
-	extMetaData commonTypes.ExtendedMetaData, vpcConfig *commonTypes.VpcConfig,
-) []api.Arg {
+	extMetaData commonTypes.ExtendedMetaData, vpcConfig *commonTypes.VpcConfig) []api.Arg {
 	patSvcReq := commonTypes.PATServiceRequest{
 		ID:             vpcConfig.ID,
 		Namespace:      namespace,

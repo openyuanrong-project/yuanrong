@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,24 @@
  * limitations under the License.
  */
 
-// Package crypto for auth
-package crypto
+#pragma once
 
-// SCCInitialized -
-func SCCInitialized() bool {
-	return false
-}
+#include <functional>
 
-// GetSCCAlgorithm -
-func GetSCCAlgorithm(algorithm string) int {
-	return 0
-}
+namespace YR {
+namespace Libruntime {
+class Raii {
+public:
+    explicit Raii(std::function<void(void)> function) : function_(std::move(function))
+    {
+    }
+    ~Raii()
+    {
+        function_();
+    }
 
-// InitializeSCC -
-func InitializeSCC(config SccConfig) bool {
-	return false
-}
-
-// FinalizeSCC -
-func FinalizeSCC() {
-}
-
-// SCCDecrypt -
-func SCCDecrypt(cipher []byte) (string, error) {
-	return "", nil
-}
-
-// SCCEncrypt -
-func SCCEncrypt(plainInput string) ([]byte, error) {
-	return []byte{}, nil
-}
+private:
+    std::function<void(void)> function_;
+};
+}  // namespace Libruntime
+}  // namespace YR

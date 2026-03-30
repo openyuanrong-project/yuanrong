@@ -75,6 +75,15 @@ public:
     void GetToken(SensitiveValue &token);
 
     /**
+     * @brief Get the AK, SK and DK
+     *
+     * @param ak system function runtime's access key for build connections with data system
+     * @param sk system function runtime's security key for build connections with data system
+     * @param dk system function runtime's data key for build connections with data system
+     */
+    virtual void GetAKSKDK(std::string &ak, SensitiveValue &sk, SensitiveValue &dk);
+
+    /**
      * @brief Get the AK and SK
      *
      * @param ak system function runtime's access key for build connections with data system
@@ -154,7 +163,7 @@ private:
     SensitiveValue token_ = "";
     std::string ak_ = "";
     SensitiveValue sk_ = "";
-    std::string dk_ = "";
+    SensitiveValue dk_ = "";
     bool isCredential_ = false;  // true means runtime auth with ds and fs use ak、sk
     bool fsConnMode_ = false;    // false means runtime is server, function system is client
     std::string serverNameoverride_ = "";
