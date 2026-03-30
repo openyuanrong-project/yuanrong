@@ -90,6 +90,26 @@ public class demo {
 }
 ```
 
+#### String getSessionId()
+
+Get the agent session ID associated with the current invocation.
+
+Returns an empty string when the request does not carry a session ID or `use_agent_session=false`.
+
+- Returns:
+
+    sessionId (String): Session ID.
+
+#### SessionService getSessionService()
+
+Get the session service for the current invocation.
+
+Returns `null` if no session is associated with the current request.
+
+- Returns:
+
+    SessionService: Session service instance, see SessionService interface definition below.
+
 ## public class Function
 
 package:`org.yuanrong.function`
@@ -294,6 +314,146 @@ Besides recive and store result, this method will check if result complies with 
 #### public T get(Class<?> classType)
 
 Call get(Class<?> classType, int timeoutSec)get(int timeoutSec) without timeout.
+
+# SessionService
+
+package:`org.yuanrong.services.session`
+
+SDK interface providing session access capability.
+
+## public interface SessionService
+
+Used to load the session object associated with the current invocation.
+
+### Interface description
+
+#### SessionObj loadSession()
+
+Load the session associated with the current invocation.
+
+Returns `null` when no `sessionId` is present in the request or `use_agent_session=false`.
+
+- Returns:
+
+    SessionObj: The current session object, see SessionObj interface definition below. Returns `null` if no session is associated with the current request.
+
+- Throws:
+
+   - **YRException** (YRException) - Thrown when the underlying JNI call fails.
+
+```java
+
+public class demo {
+    public String handleRequest(JsonObject jsonObject, Context context) {
+        SessionService sessionService = context.getSessionService();
+        if (sessionService == null) {
+            return "no session";
+        }
+        SessionObj session = sessionService.loadSession();
+        if (session == null) {
+            return "session not found";
+        }
+        return session.getID();
+    }
+}
+```
+
+# SessionObj
+
+package:`org.yuanrong.services.session`
+
+## public interface SessionObj
+
+Represents an agent session object.
+
+The session is managed by the runtime. Users should only read and modify the session via the provided accessors. Do NOT modify the list returned by `getHistories()` directly; always use `setHistories(List)` to write back changes so the runtime can be notified.
+
+### Interface description
+
+#### String getID()
+
+Get the session ID.
+
+- Returns:
+
+    sessionID (String): Session ID.
+
+#### List<String> getHistories()
+
+Get a read-only snapshot of the conversation history.
+
+The returned list is an unmodifiable view. Mutating it has no effect on the runtime state.
+
+- Returns:
+
+    histories (List<String>): Unmodifiable list of conversation history entries.
+
+#### void setHistories(List<String> histories)
+
+Update the conversation history.
+
+This method immediately synchronizes the new value to libruntime, ensuring the runtime holds the latest state before persisting.
+
+- Parameters:
+
+   - **histories** (List<String>) - New history list (null treated as empty list).
+
+- Throws:
+
+   - **YRException** (YRException) - Thrown when the JNI call fails.
+
+```java
+
+public class demo {
+    public String handleRequest(JsonObject jsonObject, Context context) {
+        SessionService sessionService = context.getSessionService();
+        if (sessionService == null) {
+            return "no session";
+        }
+        SessionObj session = sessionService.loadSession();
+        if (session == null) {
+            return "session not found";
+        }
+        List<String> histories = new ArrayList<>(session.getHistories());
+        histories.add("new message");
+        session.setHistories(histories);
+        return "history updated";
+    }
+}
+```
+
+# ManagedSessionObj
+
+package:`org.yuanrong.services.session`
+
+## public class ManagedSessionObj implements SessionObj
+
+Runtime-managed implementation of SessionObj. Constructed by the JNI layer after loading from libruntime.
+
+### Interface description
+
+#### public ManagedSessionObj(String id, List<String> histories)
+
+Constructor.
+
+- Parameters:
+
+   - **id** (String) - Session ID.
+   - **histories** (List<String>) - Initial history list (may be empty, null treated as empty list).
+
+#### public static ManagedSessionObj fromJson(String json)
+
+Deserialize from the canonical JSON format returned by libruntime.
+
+JSON format: `{"sessionID":"s-123","histories":["user: hello","assistant: hi"]}`
+
+- Parameters:
+
+   - **json** (String) - Session JSON string (may be null or empty).
+
+- Returns:
+
+    ManagedSessionObj: Deserialized object. Returns empty object if json is null, empty, or parsing fails.
 
 # Function
 

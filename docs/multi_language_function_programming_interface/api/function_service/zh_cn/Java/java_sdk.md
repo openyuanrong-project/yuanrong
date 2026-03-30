@@ -90,6 +90,166 @@ public class demo {
 }
 ```
 
+#### String getSessionId()
+
+获取当前请求的 SessionID。
+
+当请求中不携带 sessionId 或 `use_agent_session=false` 时返回空字符串。
+
+- 返回：
+
+    sessionId (String)：会话 ID。
+
+#### SessionService getSessionService()
+
+获取当前调用的会话服务。
+
+返回 `null` 表示当前请求未关联任何会话。
+
+- 返回：
+
+    SessionService：会话服务实例，详见下文 SessionService 接口定义。
+
+# SessionService
+
+包名：`org.yuanrong.services.session`。
+
+提供会话访问能力的 SDK 接口。
+
+## public interface SessionService
+
+用于加载当前调用关联的会话对象。
+
+### Interface description
+
+#### SessionObj loadSession()
+
+加载当前调用关联的会话。
+
+当请求中不携带 `sessionId` 或 `use_agent_session=false` 时返回 `null`。
+
+- 返回：
+
+    SessionObj：当前会话对象，详见下文 SessionObj 接口定义。返回 `null` 表示当前请求未关联任何会话。
+
+- 抛出：
+
+    - **YRException** (YRException) - 底层 JNI 调用失败时抛出。
+
+```java
+
+public class demo {
+    public String handleRequest(JsonObject jsonObject, Context context) {
+        SessionService sessionService = context.getSessionService();
+        if (sessionService == null) {
+            return "no session";
+        }
+        SessionObj session = sessionService.loadSession();
+        if (session == null) {
+            return "session not found";
+        }
+        return session.getID();
+    }
+}
+```
+
+# SessionObj
+
+包名：`org.yuanrong.services.session`。
+
+## public interface SessionObj
+
+表示一个 Agent 会话对象。
+
+会话由运行时管理，用户应仅通过以下访问器读取和修改会话。请勿直接修改 `getHistories()` 返回的列表，修改后必须调用 `setHistories(List)` 写回，以便运行时感知最新状态。
+
+### Interface description
+
+#### String getID()
+
+获取会话 ID。
+
+- 返回：
+
+    sessionID (String)：会话 ID。
+
+#### List<String> getHistories()
+
+获取对话历史的只读快照。
+
+返回的列表为不可修改视图，对其进行增删改不会影响运行时状态。
+
+- 返回：
+
+    histories (List<String>)：不可修改的对话历史列表。
+
+#### void setHistories(List<String> histories)
+
+更新对话历史。
+
+该方法会立即将新值同步到 libruntime，确保在运行时持久化之前持有最新状态。
+
+- 参数：
+
+   - **histories** (List<String>) - 新的历史列表（传 null 视为空列表）。
+
+- 抛出：
+
+   - **YRException** (YRException) - JNI 调用失败时抛出。
+
+```java
+
+public class demo {
+    public String handleRequest(JsonObject jsonObject, Context context) {
+        SessionService sessionService = context.getSessionService();
+        if (sessionService == null) {
+            return "no session";
+        }
+        SessionObj session = sessionService.loadSession();
+        if (session == null) {
+            return "session not found";
+        }
+        List<String> histories = new ArrayList<>(session.getHistories());
+        histories.add("new message");
+        session.setHistories(histories);
+        return "history updated";
+    }
+}
+```
+
+# ManagedSessionObj
+
+包名：`org.yuanrong.services.session`。
+
+## public class ManagedSessionObj implements SessionObj
+
+运行时管理的会话对象实现类，由 JNI 层在从 libruntime 加载后构造。
+
+### Interface description
+
+#### public ManagedSessionObj(String id, List<String> histories)
+
+构造方法。
+
+- 参数：
+
+   - **id** (String) - 会话 ID。
+   - **histories** (List<String>) - 初始历史列表（可为空，null 视为空列表）。
+
+#### public static ManagedSessionObj fromJson(String json)
+
+从 libruntime 返回的标准 JSON 格式反序列化。
+
+JSON 格式：`{"sessionID":"s-123","histories":["user: hello","assistant: hi"]}`
+
+- 参数：
+
+   - **json** (String) - session JSON 字符串（可为 null 或空）。
+
+- 返回：
+
+    ManagedSessionObj：反序列化后的对象，json 为 null、空或解析失败时返回空对象。
+
 # Function
 
 包名：`org.yuanrong.function`。
