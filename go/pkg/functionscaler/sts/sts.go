@@ -33,7 +33,7 @@ func GetStsServerConfig(funcSpec *types.FunctionSpecification) raw.ServerConfig 
 		return raw.ServerConfig{}
 	}
 	domain := config.GlobalConfig.RawStsConfig.ServerConfig.Domain
-	if config.GlobalConfig.RawStsConfig.StsConfig.StsDomainForRuntime != "" {
+	if config.GlobalConfig.RawStsConfig.StsDomainForRuntime != "" {
 		domain = config.GlobalConfig.RawStsConfig.StsDomainForRuntime
 	}
 	faasExecutorStsServerConfig := raw.ServerConfig{
