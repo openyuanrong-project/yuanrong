@@ -19,6 +19,7 @@ yr api
 """
 import os
 import ctypes
+from yr.session_service import ManagedSessionObj, SessionService  # noqa: E402
 
 for so_path in [
     "librpc_option_protos.so",
@@ -120,4 +121,5 @@ __all__ = [
     "FunctionProxy", "InstanceCreator", "InstanceProxy", "MethodProxy", "FunctionGroupHandler",
     "FunctionGroupMethodProxy", "get_node_ip_address", "list_named_instances", "Group",  "GroupOptions",
     "DebugServer", "set_trace",
+    "ManagedSessionObj", "SessionService",
 ]

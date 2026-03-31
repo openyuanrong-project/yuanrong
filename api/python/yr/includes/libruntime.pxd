@@ -773,6 +773,12 @@ cdef extern from "src/libruntime/libruntime.h" nogil:
 
         CErrorInfo GroupResume(const string & groupName);
 
+        # Session management: read/update session from libruntime's in-memory activeSessionMap
+        # LoadCurrentSession: returns (sessionJson, errorInfo) — string first, then ErrorInfo
+        # UpdateCurrentSession: writes sessionJson to libruntime's in-memory cache (not persisted yet)
+        pair[string, CErrorInfo] LoadCurrentSession(const string & sessionId);
+        CErrorInfo UpdateCurrentSession(const string & sessionId, const string & sessionJson);
+
 
 cdef extern from "src/libruntime/libruntime_manager.h" nogil:
     cdef cppclass CLibruntimeManager "YR::Libruntime::LibruntimeManager":

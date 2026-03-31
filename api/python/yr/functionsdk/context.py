@@ -17,6 +17,7 @@
 """faas context"""
 
 from dataclasses import dataclass, field
+import json
 import logging
 import os
 import time
@@ -42,6 +43,8 @@ _HEADER_SECURITY_TOKE: str = "X-Security-Token"
 _HEADER_REQUEST_ID: str = "X-Request-Id"
 _HEADER_EVENT_STREAM: str = "Accept"
 _HEADER_EVENT_STREAM_VALUE: str = "text/event-stream"
+_HEADER_X_INSTANCE_SESSION: str = "X-Instance-Session"
+_SESSION_ID_KEY: str = "sessionID"
 
 
 def load_context_meta(context_meta: dict):
@@ -88,6 +91,16 @@ def init_context_invoke(stage: str, header: dict):
             context.set_instance_id(instance_id)
         except Exception:
             pass
+    # Parse X-Instance-Session header, value is JSON string {"sessionID":"xxx","sessionTTL":xx,"concurrency":xx}
+    if _HEADER_X_INSTANCE_SESSION in header and header[_HEADER_X_INSTANCE_SESSION]:
+        try:
+            session_obj = json.loads(header[_HEADER_X_INSTANCE_SESSION])
+            if isinstance(session_obj, dict) and _SESSION_ID_KEY in session_obj:
+                session_id = session_obj[_SESSION_ID_KEY] or ""
+                context.set_session_id(session_id)
+        except (json.decoder.JSONDecodeError, TypeError) as e:
+            log.get_logger().warning(
+                f"Failed to parse {_HEADER_X_INSTANCE_SESSION}: {e}")
     return context
 
 
@@ -119,6 +132,7 @@ class Context:
         self.invoke_property = None
         self.future_id = options.get('future_id', "")
         self.invoke_id = options.get('invoke_id', "")
+        self.__session_id = None
 
     # Gets the request ID associated with the request.
     def getRequestID(self):
@@ -341,6 +355,16 @@ class Context:
             except Exception:
                 pass
         return Stream(request_id=self.invoke_id or "", instance_id=self.instance_id or "")
+
+    def set_session_id(self, session_id):
+        self.__session_id = session_id
+
+    def get_session_id(self) -> str:
+        return self.__session_id
+
+    def get_session_service(self) -> "SessionService":
+        from yr.session_service import SessionService
+        return SessionService(self.__session_id)
 
 
 @dataclass

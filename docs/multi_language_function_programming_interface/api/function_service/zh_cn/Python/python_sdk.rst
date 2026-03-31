@@ -36,6 +36,12 @@ yr.Context
          - 根据键获取用户通过环境变量传入的值。
        * - :ref:`getVersion <getVersion>`
          - 获取函数版本。
+       * - :ref:`get_session_id <get_session_id>`
+         - 获取当前的 session ID。
+       * - :ref:`get_session_service <get_session_service>`
+         - 获取 SessionService 实例，用于加载和修改当前调用的 Session 对象。
+       * - :ref:`set_session_id <set_session_id>`
+         - 设置当前调用的 session ID。
 
 .. toctree::
     :maxdepth: 1
@@ -51,6 +57,9 @@ yr.Context
     yr.Context.getTenantID
     yr.Context.getUserData
     yr.Context.getVersion
+    yr.Context.get_session_id
+    yr.Context.get_session_service
+    yr.Context.set_session_id
 
 yr.Function
 ------------------

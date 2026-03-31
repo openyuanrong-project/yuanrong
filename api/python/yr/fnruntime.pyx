@@ -28,7 +28,7 @@ import traceback
 import uuid
 from pathlib import Path
 from dataclasses import asdict
-from typing import List, Tuple, Union, Callable
+from typing import List, Tuple, Union, Callable, Optional
 from cython.operator import dereference, postincrement
 from cpython.exc cimport PyErr_CheckSignals
 
@@ -2779,4 +2779,77 @@ def stream_write(stream_message: str, request_id: str, instance_id: str) -> None
         raise RuntimeError(
             f"failed to stream_write, "
             f"code: {ret.Code()}, module code {ret.MCode()}, msg: {ret.Msg().decode()}"
+        )
+
+
+def load_current_session(session_id: str) -> Optional[str]:
+    """
+    从 libruntime 的内存 activeSessionMap 中加载当前调用对应的 Session JSON 字符串。
+
+    对应 C++: CLibruntime::LoadCurrentSession(sessionId)
+
+    语义:
+    - 使用 Context.sessionId 作为 sessionId
+    - libruntime 从 activeSessionMap[sessionId] 读取当前活跃 AgentSessionContext
+    - 返回 session JSON 字符串，如 {"sessionID":"s-123","histories":["..."]}
+    - 若 sessionId 不存在或尚未创建，返回 None
+
+    :param session_id: 当前调用的 session ID
+    :return: Session JSON 字符串，或 sessionId 不存在时返回 None
+    :raises RuntimeError: libruntime 内部错误时抛出
+    :raises ValueError: session_id 为 None 或空字符串时抛出
+    """
+    if session_id is None or session_id == "":
+        raise ValueError("session_id cannot be None or empty")
+    cdef:
+        string c_session_id = session_id.encode()
+        pair[string, CErrorInfo] ret
+        shared_ptr[CLibruntime] c_libruntime = CLibruntimeManager.Instance().GetLibRuntime()
+    if c_libruntime == nullptr:
+        raise RuntimeError("already finalized")
+    with nogil:
+        ret = c_libruntime.get().LoadCurrentSession(c_session_id)
+    if not ret.second.OK():
+        raise RuntimeError(
+            f"failed to load_current_session, "
+            f"code: {ret.second.Code()}, module code: {ret.second.MCode()}, msg: {ret.second.Msg().decode()}"
+        )
+    result = ret.first.decode()
+    return result if result else None
+
+
+def update_current_session(session_id: str, session_json: str) -> None:
+    """
+    将修改后的 Session JSON 同步写入 libruntime 的内存 activeSessionMap。
+
+    对应 C++: CLibruntime::UpdateCurrentSession(sessionId, sessionJson)
+
+    语义:
+    - 只更新 libruntime 内存中的 AgentSessionContext，不直接写 DataSystem
+    - 请求结束时 runtime 会自动执行 PersistAndReleaseInvokeSession(sessionId)
+      将内存中的 session 持久化到 DataSystem（ttl=0）
+    - set_histories() 会立即调用本函数把最新值同步给 libruntime
+
+    :param session_id: 当前调用的 session ID
+    :param session_json: 修改后的 Session JSON 字符串
+    :raises RuntimeError: libruntime 内部错误时抛出
+    :raises ValueError: session_id 或 session_json 为 None 或空字符串时抛出
+    """
+    if session_id is None or session_id == "":
+        raise ValueError("session_id cannot be None or empty")
+    if session_json is None or session_json == "":
+        raise ValueError("session_json cannot be None or empty")
+    cdef:
+        string c_session_id = session_id.encode()
+        string c_session_json = session_json.encode()
+        CErrorInfo ret
+        shared_ptr[CLibruntime] c_libruntime = CLibruntimeManager.Instance().GetLibRuntime()
+    if c_libruntime == nullptr:
+        raise RuntimeError("already finalized")
+    with nogil:
+        ret = c_libruntime.get().UpdateCurrentSession(c_session_id, c_session_json)
+    if not ret.OK():
+        raise RuntimeError(
+            f"failed to update_current_session, "
+            f"code: {ret.Code()}, module code: {ret.MCode()}, msg: {ret.Msg().decode()}"
         )
