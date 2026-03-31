@@ -22,6 +22,14 @@
 #include "src/utility/logger/logger.h"
 namespace YR {
 namespace Libruntime {
+std::string GetReturnObjectId(const CallRequest &req)
+{
+    if (req.returnobjectids_size() > 0) {
+        return req.returnobjectids(0);
+    }
+    return req.returnobjectid();
+}
+
 FSIntf::FSIntf(const FSIntfHandlers &handlers) : handlers(handlers)
 {
     if (handlers.call == nullptr || handlers.checkpoint == nullptr || handlers.recover == nullptr ||
@@ -136,46 +144,115 @@ void FSIntf::HandleCallRequest(const std::shared_ptr<CallMessageSpec> &req, Call
     }
 
     YRLOG_DEBUG("Receive call request, request ID: {}", req->Immutable().requestid());
-    this->callReceiver.Handle(
-        [this, req, callback]() {
-            CallResponse resp;
-            if (req->Immutable().iscreate()) {
-                if (!status.SetInitializing()) {
-                    status.WaitInitialized();
-                    auto [code, msg] = status.GetErrorInfo();
-                    resp.set_code(code);
-                    resp.set_message(msg);
-                    YRLOG_DEBUG("send init call response, request ID: {}, code {}, message {}",
-                                req->Immutable().requestid(), fmt::underlying(resp.code()), resp.message());
-                    callback(resp);
-                } else {
-                    callback(resp);
-                    this->handlers.init(req);
-                    YRLOG_DEBUG("send init call response , request ID: {}, code {}, message {}",
-                                req->Immutable().requestid(), fmt::underlying(resp.code()), resp.message());
-                }
-            } else {
-                if (!status.WaitInitialized() && req->Immutable().createoptions().find("ENABLE_FORCE_INVOKE") ==
-                                                     req->Immutable().createoptions().end()) {
-                    auto [code, msg] = status.GetErrorInfo();
-                    resp.set_code(code);
-                    resp.set_message(msg);
-                    YRLOG_DEBUG("after wait initialized, send call response, request ID: {}, code {}, message {}",
-                                req->Immutable().requestid(), fmt::underlying(resp.code()), resp.message());
-                    status.InterruptCheckpointing();
-                    callback(resp);
-                } else {
-                    callback(resp);
-                    this->handlers.call(req);
-                    YRLOG_DEBUG("send call response , request ID: {}, code {}, message {}",
-                                req->Immutable().requestid(), fmt::underlying(resp.code()), resp.message());
-                }
+    this->callReceiver.Handle([this, req, callback] { ProcessCallRequest(req, callback); }, "");
+}
+
+void FSIntf::ProcessCallRequest(const std::shared_ptr<CallMessageSpec> &req, CallCallBack callback)
+{
+    auto requestId = req->Immutable().requestid();
+    CallResponse resp;
+    if (req->Immutable().iscreate()) {
+        if (!status.SetInitializing()) {
+            status.WaitInitialized();
+            auto [code, msg] = status.GetErrorInfo();
+            resp.set_code(code);
+            resp.set_message(msg);
+            YRLOG_DEBUG("send init call response, request ID: {}, code {}, message {}", requestId,
+                        fmt::underlying(resp.code()), resp.message());
+            callback(resp);
+        } else {
+            callback(resp);
+            this->handlers.init(req);
+            YRLOG_DEBUG("send init call response , request ID: {}, code {}, message {}", requestId,
+                        fmt::underlying(resp.code()), resp.message());
+        }
+    } else {
+        if (auto createOptions = req->Immutable().createoptions();
+            !status.WaitInitialized() && createOptions.find("ENABLE_FORCE_INVOKE") == createOptions.end()) {
+            auto [code, msg] = status.GetErrorInfo();
+            resp.set_code(code);
+            resp.set_message(msg);
+            YRLOG_DEBUG("after wait initialized, send call response, request ID: {}, code {}, message {}", requestId,
+                        fmt::underlying(resp.code()), resp.message());
+            status.InterruptCheckpointing();
+            callback(resp);
+        } else {
+            if (createOptions.find(IS_INTERRUPTED) != createOptions.end()) {
+                HandleInterruptRequest(createOptions, req, resp);
+                callback(resp);
+                return;
             }
-            if (resp.code() != common::ERR_NONE) {
-                DeleteProcessingRequestId(req->Immutable().requestid());
-            }
-        },
-        "");
+            callback(resp);
+            this->handlers.call(req);
+            YRLOG_DEBUG("send call response , request ID: {}, code {}, message {}", requestId,
+                        fmt::underlying(resp.code()), resp.message());
+        }
+    }
+
+    if (resp.code() != common::ERR_NONE) {
+        DeleteProcessingRequestId(requestId);
+    }
+}
+
+void FSIntf::HandleInterruptRequest(const google::protobuf::Map<std::string, std::string> &createOptions,
+                                    const std::shared_ptr<CallMessageSpec> &req, CallResponse &resp)
+{
+    auto requestId = req->Immutable().requestid();
+
+    std::string interruptResponse = GetInterruptResponse(createOptions, requestId, resp);
+    auto result = BuildInterruptedCallResult(req, interruptResponse);
+
+    this->ReturnCallResult(result, false, [](const CallResultAck &ack) {
+        if (ack.code() != common::ERR_NONE) {
+            YRLOG_WARN("failed to send interrupted CallResult, code: {}, message: {}", fmt::underlying(ack.code()),
+                       ack.message());
+        }
+    });
+
+    YRLOG_INFO("send interrupted call response, request ID: {}, code {}, message {}", requestId,
+               fmt::underlying(resp.code()), resp.message());
+}
+
+std::string FSIntf::GetInterruptResponse(const google::protobuf::Map<std::string, std::string> &createOptions,
+                                         const std::string &requestId, CallResponse &resp)
+{
+    bool success = false;
+    auto sessionIdIter = createOptions.find(YR_AGENT_SESSION_ID);
+    if (agentSessionManager_ != nullptr && sessionIdIter != createOptions.end() && !sessionIdIter->second.empty()) {
+        auto err = agentSessionManager_->SetSessionInterrupted(sessionIdIter->second);
+        if (err.OK()) {
+            success = true;
+        } else {
+            YRLOG_ERROR("failed to set session interrupted, requestid :{}, sessionId:{}, error:{}", requestId,
+                        sessionIdIter->second, err.Msg());
+        }
+    }
+
+    InterruptResponse rsp;
+    rsp.body["message"] = success ? "Interrupted Success" : "Interrupted Failed";
+    resp.set_code(success ? common::ERR_NONE : common::ERR_INNER_COMMUNICATION);
+    resp.set_message(rsp.toJson());
+    return rsp.toJson();
+}
+
+std::shared_ptr<CallResultMessageSpec> FSIntf::BuildInterruptedCallResult(const std::shared_ptr<CallMessageSpec> &req,
+                                                                          std::string interruptResponse)
+{
+    auto requestId = req->Immutable().requestid();
+
+    auto result = std::make_shared<CallResultMessageSpec>();
+    auto &callResult = result->Mutable();
+    callResult.set_requestid(requestId);
+    callResult.set_instanceid(req->Immutable().senderid());
+    callResult.set_code(common::ERR_NONE);
+
+    auto *smallObj = callResult.add_smallobjects();
+    smallObj->set_id(GetReturnObjectId(req->Immutable()));
+    std::string payload(MetaDataLen, '\0');
+    payload.append(interruptResponse);
+    smallObj->set_value(payload.data(), payload.size());
+
+    return result;
 }
 
 void FSIntf::HandleNotifyRequest(const NotifyRequest &req, std::function<NotifyResponse(void)> createOrInvokeCallback,

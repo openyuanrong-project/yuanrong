@@ -58,4 +58,15 @@ public interface SessionObj {
      * @throws YRException if the JNI call fails
      */
     void setHistories(List<String> histories) throws YRException;
+
+    /**
+     * Check whether the session has been interrupted.
+     *
+     * <p>This method queries libruntime to determine if the current session
+     * has been interrupted (e.g., by a cancellation request).</p>
+     *
+     * @return true if the session has been interrupted, false otherwise
+     * @throws YRException if the JNI call fails
+     */
+    boolean isInterrupted() throws YRException;
 }

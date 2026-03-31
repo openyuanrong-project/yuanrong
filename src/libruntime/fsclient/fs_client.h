@@ -54,13 +54,19 @@ public:
     std::pair<ErrorInfo, std::string> GetNodeIp();
     void RemoveInsRtIntf(const std::string &instanceId);
     void CreateRGroupAsync(const CreateResourceGroupRequest &req, CreateResourceGroupCallBack callback,
-                             int timeoutSec = -1);
+                           int timeoutSec = -1);
     void EraseIntf(const std::string &id);
     bool IsHealth();
     void UpdateEventServerInfo(const std::string &ip, int port, const std::string &instaceId);
     void EventAsync(const std::shared_ptr<EventMessageSpec> &req, int timeoutSec = -1);
     std::string GetEventServerIP();
     int GetEventServerPort();
+    void SetAgentSessionManager(std::shared_ptr<AgentSessionManager> agentSessionManager)
+    {
+        if (fsIntf) {
+            fsIntf->SetAgentSessionManager(agentSessionManager);
+        }
+    }
 
 private:
     std::shared_ptr<FSIntf> fsIntf;

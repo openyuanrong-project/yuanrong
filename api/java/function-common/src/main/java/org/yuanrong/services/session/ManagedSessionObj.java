@@ -92,6 +92,15 @@ public class ManagedSessionObj implements SessionObj {
         return GSON.toJson(dto);
     }
 
+    @Override
+    public boolean isInterrupted() throws YRException {
+        try {
+            return LibRuntime.isSessionInterrupted(id);
+        } catch (LibRuntimeException e) {
+            throw new YRException(e.getErrorCode(), e.getModuleCode(), e.getMessage());
+        }
+    }
+
     /**
      * Deserialize from the canonical JSON format returned by libruntime.
      *

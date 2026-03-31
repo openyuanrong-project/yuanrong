@@ -16,10 +16,10 @@
 
 #include "agent_session_manager.h"
 
-#include <array>
-#include <json.hpp>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
+#include <array>
+#include <json.hpp>
 
 #include "src/dto/buffer.h"
 #include "src/libruntime/libruntime.h"
@@ -37,23 +37,17 @@ constexpr size_t MAX_SESSION_KEY_LENGTH = 64;
 constexpr size_t SHA256_BASE64_LENGTH = 44;
 constexpr char BASE64_PADDING = '=';
 
-std::shared_ptr<Libruntime> GetLibRuntime(const std::shared_ptr<RuntimeContext> &runtimeContext)
+std::shared_ptr<Libruntime> GetLibRuntime()
 {
-    if (runtimeContext != nullptr) {
-        const std::string rtCtx = runtimeContext->GetJobIdThreadlocal();
-        if (!rtCtx.empty()) {
-            return LibruntimeManager::Instance().GetLibRuntime(rtCtx);
-        }
-    }
     return LibruntimeManager::Instance().GetLibRuntime();
 }
 
 std::string EncodeSha256Base64Url(const std::string &input)
 {
-    std::array<unsigned char, SHA256_DIGEST_LENGTH> digest {};
+    std::array<unsigned char, SHA256_DIGEST_LENGTH> digest{};
     SHA256(reinterpret_cast<const unsigned char *>(input.data()), input.size(), digest.data());
 
-    std::array<unsigned char, SHA256_BASE64_LENGTH + 1> encodedBytes {};
+    std::array<unsigned char, SHA256_BASE64_LENGTH + 1> encodedBytes{};
     const int encodedLen = EVP_EncodeBlock(encodedBytes.data(), digest.data(), static_cast<int>(digest.size()));
     std::string encoded(reinterpret_cast<const char *>(encodedBytes.data()), encodedLen);
     for (auto &ch : encoded) {
@@ -132,6 +126,58 @@ ErrorInfo AgentSessionManager::UpdateCurrentSession(const std::string &sessionId
     return ErrorInfo();
 }
 
+ErrorInfo AgentSessionManager::SetSessionInterrupted(const std::string &sessionId)
+{
+    if (sessionId.empty()) {
+        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "session id is empty");
+    }
+
+    auto sessionCtx = GetActiveSessionContext(sessionId);
+    if (sessionCtx == nullptr) {
+        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "current invoke has no active agent session");
+    }
+
+    try {
+        json sessionJson = json::parse(sessionCtx->value.sessionData);
+        sessionJson["isInterrupted"] = true;
+        sessionCtx->value.sessionData = sessionJson.dump();
+    } catch (const json::parse_error &e) {
+        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "failed to parse sessionJson");
+    }
+
+    auto saveErr = Persist(sessionCtx);
+    return saveErr;
+}
+
+bool AgentSessionManager::IsSessionInterrupted(const std::string &sessionId)
+{
+    if (sessionId.empty()) {
+        return false;
+    }
+    auto sessionCtx = GetActiveSessionContext(sessionId);
+    if (sessionCtx == nullptr) {
+        return false;
+    }
+
+    std::string sessionData;
+    {
+        std::lock_guard<std::mutex> lock(activeSessionMapMtx_);
+        auto iter = activeSessionMap_.find(sessionId);
+        if (iter == activeSessionMap_.end()) {
+            YRLOG_INFO("sessionId:{} is not found in activeSessionMap_", sessionId);
+            return false;
+        }
+        sessionData = iter->second->value.sessionData;
+    }
+
+    try {
+        json sessionJson = json::parse(sessionData);
+        return sessionJson.value("isInterrupted", false);
+    } catch (const json::parse_error &e) {
+        return false;
+    }
+}
+
 std::shared_ptr<AgentSessionContext> AgentSessionManager::GetOrCreateSessionContext(const std::string &sessionKey)
 {
     std::lock_guard<std::mutex> lock(sessionMapMtx_);
@@ -179,7 +225,7 @@ ErrorInfo AgentSessionManager::EnsureLoaded(const std::shared_ptr<AgentSessionCo
     if (sessionCtx->loaded) {
         return ErrorInfo();
     }
-    auto libRuntime = GetLibRuntime(runtimeContext_);
+    auto libRuntime = GetLibRuntime();
     if (libRuntime == nullptr) {
         return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "failed to get libruntime for agent session");
     }
@@ -192,8 +238,8 @@ ErrorInfo AgentSessionManager::EnsureLoaded(const std::shared_ptr<AgentSessionCo
         return readErr;
     }
     if (buffer != nullptr && buffer->GetSize() > 0) {
-        sessionCtx->value.sessionData = std::string(static_cast<const char *>(buffer->ImmutableData()),
-                                                    buffer->GetSize());
+        sessionCtx->value.sessionData =
+            std::string(static_cast<const char *>(buffer->ImmutableData()), buffer->GetSize());
         sessionCtx->loaded = true;
         return ErrorInfo();
     }
@@ -219,7 +265,7 @@ ErrorInfo AgentSessionManager::Persist(const std::shared_ptr<AgentSessionContext
     if (sessionCtx == nullptr || !sessionCtx->loaded) {
         return ErrorInfo();
     }
-    auto libRuntime = GetLibRuntime(runtimeContext_);
+    auto libRuntime = GetLibRuntime();
     if (libRuntime == nullptr) {
         return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "failed to get libruntime for agent session");
     }

@@ -1106,6 +1106,17 @@ JNIEXPORT void JNICALL Java_org_yuanrong_jni_LibRuntime_updateCurrentSession(JNI
     }
 }
 
+JNIEXPORT jboolean JNICALL Java_org_yuanrong_jni_LibRuntime_isSessionInterrupted(JNIEnv *env, jclass c,
+                                                                                 jstring jsessionId)
+{
+    auto sessionId = YR::jni::JNIString::FromJava(env, jsessionId);
+    auto rtCtx = get_runtime_context_callback(env, c);
+    auto libRuntime = YR::Libruntime::LibruntimeManager::Instance().GetLibRuntime(rtCtx);
+    if (libRuntime == nullptr) {
+        return JNI_FALSE;
+    }
+    return libRuntime->IsSessionInterrupted(sessionId) ? JNI_TRUE : JNI_FALSE;
+}
 
 #ifdef __cplusplus
 }

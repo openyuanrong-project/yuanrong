@@ -19,9 +19,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/beast/http.hpp>
+#include <fstream>
 #include <json.hpp>
 #include <string>
-#include <fstream>
 #include "mock/mock_datasystem_client.h"
 #include "mock/mock_fs_intf.h"
 #include "mock/mock_fs_intf_with_callback.h"
@@ -35,9 +35,9 @@
 #include "src/libruntime/generator/stream_generator_notifier.h"
 #include "src/libruntime/generator/stream_generator_receiver.h"
 #include "src/libruntime/groupmanager/group.h"
+#include "src/libruntime/invokeadaptor/general_execution_manager.h"
 #include "src/libruntime/invokeadaptor/invoke_adaptor.h"
 #include "src/libruntime/invokeadaptor/ordered_execution_manager.h"
-#include "src/libruntime/invokeadaptor/general_execution_manager.h"
 #include "src/libruntime/objectstore/datasystem_object_store.h"
 #include "src/libruntime/objectstore/memory_store.h"
 #include "src/libruntime/runtime_context.h"
@@ -63,8 +63,8 @@ namespace test {
 
 class InvokeAdaptorTest : public testing::Test {
 public:
-    InvokeAdaptorTest(){};
-    ~InvokeAdaptorTest(){};
+    InvokeAdaptorTest() {};
+    ~InvokeAdaptorTest() {};
     void SetUp() override
     {
         Mkdir("/tmp/log");
@@ -279,7 +279,6 @@ TEST_F(InvokeAdaptorTest, CallTest)
     req.set_senderid("instance_id");
     req.set_iscreate(true);
 
-
     libruntime::MetaData metaData;
     auto result = invokeAdaptor->Call(req, metaData, options, objectsInDs);
     ASSERT_EQ(result.code(), ::common::ERR_NONE);
@@ -306,7 +305,11 @@ TEST_F(InvokeAdaptorTest, CallTest)
     req.add_args();
     auto arg2 = req.add_args();
     arg2->set_type(Arg_ArgType::Arg_ArgType_VALUE);
-    arg2->set_value("{\"schedulerFuncK{\"schedulerFuncKey\":\"0/0-system-faasscheduler/$latest\",\"schedulerInstanceList\":[{\"instanceName\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\",\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"},{\"instanceName\":\"2db4a71b-157c-4ec2-95d7-c70fccc85dfa\",\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"}]}");
+    arg2->set_value(
+        "{\"schedulerFuncK{\"schedulerFuncKey\":\"0/0-system-faasscheduler/"
+        "$latest\",\"schedulerInstanceList\":[{\"instanceName\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\","
+        "\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"},{\"instanceName\":\"2db4a71b-157c-4ec2-95d7-"
+        "c70fccc85dfa\",\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"}]}");
 
     options.functionExecuteCallback = [](const FunctionMeta &function, const libruntime::InvokeType invokeType,
                                          const std::vector<std::shared_ptr<DataObject>> &rawArgs,
@@ -318,8 +321,8 @@ TEST_F(InvokeAdaptorTest, CallTest)
     this->taskSubmitter = std::make_shared<MockTaskSubmitter>();
     EXPECT_CALL(*(this->taskSubmitter), UpdateFaaSSchedulerInfo(_, _))
         .WillOnce([=](std::string schedulerFuncKey, const std::vector<SchedulerInstance> &sInstanceList) {
-       ASSERT_EQ(sInstanceList.size(), 2);
-        return;
+            ASSERT_EQ(sInstanceList.size(), 2);
+            return;
         });
     invokeAdaptor->taskSubmitter = this->taskSubmitter;
     libruntime::FunctionMeta functionMeta;
@@ -368,7 +371,7 @@ TEST_F(InvokeAdaptorTest, CreateInstanceTest)
     invokeSpec->returnIds = returnObjs;
     invokeSpec->BuildInstanceCreateRequest(cfg);
     invokeAdaptor->CreateInstance(invokeSpec);
-    auto [rawRequestId, seq] =YR::utility::IDGenerator::DecodeRawRequestId(invokeSpec->requestCreate.requestid());
+    auto [rawRequestId, seq] = YR::utility::IDGenerator::DecodeRawRequestId(invokeSpec->requestCreate.requestid());
     EXPECT_EQ(rawRequestId, invokeSpec->requestId);
     EXPECT_EQ(seq, 1);
 }
@@ -797,7 +800,11 @@ TEST_F(InvokeAdaptorTest, SignalHandlerTest)
     ASSERT_EQ(invokeAdaptor->metaMap.size() == 0, true);
 
     req.set_signal(libruntime::Signal::UpdateSchedulerHash);
-    req.set_payload("{\"schedulerFuncKey\":\"0/0-system-faasscheduler/$latest\",\"schedulerIDList\":null,\"schedulerInstanceList\":[{\"instanceName\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\",\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"},{\"instanceName\":\"2db4a71b-157c-4ec2-95d7-c70fccc85dfa\",\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"}]}");
+    req.set_payload(
+        "{\"schedulerFuncKey\":\"0/0-system-faasscheduler/"
+        "$latest\",\"schedulerIDList\":null,\"schedulerInstanceList\":[{\"instanceName\":\"abfe9e68-9221-4b97-8e85-"
+        "87b5b5faf69c\",\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"},{\"instanceName\":\"2db4a71b-157c-"
+        "4ec2-95d7-c70fccc85dfa\",\"instanceId\":\"abfe9e68-9221-4b97-8e85-87b5b5faf69c\"}]}");
     response = invokeAdaptor->SignalHandler(req);
     ASSERT_EQ(response.code(), ::common::ErrorCode::ERR_NONE);
 
@@ -823,10 +830,8 @@ TEST_F(InvokeAdaptorTest, SignalHandlerTest)
     ASSERT_EQ(response.code(), ::common::ErrorCode::ERR_NONE);
 
     req.set_signal(libruntime::Signal::Accelerate);
-    libConfig->libruntimeOptions.accelerateCallback = [](const AccelerateMsgQueueHandle &,
-                                                         AccelerateMsgQueueHandle &) -> ErrorInfo {
-        return ErrorInfo();
-    };
+    libConfig->libruntimeOptions.accelerateCallback =
+        [](const AccelerateMsgQueueHandle &, AccelerateMsgQueueHandle &) -> ErrorInfo { return ErrorInfo(); };
     AccelerateMsgQueueHandle handle;
     req.set_payload(handle.ToJson());
     response = invokeAdaptor->SignalHandler(req);
@@ -1073,6 +1078,7 @@ TEST_F(InvokeAdaptorTest, PausedInitHandlerTest)
     pbArg->set_type(Arg_ArgType::Arg_ArgType_VALUE);
     InvokeSpec invokeSpec;
     invokeSpec.invokeType = libruntime::InvokeType::InvokeFunction;
+    invokeSpec.functionMeta.languageType = libruntime::LanguageType::Cpp;
     pbArg->set_value(invokeSpec.BuildInvokeMetaData(*invokeAdaptor->librtConfig));
 
     auto createOpt = req->Mutable().mutable_createoptions();
@@ -1329,10 +1335,8 @@ TEST_F(InvokeAdaptorTest, CallTimerTest)
     invokeAdaptor->CreateCallTimer(reqId, insId, 1);
     auto called = std::make_shared<std::promise<bool>>();
     EXPECT_CALL(*this->gwClient, ReturnCallResult)
-        .WillOnce(::testing::Invoke(
-            [called](const std::shared_ptr<CallResultMessageSpec> result, bool isCreate, CallResultCallBack callback) {
-                called->set_value(true);
-            }));
+        .WillOnce(::testing::Invoke([called](const std::shared_ptr<CallResultMessageSpec> result, bool isCreate,
+                                             CallResultCallBack callback) { called->set_value(true); }));
     ASSERT_EQ(called->get_future().get(), true);
 }
 

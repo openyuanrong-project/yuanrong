@@ -18,7 +18,7 @@
 
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
-
+#include "json.hpp"
 #include "src/dto/status.h"
 #include "src/libruntime/err_type.h"
 #include "src/libruntime/fsclient/protobuf/bus_service.grpc.pb.h"
@@ -28,6 +28,7 @@
 #include "src/libruntime/fsclient/protobuf/lease_service.pb.h"
 #include "src/libruntime/fsclient/protobuf/runtime_rpc.grpc.pb.h"
 #include "src/libruntime/fsclient/protobuf/runtime_service.grpc.pb.h"
+#include "src/libruntime/invokeadaptor/agent_session_manager.h"
 #include "src/utility/id_generator.h"
 #include "src/utility/thread_pool.h"
 
@@ -213,7 +214,7 @@ public:
 
 class EventMessageSpec : public MessgeSpec {
 public:
-    EventMessageSpec() : MessgeSpec(){};
+    EventMessageSpec() : MessgeSpec() {};
     explicit EventMessageSpec(const std::shared_ptr<::runtime_rpc::StreamingMessage> &msg) : MessgeSpec(msg) {}
     ~EventMessageSpec() override = default;
     EventRequest &Mutable()
@@ -263,6 +264,33 @@ struct FSIntfHandlers {
     EventHandler event = nullptr;
 };
 
+struct InterruptResponse {
+    std::map<std::string, std::string> headers{{"Content-Type", "application/json"}, {"X-Log-Type", "base64"}};
+    std::string billingDuration;
+    std::string innerCode = "0";
+    std::string invokeSummary;
+    std::string logResult;
+    int userFuncTime = 0;
+    int executorTime = 0;
+    std::map<std::string, std::string> body;
+
+    InterruptResponse() = default;
+
+    std::string toJson() const
+    {
+        nlohmann::json j;
+        j["headers"] = headers;
+        j["billingDuration"] = billingDuration;
+        j["innerCode"] = innerCode;
+        j["invokeSummary"] = invokeSummary;
+        j["logResult"] = logResult;
+        j["userFuncTime"] = userFuncTime;
+        j["executorTime"] = executorTime;
+        j["body"] = body;
+        return j.dump();
+    }
+};
+
 class FSIntf {
 public:
     FSIntf() = default;
@@ -295,6 +323,13 @@ public:
     virtual HeartbeatResponse HandleHeartbeat(const HeartbeatRequest &hb);
     virtual void RemoveInsRtIntf(const std::string &instanceId) {}
     void HandleCallRequest(const std::shared_ptr<CallMessageSpec> &req, CallCallBack callback);
+    void ProcessCallRequest(const std::shared_ptr<CallMessageSpec> &req, CallCallBack callback);
+    void HandleInterruptRequest(const google::protobuf::Map<std::string, std::string> &createOptions,
+                                const std::shared_ptr<CallMessageSpec> &req, CallResponse &resp);
+    std::string GetInterruptResponse(const google::protobuf::Map<std::string, std::string> &createOptions,
+                                     const std::string &requestId, CallResponse &resp);
+    std::shared_ptr<CallResultMessageSpec> BuildInterruptedCallResult(const std::shared_ptr<CallMessageSpec> &req,
+                                                                      std::string interruptResponse);
     void HandleNotifyRequest(const NotifyRequest &req, std::function<NotifyResponse(void)> createOrInvokeCallback,
                              NotifyCallBack callback);
     void HandleCheckpointRequest(const CheckpointRequest &req, CheckpointCallBack callback);
@@ -308,8 +343,18 @@ public:
     virtual void EventAsync(const std::shared_ptr<EventMessageSpec> &req, int timeoutSec = -1) {}
     virtual bool IsHealth() = 0;
     virtual void UpdateEventServerInfo(const std::string &ip, int port, const std::string &instaceId) {}
-    virtual int GetSelfPort() const { return -1; }
-    virtual std::string GetSelfIP() const { return ""; }
+    virtual int GetSelfPort() const
+    {
+        return -1;
+    }
+    virtual std::string GetSelfIP() const
+    {
+        return "";
+    }
+    void SetAgentSessionManager(const std::shared_ptr<AgentSessionManager> &agentSessionManager)
+    {
+        agentSessionManager_ = agentSessionManager;
+    }
 
 protected:
     void Clear();
@@ -324,6 +369,7 @@ private:
     bool cleared_{false};
     FSIntfHandlers handlers;
     bool syncHeartbeat;
+    std::shared_ptr<AgentSessionManager> agentSessionManager_;
     ThreadPool callReceiver;
     ThreadPool noitfyExecutor;
     ThreadPool checkpointRecoverExecutor;

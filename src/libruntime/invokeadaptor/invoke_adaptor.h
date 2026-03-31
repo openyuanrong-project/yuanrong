@@ -22,8 +22,8 @@
 #include <mutex>
 #include <unordered_set>
 
-#include "alias_element.h"
 #include "agent_session_manager.h"
+#include "alias_element.h"
 #include "alias_routing.h"
 #include "execution_manager.h"
 #include "request_manager.h"
@@ -188,7 +188,7 @@ public:
                                const std::string &instanceId);
     virtual std::pair<std::string, ErrorInfo> LoadCurrentSession(const std::string &sessionId);
     virtual ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
-
+    virtual bool IsSessionInterrupted(const std::string &sessionId);
 private:
     void CreateResponseHandler(std::shared_ptr<InvokeSpec> spec, const CreateResponse &resp);
     void CreateNotifyHandler(const NotifyRequest &req);

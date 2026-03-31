@@ -511,4 +511,16 @@ public class LibRuntime {
      */
     public static native void updateCurrentSession(String sessionId, String sessionJson)
         throws LibRuntimeException;
+
+    /**
+     * Get the interrupted status of the current session from libruntime.
+     *
+     * <p>This queries the in-memory session state to determine if the session
+     * has been interrupted (e.g., by a cancellation request).</p>
+     *
+     * @param sessionId session ID
+     * @return true if the session has been interrupted, false otherwise
+     * @throws LibRuntimeException if the native call fails
+     */
+    public static native boolean isSessionInterrupted(String sessionId) throws LibRuntimeException;
 }

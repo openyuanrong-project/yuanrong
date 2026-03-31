@@ -477,6 +477,14 @@ ErrorInfo InvokeAdaptor::UpdateCurrentSession(const std::string &sessionId, cons
     return agentSessionManager_->UpdateCurrentSession(sessionId, sessionData);
 }
 
+bool InvokeAdaptor::IsSessionInterrupted(const std::string &sessionId)
+{
+    if (agentSessionManager_ == nullptr) {
+        return false;
+    }
+    return agentSessionManager_->IsSessionInterrupted(sessionId);
+}
+
 CheckpointResponse InvokeAdaptor::CheckpointHandler(const CheckpointRequest &req)
 {
     CheckpointResponse resp;
@@ -624,6 +632,7 @@ std::pair<std::string, ErrorInfo> InvokeAdaptor::Init(RuntimeContext &runtimeCon
                               runtimeContext.GetJobId(), instanceId, this->librtConfig->runtimeId, functionName,
                               std::bind(&InvokeAdaptor::SubscribeAll, this), this->librtConfig->enableEvent);
     if (err.OK()) {
+        this->fsClient->SetAgentSessionManager(agentSessionManager_);
         return std::make_pair(this->fsClient->GetServerVersion(), err);
     }
     return std::make_pair("", err);
@@ -1612,7 +1621,7 @@ ErrorInfo InvokeAdaptor::CancelInstanceFunction(std::shared_ptr<InvokeSpec> spec
     ErrorInfo cancelErr(YR::Libruntime::ErrorCode::ERR_INNER_SYSTEM_ERROR, YR::Libruntime::ModuleCode::RUNTIME,
                         "invalid get obj, the obj has been cancelled.");
     memStore->SetError(objId, cancelErr);
-    return  ErrorInfo();
+    return ErrorInfo();
 }
 
 ErrorInfo InvokeAdaptor::HandleInsFuncCancel(const CancelReqInfo &cancelReqInfo)

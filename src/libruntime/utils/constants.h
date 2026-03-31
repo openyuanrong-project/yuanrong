@@ -42,7 +42,8 @@ const char* const MPMC = "MPMC";
 const char* const MPSC = "MPSC";
 const char* const SPSC = "SPSC";
 const char* const YR_AGENT_SESSION_ID = "YR_AGENT_SESSION_ID";
-const char* const USE_AGENT_SESSION_ENV = "use_agent_session";
+const char* const USE_AGENT_SESSION_ENV = "ENABLE_AGENT_SESSION";
 const char* const AGENT_SESSION_KEY_PREFIX = "yr:agent_session:v1";
+const char* const IS_INTERRUPTED = "IS_INTERRUPTED";
 }  // namespace Libruntime
 }  // namespace YR

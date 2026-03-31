@@ -23,7 +23,6 @@
 #include <unordered_map>
 
 #include "src/libruntime/err_type.h"
-#include "src/libruntime/fsclient/fs_intf.h"
 #include "src/libruntime/libruntime_config.h"
 #include "src/libruntime/runtime_context.h"
 #include "src/proto/libruntime.pb.h"
@@ -54,6 +53,10 @@ public:
     std::pair<std::string, ErrorInfo> LoadCurrentSession(const std::string &sessionId);
 
     ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
+
+    ErrorInfo SetSessionInterrupted(const std::string &sessionId);
+
+    bool IsSessionInterrupted(const std::string &sessionId);
 
 private:
     std::shared_ptr<AgentSessionContext> GetOrCreateSessionContext(const std::string &sessionKey);

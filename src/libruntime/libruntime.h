@@ -32,8 +32,8 @@
 #include "src/libruntime/dependency_resolver.h"
 #include "src/libruntime/driverlog/driverlog_receiver.h"
 #include "src/libruntime/err_type.h"
-#include "src/libruntime/fiber.h"
 #include "src/libruntime/event_notify.h"
+#include "src/libruntime/fiber.h"
 #include "src/libruntime/fmclient/fm_client.h"
 #include "src/libruntime/fsclient/fs_client.h"
 #include "src/libruntime/generator/generator_notifier.h"
@@ -1088,6 +1088,8 @@ public:
     virtual std::pair<std::string, ErrorInfo> LoadCurrentSession(const std::string &sessionId);
 
     virtual ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
+
+    virtual bool IsSessionInterrupted(const std::string &sessionId);
 
     virtual std::pair<std::string, std::string> GetRequestAndInstanceID();
 

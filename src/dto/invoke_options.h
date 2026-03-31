@@ -179,6 +179,8 @@ struct InvokeOptions {
     DebugConfig debug;
 
     std::string workingDir;
+
+    bool isInterrupted = false;
 };
 
 struct FunctionMeta {
@@ -272,9 +274,9 @@ struct Credential {
 struct OwnerSchedulerInfo {
     std::string schedulerInstanceID;
     int retryTimes = 0;
-    int maxRetryTimes = 3; // 单个scheduler实例重试3次
+    int maxRetryTimes = 3;  // 单个scheduler实例重试3次
     int currentRetryTimeSpent = 0;
-    int maxRetryTimeSpent = 5000; // Owner节点总重试时间最大5s
+    int maxRetryTimeSpent = 5000;  // Owner节点总重试时间最大5s
 };
 }  // namespace Libruntime
 }  // namespace YR

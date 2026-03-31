@@ -71,8 +71,7 @@ JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_Put(JNIEnv *, jclass,
  * Method:    PutWithParam
  * Signature: ([BLjava/util/List;Lorg/yuanrong/Createparam;)Lorg/yuanrong/errorcode/Pair;
  */
-JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_PutWithParam(JNIEnv *, jclass, jbyteArray, jobject,
-                                                                               jobject);
+JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_PutWithParam(JNIEnv *, jclass, jbyteArray, jobject, jobject);
 
 /*
  * Class:     org_yuanrong_jni_LibRuntime
@@ -276,6 +275,13 @@ JNIEXPORT jstring JNICALL Java_org_yuanrong_jni_LibRuntime_loadCurrentSession(JN
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_org_yuanrong_jni_LibRuntime_updateCurrentSession(JNIEnv *, jclass, jstring, jstring);
+
+/*
+ * Class:     org_yuanrong_jni_LibRuntime
+ * Method:    isSessionInterrupted
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_org_yuanrong_jni_LibRuntime_isSessionInterrupted(JNIEnv *, jclass, jstring);
 
 #ifdef __cplusplus
 }

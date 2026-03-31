@@ -450,6 +450,13 @@ ErrorInfo Libruntime::InvokeByInstanceId(const YR::Libruntime::FunctionMeta &fun
         auto customTag = invokeOptions->mutable_customtag();
         customTag->insert({"ENABLE_FORCE_INVOKE", ""});
     }
+
+    if (opts.isInterrupted) {
+        YRLOG_INFO("opt.isInterrupted is true");
+        auto invokeOptions = spec->requestInvoke->Mutable().mutable_invokeoptions();
+        auto customTag = invokeOptions->mutable_customtag();
+        customTag->insert({IS_INTERRUPTED, ""});
+    }
     err = PreProcessArgs(spec);
     if (err.Code() != ErrorCode::ERR_OK) {
         YRLOG_ERROR("pre process failed, req id: {}, code: {}, message: {}", spec->requestId,
@@ -1820,7 +1827,7 @@ std::pair<YR::Libruntime::FunctionMeta, ErrorInfo> Libruntime::GetInstance(const
         auto insId = nameSpace.empty() ? this->config->ns + "-" + name : nameSpace + "-" + name;
         YRLOG_WARN("instance： {} not exist, need kill directly", insId);
         this->invokeAdaptor->Kill(nameSpace.empty() ? this->config->ns + "-" + name : nameSpace + "-" + name, "",
-                                       libruntime::Signal::killInstanceSync);
+                                  libruntime::Signal::killInstanceSync);
     }
     if (err.OK() && meta.needOrder) {
         this->invokeOrderMgr->RegisterInstance(nameSpace.empty() ? this->config->ns + "-" + name
@@ -1952,6 +1959,14 @@ ErrorInfo Libruntime::UpdateCurrentSession(const std::string &sessionId, const s
         return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "invoke adaptor is nullptr");
     }
     return invokeAdaptor->UpdateCurrentSession(sessionId, sessionData);
+}
+
+bool Libruntime::IsSessionInterrupted(const std::string &sessionId)
+{
+    if (invokeAdaptor == nullptr) {
+        return false;
+    }
+    return invokeAdaptor->IsSessionInterrupted(sessionId);
 }
 
 std::pair<std::string, std::string> Libruntime::GetRequestAndInstanceID()
