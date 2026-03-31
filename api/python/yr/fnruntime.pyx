@@ -30,6 +30,7 @@ from pathlib import Path
 from dataclasses import asdict
 from typing import List, Tuple, Union, Callable
 from cython.operator import dereference, postincrement
+from cpython.bytes cimport PyBytes_AS_STRING, PyBytes_FromStringAndSize
 from cpython.exc cimport PyErr_CheckSignals
 
 import yr
@@ -404,6 +405,8 @@ cdef function_meta_from_py(CFunctionMeta & functionMeta, func_meta: FunctionMeta
     functionMeta.isAsync = func_meta.isAsync
     functionMeta.tensorTransportTarget = func_meta.tensorTransportTarget
     functionMeta.enableTensorTransport = func_meta.enableTensorTransport
+    if func_meta.payload:
+        functionMeta.recoveredData = func_meta.payload
 
 cdef function_meta_from_cpp(const CFunctionMeta & function):
     cdef:
@@ -424,6 +427,9 @@ cdef function_meta_from_cpp(const CFunctionMeta & function):
                              isAsync=function.isAsync,
                              tensorTransportTarget=function.tensorTransportTarget,
                              enableTensorTransport=function.enableTensorTransport)
+    if function.recoveredData.size() > 0:
+        func_meta.payload = PyBytes_FromStringAndSize(
+            function.recoveredData.data(), <Py_ssize_t>function.recoveredData.size())
     return func_meta
 
 cdef function_group_running_info_from_cpp(const CFunctionGroupRunningInfo & info):
@@ -566,6 +572,25 @@ def load_code_from_datasystem(code_id: str):
             f"code: {ret.first.Code()}, module code {ret.first.MCode()}, msg: {ret.first.Msg().decode()}")
     it = ret.second.begin()
     return yr.serialization.Serialization().deserialize(Buffer.make(dereference(it)))
+
+def buffer_from_bytes(data: bytes):
+    """Wrap Python bytes as a native Buffer for Serialization.deserialize etc."""
+    cdef:
+        Py_ssize_t n = len(data)
+        shared_ptr[CBuffer] c_buffer
+        CErrorInfo ret
+        Buffer buf
+    if n == 0:
+        c_buffer = dynamic_pointer_cast[CBuffer, NativeBuffer](make_shared[NativeBuffer](0))
+        return Buffer.make(c_buffer)
+    c_buffer = dynamic_pointer_cast[CBuffer, NativeBuffer](make_shared[NativeBuffer](<uint64_t>n))
+    buf = Buffer.make(c_buffer)
+    ret = memory_copy(c_buffer, PyBytes_AS_STRING(data), <uint64_t>n)
+    if not ret.OK():
+        raise RuntimeError(
+            f"buffer_from_bytes failed: code {ret.Code()}, msg {ret.Msg().decode()}")
+    return buf
+
 
 def write_to_cbuffer(serialized_object: SerializedObject):
     # This method is for unit test suite 'test_serialization'

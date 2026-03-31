@@ -19,6 +19,7 @@
 #include <condition_variable>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <unordered_set>
 
 #include "alias_element.h"
@@ -265,6 +266,9 @@ private:
     std::atomic<bool> accelerateRunFlag_{false};
     std::unordered_map<std::string, std::shared_ptr<YR::utility::Timer>> callTimeoutTimerMap_;
     mutable absl::Mutex callTimerMtx_;
+    /// Buffer from last successful RecoverHandler (for GetInstance response payload).
+    std::mutex recoveredBufMtx_;
+    std::string recoveredBuf_;
 };
 
 const static std::unordered_map<common::ErrorCode, std::string> ErrMsgMap = {

@@ -351,6 +351,7 @@ cdef extern from "src/dto/invoke_options.h" nogil:
         bool isAsync
         string tensorTransportTarget
         bool enableTensorTransport
+        string recoveredData
 
     cdef cppclass CGroupOptions "YR::Libruntime::GroupOpts":
         string groupName

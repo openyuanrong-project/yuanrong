@@ -105,6 +105,9 @@ libruntime::FunctionMeta convertFuncMetaToProto(std::shared_ptr<InvokeSpec> spec
     meta.set_needorder(spec->opts.needOrder);
     meta.set_name(spec->functionMeta.name);
     meta.set_ns(spec->functionMeta.ns);
+    if (!spec->functionMeta.recoveredData.empty()) {
+        meta.set_payload(spec->functionMeta.recoveredData);
+    }
     return meta;
 }
 
@@ -123,6 +126,7 @@ YR::Libruntime::FunctionMeta convertProtoToFuncMeta(const libruntime::FunctionMe
     funcMeta.isGenerator = funcMetaProto.isgenerator();
     funcMeta.codeId = funcMetaProto.codeid();
     funcMeta.needOrder = funcMetaProto.needorder();
+    funcMeta.recoveredData = funcMetaProto.payload();
     return funcMeta;
 }
 
@@ -521,6 +525,11 @@ RecoverResponse InvokeAdaptor::RecoverHandler(const RecoverRequest &req)
         resp.set_code(common::ERR_USER_FUNCTION_EXCEPTION);
         resp.set_message(outErrMsg);
         return resp;
+    }
+    if (buf != nullptr && buf->GetSize() > 0) {
+        YRLOG_DEBUG("start assign recover buf of instance: {}", instanceId);
+        std::lock_guard<std::mutex> lk(recoveredBufMtx_);
+        recoveredBuf_.assign(reinterpret_cast<const char *>(buf->ImmutableData()), buf->GetSize());
     }
     if (Config::Instance().ENABLE_METRICS()) {
         InitMetricsAdaptor(librtConfig->enableMetrics);
@@ -957,6 +966,15 @@ SignalResponse InvokeAdaptor::SignalHandler(const SignalRequest &req)
             } else {
                 resp.set_code(::common::ErrorCode::ERR_NONE);
                 resp.set_message(serializedMeta);
+                std::string payloadCopy;
+                {
+                    std::lock_guard<std::mutex> lk(recoveredBufMtx_);
+                    payloadCopy = recoveredBuf_;
+                }
+                if (!payloadCopy.empty()) {
+                    YRLOG_DEBUG("recover buf is not empty, return it directly");
+                    resp.set_payload(std::move(payloadCopy));
+                }
             }
             break;
         }
@@ -2122,6 +2140,9 @@ std::pair<YR::Libruntime::FunctionMeta, ErrorInfo> InvokeAdaptor::GetInstance(co
             } else {
                 libruntime::FunctionMeta funcMeta;
                 funcMeta.ParseFromString(response.message());
+                if (!response.payload().empty()) {
+                    funcMeta.set_payload(response.payload());
+                }
                 promise.set_value(std::make_pair(funcMeta, YR::Libruntime::ErrorInfo()));
             }
         },

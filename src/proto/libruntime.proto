@@ -96,6 +96,7 @@ message FunctionMeta {
     bool needOrder = 15;
     string tensorTransportTarget = 16;
     bool enableTensorTransport = 17;
+    bytes payload = 18; // Recovered instance buffer data
 }
 
 message FunctionID {
