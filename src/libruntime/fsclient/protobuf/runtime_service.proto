@@ -107,4 +107,5 @@ message SignalRequest {
 message SignalResponse {
   common.ErrorCode code    = 1;
   string           message = 2;
+  bytes            payload = 3;
 }

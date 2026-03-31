@@ -28,10 +28,13 @@ from typing import List
 import yr
 from yr import signature
 from yr.code_manager import CodeManager
+from yr.fnruntime import buffer_from_bytes
+from yr.serialization.serialization import Serialization
 from yr.generator import ObjectRefGenerator
 from yr.common import constants, utils
 from yr.common.types import GroupInfo
 from yr.config import InvokeOptions, function_group_enabled
+from yr.executor.instance_manager import InstanceManager
 from yr.libruntime_pb2 import FunctionMeta, LanguageType
 from yr.object_ref import ObjectRef
 from yr.runtime_holder import global_runtime, save_real_instance_id
@@ -756,7 +759,22 @@ def get_instance_by_name(name, namespace, timeout) -> InstanceProxy:
     runtime = global_runtime.get_runtime()
     function_meta = runtime.get_instance_by_name(name, namespace, timeout)
     if function_meta.language == LanguageType.Python:
-        user_class = CodeManager().load_code(function_meta, True)
+        user_class = None
+        if function_meta.payload:
+            try:
+                ins_package = Serialization().deserialize(
+                    buffer_from_bytes(bytes(function_meta.payload)))
+                InstanceManager().init_from_inspackage(ins_package)
+                user_class = InstanceManager().class_code
+            except Exception as exc:
+                _logger.warning(
+                    "deserialize recovered instance payload failed, fall back to CodeManager: %s",
+                    exc,
+                    exc_info=True,
+                )
+        if user_class is None:
+            _logger.debug(f"pay load of class code is empty, load code of instance: {name} from function meta")
+            user_class = CodeManager().load_code(function_meta, True)
         user_class_descriptor = utils.ObjectDescriptor.get_from_class(user_class)
         class_methods = inspect.getmembers(user_class, utils.is_function_or_method)
         user_class_methods = dict(class_methods)

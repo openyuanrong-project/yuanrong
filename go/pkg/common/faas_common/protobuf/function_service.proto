@@ -170,5 +170,6 @@ message KillRequest {
 message KillResponse {
   commonargs.ErrorCode  code    = 1;
   string                message = 2;
+  bytes                 payload = 3;
 }
 

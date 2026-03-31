@@ -200,6 +200,8 @@ struct FunctionMeta {
     bool needOrder = false;
     std::string tensorTransportTarget = "";
     bool enableTensorTransport = false;
+    /// Serialized instance state from recover (e.g. for GetInstance on caller).
+    std::string recoveredData;
     bool IsServiceApiType()
     {
         return (apiType == libruntime::ApiType::Faas or apiType == libruntime::ApiType::Serve);

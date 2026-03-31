@@ -231,6 +231,7 @@ message NotificationPayload {
 message KillResponse {
   common.ErrorCode code    = 1;
   string           message = 2;
+  bytes            payload = 3;
 }
 
 message EventRequest {
