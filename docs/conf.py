@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.append(os.path.abspath('.'))
 from icons import ICONS
+from blog_data import BLOG_DATA
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -185,6 +186,7 @@ breathe_default_project = "openYuanrong"
 
 html_context = {
     **ICONS,
+    "blog_data": BLOG_DATA,
     "metatags": """
             <meta name="author" content="openYuanrong Team">
             <meta name="keywords" content="openYuanrong, 分布式计算引擎, AI推理, Serverless">

@@ -132,6 +132,18 @@ ICONS = {
     ),
 
     'icon_external_link': (
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        'width="10" height="10" viewBox="0 0 512 512">'
+        '<path fill="currentColor" d="M320 0c-17.7 0-32 14.3-32 32s14.3 32 32 32h82.7L201.4 265.4'
+        'c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L448 109.3V192c0 17.7 14.3 32 32 32'
+        's32-14.3 32-32V32c0-17.7-14.3-32-32-32zM80 32C35.8 32 0 67.8 0 112v320'
+        'c0 44.2 35.8 80 80 80h320c44.2 0 80-35.8 80-80V320c0-17.7-14.3-32-32-32s-32 14.3'
+        '-32 32v112c0 8.8-7.2 16-16 16H80c-8.8 0-16-7.2-16-16V112c0-8.8 7.2-16 16-16'
+        'h112c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/>'
+        '</svg>'
+    ),
+
+    'icon_external_link_gray': (
         '<svg class="!text-gray-500/60 dark:!text-gray-300/60 inline-block" '
         'xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 512 512">'
         '<path fill="currentColor" d="M320 0c-17.7 0-32 14.3-32 32s14.3 32 32 32h82.7L201.4 265.4'
@@ -257,6 +269,27 @@ ICONS = {
         '<circle cx="12" cy="12" r="10"/>'
         '<path d="m10 8l4 4l-4 4"/>'
         '</g>'
+        '</svg>'
+    ),
+
+    'icon_calendar': (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" '
+        'viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+        'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" '
+        'class="text-blue-500/80">'
+        '<rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>'
+        '<line x1="16" x2="16" y1="2" y2="6"/>'
+        '<line x1="8" x2="8" y1="2" y2="6"/>'
+        '<line x1="3" x2="21" y1="10" y2="10"/>'
+        '</svg>'
+    ),
+
+    'icon_clock': (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" '
+        'viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+        'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" '
+        'class="text-slate-400 group-hover:text-blue-500 transition-colors">'
+        '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
         '</svg>'
     ),
 }

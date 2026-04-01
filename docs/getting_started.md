@@ -537,3 +537,27 @@ public class Demo {
 ## 监控与调试快速入门
 
 - openYuanrong 提供了可观测性工具来监控集群和调试应用。这些工具可帮助您了解应用程序的性能并识别瓶颈：[了解更多](./observability/index.md)。
+
+(quickstart-learn-more)=
+
+## 更多学习资源
+
+openYuanrong 拥有丰富的学习资源，可以帮助您了解更多关于分布式通算和智算的知识。
+
+(quickstart-blog)=
+
+### 博客
+
+- [openYuanrong 快速入门](https://www.openeuler.openatom.cn/zh/blog/20260317-openYuanrong_07/20260317-openYuanrong_07.html){target="_blank"}
+- [破解分布式计算多租困局：openYuanrong 多租隔离](https://www.openeuler.openatom.cn/zh/blog/20260316-openYuanrong_06/20260316-openYuanrong_06.html){target="_blank"}
+- [openYuanrong 数据流：近计算高性能分布式数据流转](https://www.openeuler.openatom.cn/zh/blog/20260316-openYuanrong_05/20260316-openYuanrong_05.html){target="_blank"}
+- [openYuanrong 数据系统：近计算高性能分布式内存缓存](https://www.openeuler.openatom.cn/zh/blog/20260226-openYuanrong_04/20260226-openYuanrong_04.html){target="_blank"}
+- [openYuanrong 函数系统：大规模分布式动态函数调度](https://www.openeuler.openatom.cn/zh/blog/20260225-openYuanrong_03/20260225-openYuanrong_03.html){target="_blank"}
+- [把集群变“单机”（下）——openYuanrong 核心架构设计解析](https://www.openeuler.openatom.cn/zh/blog/20260131-openYuanrong_02/20260131-openYuanrong_02.html){target="_blank"}
+- [把集群变“单机”（上）——openYuanrong 核心技术理念解析](https://www.openeuler.openatom.cn/zh/blog/20260128-openYuanrong/20260128-openYuanrong.html){target="_blank"}
+
+(quickstart-papers)=
+
+### 论文
+
+- [YuanRong: A Production General-purpose Serverless System for Distributed Applications in the Cloud](https://dl.acm.org/doi/10.1145/3651890.3672216){target="_blank"}
