@@ -37,11 +37,10 @@ public:
         manager_ = std::make_shared<AgentSessionManager>(cfg_, rtCtx_);
     }
 
-    std::shared_ptr<AgentSessionContext> BindLockedActiveSession(const std::string &sessionId)
+    std::shared_ptr<AgentSessionContext> CreateSessionContext(const std::string &sessionId)
     {
-        auto sessionCtx = std::make_shared<AgentSessionContext>();
-        sessionCtx->mutex.lock();
-        manager_->BindActiveSessionContext(sessionId, sessionCtx);
+        auto sessionCtx = manager_->GetOrCreateSessionContext(sessionId, "mock-key-" + sessionId);
+        sessionCtx->value.sessionData = manager_->BuildDefaultSession(sessionId);
         return sessionCtx;
     }
 
@@ -66,18 +65,20 @@ TEST_F(AgentSessionManagerTest, NotifyWithoutWaitingContextTest)
 TEST_F(AgentSessionManagerTest, WaitNotifySuccessTest)
 {
     const std::string sessionId = "session-success";
-    BindLockedActiveSession(sessionId);
+    auto sessionCtx = CreateSessionContext(sessionId);
 
     std::promise<std::pair<ErrorCode, std::string>> p;
     auto f = p.get_future();
     std::thread waiter([&]() {
+        sessionCtx->mutex.lock();
         auto [err, buf] = manager_->Wait(sessionId, 3000);
         std::string got;
         if (buf != nullptr && buf->GetSize() > 0) {
             got.assign(static_cast<const char *>(buf->ImmutableData()), buf->GetSize());
         }
         p.set_value({err.Code(), got});
-        manager_->PersistAndReleaseInvokeSession(sessionId);
+        sessionCtx->mutex.unlock();
+        manager_->ReleaseSessionContextReference(sessionCtx);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -95,12 +96,14 @@ TEST_F(AgentSessionManagerTest, WaitNotifySuccessTest)
 TEST_F(AgentSessionManagerTest, WaitTimeoutTest)
 {
     const std::string sessionId = "session-timeout";
-    BindLockedActiveSession(sessionId);
+    auto sessionCtx = CreateSessionContext(sessionId);
 
+    sessionCtx->mutex.lock();
     auto [err, buf] = manager_->Wait(sessionId, 20);
     ASSERT_EQ(err.Code(), ErrorCode::ERR_SESSION_TIMEOUT);
     ASSERT_EQ(buf, nullptr);
-    ASSERT_EQ(manager_->PersistAndReleaseInvokeSession(sessionId).Code(), ErrorCode::ERR_OK);
+    sessionCtx->mutex.unlock();
+    manager_->ReleaseSessionContextReference(sessionCtx);
 }
 
 }  // namespace test

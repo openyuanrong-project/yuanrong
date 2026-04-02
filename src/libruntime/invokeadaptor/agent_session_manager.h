@@ -40,8 +40,10 @@ struct AgentSessionValue {
 
 struct AgentSessionContext {
     std::mutex mutex;
+    std::mutex dataMutex;
     AgentSessionValue value;
     bool loaded = false;
+    size_t refCount = 0;
 };
 
 enum class WaitState {
@@ -87,16 +89,16 @@ public:
     ErrorInfo Notify(const std::string &sessionId, std::shared_ptr<Buffer> data);
 
 private:
-    std::shared_ptr<AgentSessionContext> GetOrCreateSessionContext(const std::string &sessionKey);
+    std::shared_ptr<AgentSessionContext> GetOrCreateSessionContext(const std::string &sessionId,
+                                                                  const std::string &sessionKey);
 
-    std::shared_ptr<AgentSessionContext> GetActiveSessionContext(const std::string &sessionId);
+    void ReleaseSessionContextReference(const std::shared_ptr<AgentSessionContext> &sessionCtx);
 
-    void BindActiveSessionContext(const std::string &sessionId, const std::shared_ptr<AgentSessionContext> &sessionCtx);
+    std::shared_ptr<AgentSessionContext> GetSessionContext(const std::string &sessionId);
 
-    std::shared_ptr<AgentSessionContext> UnbindActiveSessionContext(const std::string &sessionId);
+    void RemoveWaitNotifyContext(const std::string &sessionId);
 
-    ErrorInfo EnsureLoaded(const std::shared_ptr<AgentSessionContext> &sessionCtx, const std::string &sessionId,
-                           const libruntime::MetaData &meta);
+    ErrorInfo EnsureLoaded(const std::shared_ptr<AgentSessionContext> &sessionCtx, const std::string &sessionId);
 
     ErrorInfo Persist(const std::shared_ptr<AgentSessionContext> &sessionCtx);
 
@@ -108,8 +110,6 @@ private:
     std::shared_ptr<RuntimeContext> runtimeContext_;
     std::mutex sessionMapMtx_;
     std::unordered_map<std::string, std::shared_ptr<AgentSessionContext>> sessionMap_;
-    std::mutex activeSessionMapMtx_;
-    std::unordered_map<std::string, std::shared_ptr<AgentSessionContext>> activeSessionMap_;
 
     std::mutex waitNotifyMtx_;
     std::unordered_map<std::string, std::shared_ptr<WaitNotifyContext>> waitNotifyMap_;

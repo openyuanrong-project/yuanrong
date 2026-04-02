@@ -330,7 +330,7 @@ TEST_F(InvokeAdaptorTest, CallTest)
     functionMeta.set_apitype(libruntime::ApiType::Faas);
     metaData.set_allocated_functionmeta(&functionMeta);
     invokeAdaptor->Call(req, metaData, options, objectsInDs);
-    metaData.release_functionmeta();
+    (void)metaData.release_functionmeta();
 }
 
 TEST_F(InvokeAdaptorTest, InitCallTest)
@@ -1452,20 +1452,17 @@ TEST_F(InvokeAdaptorTest, SessionWaitNotifyWithManagerTest)
     invokeAdaptor->agentSessionManager_ = manager;
 
     const std::string sessionId = "session-1";
-    auto sessionCtx = std::make_shared<AgentSessionContext>();
+    auto sessionCtx = manager->GetOrCreateSessionContext(sessionId, "mock-key-" + sessionId);
+    sessionCtx->value.sessionData = manager->BuildDefaultSession(sessionId);
 
     std::promise<ErrorCode> waitResult;
     auto waitFuture = waitResult.get_future();
-    // Same thread must hold sessionCtx->mutex when calling SessionWait, matching
-    // AcquireInvokeSession (lock -> BindActiveSessionContext) then Wait (unlock inside Wait).
-    // Locking on the main thread and calling SessionWait from another thread would deadlock:
-    // Wait() calls mutex.unlock() and must be the thread that locked.
     std::thread waiter([&]() {
         sessionCtx->mutex.lock();
-        manager->BindActiveSessionContext(sessionId, sessionCtx);
         auto [err, buf] = invokeAdaptor->SessionWait(sessionId, 3000);
         waitResult.set_value(err.Code());
-        manager->PersistAndReleaseInvokeSession(sessionId);
+        sessionCtx->mutex.unlock();
+        manager->ReleaseSessionContextReference(sessionCtx);
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(50));

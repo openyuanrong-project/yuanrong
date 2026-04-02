@@ -78,14 +78,14 @@ ErrorInfo AgentSessionManager::AcquireInvokeSession(const std::string &sessionId
         return ErrorInfo();
     }
     const std::string sessionKey = BuildSessionKey(meta, sessionId);
-    auto sessionCtx = GetOrCreateSessionContext(sessionKey);
+    auto sessionCtx = GetOrCreateSessionContext(sessionId, sessionKey);
     sessionCtx->mutex.lock();
-    auto err = EnsureLoaded(sessionCtx, sessionId, meta);
+    auto err = EnsureLoaded(sessionCtx, sessionId);
     if (!err.OK()) {
+        ReleaseSessionContextReference(sessionCtx);
         sessionCtx->mutex.unlock();
         return err;
     }
-    BindActiveSessionContext(sessionId, sessionCtx);
     return ErrorInfo();
 }
 
@@ -94,12 +94,13 @@ ErrorInfo AgentSessionManager::PersistAndReleaseInvokeSession(const std::string 
     if (sessionId.empty()) {
         return ErrorInfo();
     }
-    auto sessionCtx = UnbindActiveSessionContext(sessionId);
+    auto sessionCtx = GetSessionContext(sessionId);
     if (sessionCtx == nullptr) {
         return ErrorInfo();
     }
     auto saveErr = Persist(sessionCtx);
     sessionCtx->mutex.unlock();
+    ReleaseSessionContextReference(sessionCtx);
     return saveErr;
 }
 
@@ -108,10 +109,11 @@ std::pair<std::string, ErrorInfo> AgentSessionManager::LoadCurrentSession(const 
     if (sessionId.empty()) {
         return {"", ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "current invoke has no active agent session")};
     }
-    auto current = GetActiveSessionContext(sessionId);
+    auto current = GetSessionContext(sessionId);
     if (current == nullptr) {
         return {"", ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "current invoke has no active agent session")};
     }
+    std::lock_guard<std::mutex> lock(current->dataMutex);
     return {current->value.sessionData, ErrorInfo()};
 }
 
@@ -120,11 +122,29 @@ ErrorInfo AgentSessionManager::UpdateCurrentSession(const std::string &sessionId
     if (sessionId.empty()) {
         return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "current invoke has no active agent session");
     }
-    auto current = GetActiveSessionContext(sessionId);
+    json incomingJson;
+    try {
+        incomingJson = json::parse(sessionData);
+    } catch (const json::parse_error &) {
+        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "failed to parse sessionJson");
+    }
+    if (!incomingJson.contains("histories") || !incomingJson["histories"].is_array()) {
+        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "session histories is invalid");
+    }
+
+    auto current = GetSessionContext(sessionId);
     if (current == nullptr) {
         return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "current invoke has no active agent session");
     }
-    current->value.sessionData = sessionData;
+
+    std::lock_guard<std::mutex> lock(current->dataMutex);
+    try {
+        json currentJson = json::parse(current->value.sessionData);
+        currentJson["histories"] = incomingJson["histories"];
+        current->value.sessionData = currentJson.dump();
+    } catch (const json::parse_error &) {
+        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "failed to parse current sessionJson");
+    }
     return ErrorInfo();
 }
 
@@ -134,21 +154,31 @@ ErrorInfo AgentSessionManager::SetSessionInterrupted(const std::string &sessionI
         return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "session id is empty");
     }
 
-    auto sessionCtx = GetActiveSessionContext(sessionId);
+    auto sessionCtx = GetSessionContext(sessionId);
     if (sessionCtx == nullptr) {
         return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "current invoke has no active agent session");
     }
 
-    try {
-        json sessionJson = json::parse(sessionCtx->value.sessionData);
-        sessionJson["isInterrupted"] = true;
-        sessionCtx->value.sessionData = sessionJson.dump();
-    } catch (const json::parse_error &e) {
-        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "failed to parse sessionJson");
+    {
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
+        try {
+            json sessionJson = json::parse(sessionCtx->value.sessionData);
+            sessionJson["isInterrupted"] = true;
+            sessionCtx->value.sessionData = sessionJson.dump();
+        } catch (const json::parse_error &) {
+            return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "failed to parse sessionJson");
+        }
     }
 
-    auto saveErr = Persist(sessionCtx);
-    return saveErr;
+    auto waitNotifyCtx = GetOrCreateWaitNotifyContext(sessionId);
+    {
+        std::lock_guard<std::mutex> lock(waitNotifyCtx->mutex);
+        waitNotifyCtx->state = WaitState::INTERRUPTED;
+        waitNotifyCtx->notifyData = nullptr;
+    }
+    waitNotifyCtx->cv.notify_one();
+
+    return Persist(sessionCtx);
 }
 
 bool AgentSessionManager::IsSessionInterrupted(const std::string &sessionId)
@@ -156,136 +186,172 @@ bool AgentSessionManager::IsSessionInterrupted(const std::string &sessionId)
     if (sessionId.empty()) {
         return false;
     }
-    auto sessionCtx = GetActiveSessionContext(sessionId);
+    auto sessionCtx = GetSessionContext(sessionId);
     if (sessionCtx == nullptr) {
         return false;
     }
 
     std::string sessionData;
     {
-        std::lock_guard<std::mutex> lock(activeSessionMapMtx_);
-        auto iter = activeSessionMap_.find(sessionId);
-        if (iter == activeSessionMap_.end()) {
-            YRLOG_INFO("sessionId:{} is not found in activeSessionMap_", sessionId);
-            return false;
-        }
-        sessionData = iter->second->value.sessionData;
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
+        sessionData = sessionCtx->value.sessionData;
     }
-
     try {
         json sessionJson = json::parse(sessionData);
         return sessionJson.value("isInterrupted", false);
-    } catch (const json::parse_error &e) {
+    } catch (const json::parse_error &) {
         return false;
     }
 }
 
-std::shared_ptr<AgentSessionContext> AgentSessionManager::GetOrCreateSessionContext(const std::string &sessionKey)
+std::shared_ptr<AgentSessionContext> AgentSessionManager::GetOrCreateSessionContext(const std::string &sessionId,
+                                                                                    const std::string &sessionKey)
 {
     std::lock_guard<std::mutex> lock(sessionMapMtx_);
-    auto iter = sessionMap_.find(sessionKey);
+    auto iter = sessionMap_.find(sessionId);
     if (iter != sessionMap_.end()) {
+        iter->second->refCount++;
         return iter->second;
     }
     auto sessionCtx = std::make_shared<AgentSessionContext>();
-    sessionMap_[sessionKey] = sessionCtx;
+    sessionCtx->value.sessionID = sessionId;
+    sessionCtx->value.sessionKey = sessionKey;
+    sessionCtx->refCount = 1;
+    sessionMap_[sessionId] = sessionCtx;
     return sessionCtx;
 }
 
-std::shared_ptr<AgentSessionContext> AgentSessionManager::GetActiveSessionContext(const std::string &sessionId)
+void AgentSessionManager::ReleaseSessionContextReference(const std::shared_ptr<AgentSessionContext> &sessionCtx)
 {
-    std::lock_guard<std::mutex> lock(activeSessionMapMtx_);
-    auto iter = activeSessionMap_.find(sessionId);
-    if (iter == activeSessionMap_.end()) {
+    if (sessionCtx == nullptr) {
+        return;
+    }
+
+    bool shouldCleanupWaitNotify = false;
+    std::string sessionId;
+    {
+        std::lock_guard<std::mutex> lock(sessionMapMtx_);
+        if (sessionCtx->refCount == 0) {
+            return;
+        }
+
+        sessionCtx->refCount--;
+        if (sessionCtx->refCount != 0) {
+            return;
+        }
+
+        auto iter = sessionMap_.find(sessionCtx->value.sessionID);
+        if (iter != sessionMap_.end() && iter->second == sessionCtx) {
+            sessionId = iter->first;
+            sessionMap_.erase(iter);
+            shouldCleanupWaitNotify = true;
+        }
+    }
+    if (shouldCleanupWaitNotify) {
+        RemoveWaitNotifyContext(sessionId);
+    }
+}
+
+std::shared_ptr<AgentSessionContext> AgentSessionManager::GetSessionContext(const std::string &sessionId)
+{
+    std::lock_guard<std::mutex> lock(sessionMapMtx_);
+    auto iter = sessionMap_.find(sessionId);
+    if (iter == sessionMap_.end()) {
         return nullptr;
     }
     return iter->second;
 }
 
-void AgentSessionManager::BindActiveSessionContext(const std::string &sessionId,
-                                                   const std::shared_ptr<AgentSessionContext> &sessionCtx)
+void AgentSessionManager::RemoveWaitNotifyContext(const std::string &sessionId)
 {
-    std::lock_guard<std::mutex> lock(activeSessionMapMtx_);
-    activeSessionMap_[sessionId] = sessionCtx;
-}
-
-std::shared_ptr<AgentSessionContext> AgentSessionManager::UnbindActiveSessionContext(const std::string &sessionId)
-{
-    std::lock_guard<std::mutex> lock(activeSessionMapMtx_);
-    auto iter = activeSessionMap_.find(sessionId);
-    if (iter == activeSessionMap_.end()) {
-        return nullptr;
-    }
-    auto sessionCtx = iter->second;
-    activeSessionMap_.erase(iter);
-    return sessionCtx;
+    std::lock_guard<std::mutex> lock(waitNotifyMtx_);
+    waitNotifyMap_.erase(sessionId);
 }
 
 ErrorInfo AgentSessionManager::EnsureLoaded(const std::shared_ptr<AgentSessionContext> &sessionCtx,
-                                            const std::string &sessionId, const libruntime::MetaData &meta)
+                                            const std::string &sessionId)
 {
-    if (sessionCtx->loaded) {
-        return ErrorInfo();
+    {
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
+        if (sessionCtx->loaded) {
+            return ErrorInfo();
+        }
     }
     auto libRuntime = GetLibRuntime();
     if (libRuntime == nullptr) {
         return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "failed to get libruntime for agent session");
     }
-
-    sessionCtx->value.sessionID = sessionId;
-    sessionCtx->value.sessionKey = BuildSessionKey(meta, sessionId);
 
     auto [buffer, readErr] = libRuntime->KVRead(sessionCtx->value.sessionKey, ZERO_TIMEOUT);
     if (!readErr.OK() && readErr.Code() != ErrorCode::ERR_GET_OPERATION_FAILED) {
         return readErr;
     }
     if (buffer != nullptr && buffer->GetSize() > 0) {
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
         sessionCtx->value.sessionData =
             std::string(static_cast<const char *>(buffer->ImmutableData()), buffer->GetSize());
         sessionCtx->loaded = true;
         return ErrorInfo();
     }
 
-    sessionCtx->value.sessionData = BuildDefaultSession(sessionId);
-    auto nativeBuffer = std::make_shared<StringNativeBuffer>(sessionCtx->value.sessionData.size());
-    auto err = nativeBuffer->MemoryCopy(sessionCtx->value.sessionData.data(), sessionCtx->value.sessionData.size());
+    std::string defaultSession = BuildDefaultSession(sessionId);
+    {
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
+        sessionCtx->value.sessionData = defaultSession;
+        sessionCtx->loaded = true;
+    }
+    auto nativeBuffer = std::make_shared<StringNativeBuffer>(defaultSession.size());
+    auto err = nativeBuffer->MemoryCopy(defaultSession.data(), defaultSession.size());
     if (!err.OK()) {
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
+        sessionCtx->loaded = false;
         return err;
     }
     SetParam setParam;
     setParam.ttlSecond = 0;
     err = libRuntime->KVWrite(sessionCtx->value.sessionKey, nativeBuffer, setParam);
     if (!err.OK()) {
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
+        sessionCtx->loaded = false;
         return err;
     }
-    sessionCtx->loaded = true;
     return ErrorInfo();
 }
 
 ErrorInfo AgentSessionManager::Persist(const std::shared_ptr<AgentSessionContext> &sessionCtx)
 {
-    if (sessionCtx == nullptr || !sessionCtx->loaded) {
+    if (sessionCtx == nullptr) {
         return ErrorInfo();
     }
     auto libRuntime = GetLibRuntime();
     if (libRuntime == nullptr) {
         return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "failed to get libruntime for agent session");
     }
-    auto nativeBuffer = std::make_shared<StringNativeBuffer>(sessionCtx->value.sessionData.size());
-    auto err = nativeBuffer->MemoryCopy(sessionCtx->value.sessionData.data(), sessionCtx->value.sessionData.size());
+    std::string sessionKey;
+    std::string sessionData;
+    {
+        std::lock_guard<std::mutex> lock(sessionCtx->dataMutex);
+        if (!sessionCtx->loaded) {
+            return ErrorInfo();
+        }
+        sessionKey = sessionCtx->value.sessionKey;
+        sessionData = sessionCtx->value.sessionData;
+    }
+    auto nativeBuffer = std::make_shared<StringNativeBuffer>(sessionData.size());
+    auto err = nativeBuffer->MemoryCopy(sessionData.data(), sessionData.size());
     if (!err.OK()) {
         return err;
     }
     SetParam setParam;
     setParam.ttlSecond = 0;
-    return libRuntime->KVWrite(sessionCtx->value.sessionKey, nativeBuffer, setParam);
+    return libRuntime->KVWrite(sessionKey, nativeBuffer, setParam);
 }
 
 std::string AgentSessionManager::BuildSessionKey(const libruntime::MetaData &meta, const std::string &sessionId) const
 {
-    // Hash "name:sessionId" so the session key has an unambiguous boundary and a fixed length.
+    // Hash "functionID:sessionId" so invoke and delete paths share the same stable key source.
     std::string sessionKey = std::string(AGENT_SESSION_KEY_PREFIX) + ":" +
-                             EncodeSha256Base64Url(meta.functionmeta().name() + ":" + sessionId);
+                             EncodeSha256Base64Url(meta.functionmeta().functionid() + ":" + sessionId);
     if (sessionKey.size() > MAX_SESSION_KEY_LENGTH) {
         sessionKey.resize(MAX_SESSION_KEY_LENGTH);
     }
@@ -297,6 +363,7 @@ std::string AgentSessionManager::BuildDefaultSession(const std::string &sessionI
     json sessionJson;
     sessionJson["sessionID"] = sessionId;
     sessionJson["histories"] = json::array();
+    sessionJson["isInterrupted"] = false;
     return sessionJson.dump();
 }
 
@@ -318,7 +385,7 @@ std::pair<ErrorInfo, std::shared_ptr<Buffer>> AgentSessionManager::Wait(const st
         YRLOG_WARN("current session id is empty, return directly");
         return {ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "session id is empty"), nullptr};
     }
-    auto sessionCtx = UnbindActiveSessionContext(sessionId);
+    auto sessionCtx = GetSessionContext(sessionId);
     if (sessionCtx == nullptr) {
         YRLOG_WARN("session ctx of session id: {} is empty, return derectly", sessionId);
         return {ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "no active session for wait"), nullptr};
@@ -326,16 +393,28 @@ std::pair<ErrorInfo, std::shared_ptr<Buffer>> AgentSessionManager::Wait(const st
     sessionCtx->mutex.unlock();
     auto waitNotifyCtx = GetOrCreateWaitNotifyContext(sessionId);
     std::unique_lock<std::mutex> lock(waitNotifyCtx->mutex);
-    auto restoreActiveSession = [&]() {
-        std::lock_guard<std::mutex> sessionLock(sessionCtx->mutex);
-        BindActiveSessionContext(sessionId, sessionCtx);
-    };
+    auto relockSession = [&]() { sessionCtx->mutex.lock(); };
+    {
+        std::string sessionData;
+        std::lock_guard<std::mutex> dataLock(sessionCtx->dataMutex);
+        sessionData = sessionCtx->value.sessionData;
+        try {
+            if (json::parse(sessionData).value("isInterrupted", false)) {
+                relockSession();
+                return {ErrorInfo(ERR_SESSION_INTERRUPTED, ModuleCode::RUNTIME, "session has been interrupted"),
+                        nullptr};
+            }
+        } catch (const json::parse_error &) {
+            relockSession();
+            return {ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "failed to parse sessionJson"), nullptr};
+        }
+    }
     if (waitNotifyCtx->state == WaitState::INTERRUPTED) {
-        restoreActiveSession();
+        relockSession();
         return {ErrorInfo(ERR_SESSION_INTERRUPTED, ModuleCode::RUNTIME, "session has been interrupted"), nullptr};
     }
     if (waitNotifyCtx->state == WaitState::WAITING) {
-        restoreActiveSession();
+        relockSession();
         return {ErrorInfo(ERR_SESSION_NOT_WAITING, ModuleCode::RUNTIME, "session is already waiting"), nullptr};
     }
     waitNotifyCtx->state = WaitState::WAITING;
@@ -359,7 +438,7 @@ std::pair<ErrorInfo, std::shared_ptr<Buffer>> AgentSessionManager::Wait(const st
     waitNotifyCtx->state = WaitState::IDLE;
     waitNotifyCtx->notifyData = nullptr;
     lock.unlock();
-    restoreActiveSession();
+    relockSession();
     if (finalState == WaitState::INTERRUPTED) {
         return {ErrorInfo(ERR_SESSION_INTERRUPTED, ModuleCode::RUNTIME, "session wait was interrupted"), nullptr};
     }
