@@ -1354,5 +1354,29 @@ TEST_F(LibruntimeTest, GetRequestAndInstanceIDTest)
     EXPECT_TRUE(result.second.empty());
 }
 
+TEST_F(LibruntimeTest, SessionWaitNotifyTest)
+{
+    lr->invokeAdaptor = nullptr;
+    auto [err1, buf1] = lr->SessionWait("sessionId", 100);
+    ASSERT_EQ(err1.Code(), ErrorCode::ERR_INNER_SYSTEM_ERROR);
+    ASSERT_EQ(buf1, nullptr);
+    ASSERT_EQ(lr->SessionNotify("sessionId", nullptr).Code(), ErrorCode::ERR_INNER_SYSTEM_ERROR);
+
+    auto mockAdaptor = std::make_shared<YR::Libruntime::MockInvokeAdaptor>();
+    lr->invokeAdaptor = mockAdaptor;
+    std::string payload = "notify";
+    auto data = std::make_shared<StringNativeBuffer>(payload.size());
+    ASSERT_EQ(data->MemoryCopy(payload.data(), payload.size()).Code(), ErrorCode::ERR_OK);
+    auto bufferData = std::static_pointer_cast<Buffer>(data);
+    EXPECT_CALL(*mockAdaptor, SessionWait("sessionId", 200))
+        .WillOnce(Return(std::make_pair(ErrorInfo(), bufferData)));
+    EXPECT_CALL(*mockAdaptor, SessionNotify("sessionId", bufferData)).WillOnce(Return(ErrorInfo()));
+
+    auto [err2, buf2] = lr->SessionWait("sessionId", 200);
+    ASSERT_EQ(err2.Code(), ErrorCode::ERR_OK);
+    ASSERT_NE(buf2, nullptr);
+    ASSERT_EQ(lr->SessionNotify("sessionId", bufferData).Code(), ErrorCode::ERR_OK);
+}
+
 }  // namespace test
 }  // namespace YR

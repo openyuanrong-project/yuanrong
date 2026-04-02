@@ -77,6 +77,11 @@ public:
     MOCK_METHOD3(StreamWriteEvent,
                  ErrorInfo(const std::string &streamMessage, const std::string &requestId,
                            const std::string &instanceId));
+
+    MOCK_METHOD2(SessionWait, std::pair<ErrorInfo, std::shared_ptr<Buffer>>(const std::string &sessionId,
+                                                                             int64_t timeout));
+
+    MOCK_METHOD2(SessionNotify, ErrorInfo(const std::string &sessionId, std::shared_ptr<Buffer> data));
 };
 }  // namespace Libruntime
 }  // namespace YR

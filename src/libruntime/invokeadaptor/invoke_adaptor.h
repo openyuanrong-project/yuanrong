@@ -199,6 +199,8 @@ public:
     virtual std::pair<std::string, ErrorInfo> LoadCurrentSession(const std::string &sessionId);
     virtual ErrorInfo UpdateCurrentSession(const std::string &sessionId, const std::string &sessionData);
     virtual bool IsSessionInterrupted(const std::string &sessionId);
+    virtual std::pair<ErrorInfo, std::shared_ptr<Buffer>> SessionWait(const std::string &sessionId, int64_t timeoutMs);
+    virtual ErrorInfo SessionNotify(const std::string &sessionId, std::shared_ptr<Buffer> data);
 private:
     void CreateResponseHandler(std::shared_ptr<InvokeSpec> spec, const CreateResponse &resp);
     void CreateNotifyHandler(const NotifyRequest &req);

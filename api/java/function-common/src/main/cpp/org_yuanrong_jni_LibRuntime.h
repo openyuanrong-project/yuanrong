@@ -283,6 +283,20 @@ JNIEXPORT void JNICALL Java_org_yuanrong_jni_LibRuntime_updateCurrentSession(JNI
  */
 JNIEXPORT jboolean JNICALL Java_org_yuanrong_jni_LibRuntime_isSessionInterrupted(JNIEnv *, jclass, jstring);
 
+/*
+ * Class:     org_yuanrong_jni_LibRuntime
+ * Method:    sessionWait
+ * Signature: (Ljava/lang/String;J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_yuanrong_jni_LibRuntime_sessionWait(JNIEnv *, jclass, jstring, jlong);
+
+/*
+ * Class:     org_yuanrong_jni_LibRuntime
+ * Method:    sessionNotify
+ * Signature: (Ljava/lang/String;[B)Lorg/yuanrong/errorcode/ErrorInfo;
+ */
+JNIEXPORT jobject JNICALL Java_org_yuanrong_jni_LibRuntime_sessionNotify(JNIEnv *, jclass, jstring, jbyteArray);
+
 #ifdef __cplusplus
 }
 #endif

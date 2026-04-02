@@ -23,7 +23,7 @@ SDK is only responsible for reading and modifying.
 """
 
 import json
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from yr import log
 
@@ -104,6 +104,70 @@ class ManagedSessionObj:
             raise RuntimeError(
                 f"Failed to update session, err: {e}"
             ) from e
+
+    def notify(self, data: Dict[str, Any]) -> None:
+        """
+        Send notify payload to the session wait/notify channel (UTF-8 JSON bytes to native).
+
+        Mirrors ManagedSessionObj.notify / CLibruntime::SessionNotify.
+
+        :param data: JSON object as dict (must not be None)
+        :raises RuntimeError: when native call fails or data is invalid
+        """
+        if data is None:
+            raise RuntimeError("Notify data can't be null")
+        try:
+            from yr.fnruntime import session_notify
+            json_str = json.dumps(data, ensure_ascii=False)
+            session_notify(self._session_id, json_str.encode("utf-8"))
+        except Exception as e:
+            log.get_logger().error(
+                f"session notify failed, sessionId={self._session_id}, err={e}")
+            raise RuntimeError(f"Notify failed: {e}") from e
+
+    def wait_for_notify(self, timeout_ms: int) -> Optional[Dict[str, Any]]:
+        """
+        Block until notify arrives for this session or timeout.
+
+        Mirrors ManagedSessionObj.waitForNotify / CLibruntime::SessionWait.
+        On timeout (ERR_SESSION_TIMEOUT), returns None (same as JNI null result).
+
+        :param timeout_ms: wait timeout in milliseconds; -1 means wait indefinitely
+        :return: parsed JSON object as dict, or None on timeout
+        :raises RuntimeError: on interrupt or other native errors
+        """
+        try:
+            from yr.fnruntime import is_session_interrupted, session_wait
+            if is_session_interrupted(self._session_id):
+                raise RuntimeError("Session has been interrupted")
+            result_bytes = session_wait(self._session_id, timeout_ms)
+            if result_bytes is None:
+                return None
+            json_str = result_bytes.decode("utf-8")
+            parsed = json.loads(json_str)
+            if not isinstance(parsed, dict):
+                raise RuntimeError("wait for notify: expected JSON object")
+            return parsed
+        except RuntimeError:
+            raise
+        except Exception as e:
+            log.get_logger().error(
+                f"wait for notify failed, sessionId={self._session_id}, err={e}")
+            raise RuntimeError(f"wait for notify failed: {e}") from e
+
+    def is_interrupted(self) -> bool:
+        """
+        Whether this session has been interrupted (e.g. cancellation).
+
+        Mirrors ManagedSessionObj.isInterrupted / CLibruntime::IsSessionInterrupted.
+        """
+        try:
+            from yr.fnruntime import is_session_interrupted
+            return is_session_interrupted(self._session_id)
+        except Exception as e:
+            log.get_logger().error(
+                f"is_interrupted failed, sessionId={self._session_id}, err={e}")
+            raise RuntimeError(f"is_interrupted failed: {e}") from e
 
 
 class SessionService:

@@ -88,6 +88,10 @@ enum ErrorCode : int {
     ERR_CLIENT_TERMINAL_KILLED = 9008,
     ERR_ALL_SCHEDULER_UNAVALIABLE = 9009,
     ERR_REQ_TIMEOUT_WITHOUT_ACK = 9010,
+
+    ERR_SESSION_TIMEOUT = 5001,
+    ERR_SESSION_INTERRUPTED = 5002,
+    ERR_SESSION_NOT_WAITING = 5003,
 };
 
 const static std::unordered_map<ErrorCode, std::string> errCodeToString = {
@@ -141,7 +145,10 @@ const static std::unordered_map<ErrorCode, std::string> errCodeToString = {
     {ErrorCode::ERR_GENERATOR_FINISHED, "ERR_GENERATOR_FINISHED"},
     {ErrorCode::ERR_FUNCTION_MASTER_NOT_CONFIGURED, "ERR_FUNCTION_MASTER_NOT_CONFIGURED"},
     {ErrorCode::ERR_FUNCTION_MASTER_TIMEOUT, "ERR_FUNCTION_MASTER_TIMEOUT"},
-    {ErrorCode::ERR_CLIENT_TERMINAL_KILLED, "ERR_CLIENT_TERMINAL_KILLED"}};
+    {ErrorCode::ERR_CLIENT_TERMINAL_KILLED, "ERR_CLIENT_TERMINAL_KILLED"},
+    {ErrorCode::ERR_SESSION_TIMEOUT, "ERR_SESSION_TIMEOUT"},
+    {ErrorCode::ERR_SESSION_INTERRUPTED, "ERR_SESSION_INTERRUPTED"},
+    {ErrorCode::ERR_SESSION_NOT_WAITING, "ERR_SESSION_NOT_WAITING"}};
 
 const static std::unordered_map<uint32_t, ErrorCode> datasystemErrCodeMap = {
     {1, ErrorCode::ERR_PARAM_INVALID},          {2, ErrorCode::ERR_PARAM_INVALID},

@@ -50,6 +50,7 @@ int g_killTimeout = 30000;
 const static std::string DEFAULT_FUNCTION_LIB_PATH = "/dcache/layer/func";
 const static std::string HETERO_NAME = "device";
 const static int SCHEDULER_DATA_INDEX = 2;
+const static int CONCURRENCY_RATE = 2;
 
 namespace {
 bool IsTruthyEnv(const char *value)
@@ -483,6 +484,23 @@ bool InvokeAdaptor::IsSessionInterrupted(const std::string &sessionId)
     return agentSessionManager_->IsSessionInterrupted(sessionId);
 }
 
+std::pair<ErrorInfo, std::shared_ptr<Buffer>> InvokeAdaptor::SessionWait(const std::string &sessionId,
+                                                                         int64_t timeoutMs)
+{
+    if (agentSessionManager_ == nullptr) {
+        return {ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "agent session manager is nullptr"), nullptr};
+    }
+    return agentSessionManager_->Wait(sessionId, timeoutMs);
+}
+
+ErrorInfo InvokeAdaptor::SessionNotify(const std::string &sessionId, std::shared_ptr<Buffer> data)
+{
+    if (agentSessionManager_ == nullptr) {
+        return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "agent session manager is nullptr");
+    }
+    return agentSessionManager_->Notify(sessionId, data);
+}
+
 CheckpointResponse InvokeAdaptor::CheckpointHandler(const CheckpointRequest &req)
 {
     CheckpointResponse resp;
@@ -887,10 +905,14 @@ std::pair<common::ErrorCode, std::string> InvokeAdaptor::PrepareCallExecutor(con
         this->librtConfig->invokeTimeoutSec =
             static_cast<int64_t>(std::stoull(req.createoptions().at(FAAS_INVOKE_TIMEOUT)));
     }
-    YRLOG_INFO("Call executor pool size: {}, need order: {}", concurrency, this->librtConfig->needOrder);
+    YRLOG_INFO("Call executor pool size: {}, need order: {}, agentSessionEnabled_ is {}", concurrency,
+               this->librtConfig->needOrder, agentSessionEnabled_);
     if (this->librtConfig->needOrder) {
         this->execMgr = std::make_shared<OrderedExecutionManager>(concurrency, librtConfig->funcExecSubmitHook);
     } else {
+        if (agentSessionEnabled_) {
+            concurrency =  concurrency * CONCURRENCY_RATE;
+        }
         this->execMgr = std::make_shared<GeneralExecutionManager>(concurrency, librtConfig->funcExecSubmitHook);
     }
     auto err = this->execMgr->DoInit(concurrency);

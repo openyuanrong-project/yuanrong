@@ -33,4 +33,11 @@ public class TestErrorCode {
         ModuleCode.CORE.toString();
         Assert.assertEquals(10, ModuleCode.CORE.getCode());
     }
+
+    @Test
+    public void testSessionErrorCodeConstants() {
+        Assert.assertEquals(5001, ErrorCode.ERR_SESSION_TIMEOUT.getValue());
+        Assert.assertEquals(5002, ErrorCode.ERR_SESSION_INTERRUPTED.getValue());
+        Assert.assertEquals(5003, ErrorCode.ERR_SESSION_NOT_WAITING.getValue());
+    }
 }

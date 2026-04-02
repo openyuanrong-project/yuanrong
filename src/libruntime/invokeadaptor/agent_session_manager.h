@@ -17,11 +17,13 @@
 #ifndef AGENT_SESSION_MANAGER_H
 #define AGENT_SESSION_MANAGER_H
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 
+#include "src/dto/buffer.h"
 #include "src/libruntime/err_type.h"
 #include "src/libruntime/libruntime_config.h"
 #include "src/libruntime/runtime_context.h"
@@ -42,6 +44,28 @@ struct AgentSessionContext {
     bool loaded = false;
 };
 
+enum class WaitState {
+    IDLE,
+    WAITING,
+    NOTIFIED,
+    TIMEOUT,
+    INTERRUPTED
+};
+
+struct WaitNotifyContext {
+    std::mutex mutex;
+    std::condition_variable cv;
+    WaitState state = WaitState::IDLE;
+    std::shared_ptr<Buffer> notifyData;
+
+    void Reset()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        state = WaitState::IDLE;
+        notifyData = nullptr;
+    }
+};
+
 class AgentSessionManager {
 public:
     AgentSessionManager(std::shared_ptr<LibruntimeConfig> config, std::shared_ptr<RuntimeContext> runtimeContext);
@@ -57,6 +81,10 @@ public:
     ErrorInfo SetSessionInterrupted(const std::string &sessionId);
 
     bool IsSessionInterrupted(const std::string &sessionId);
+
+    std::pair<ErrorInfo, std::shared_ptr<Buffer>> Wait(const std::string &sessionId, int64_t timeoutMs);
+
+    ErrorInfo Notify(const std::string &sessionId, std::shared_ptr<Buffer> data);
 
 private:
     std::shared_ptr<AgentSessionContext> GetOrCreateSessionContext(const std::string &sessionKey);
@@ -82,6 +110,11 @@ private:
     std::unordered_map<std::string, std::shared_ptr<AgentSessionContext>> sessionMap_;
     std::mutex activeSessionMapMtx_;
     std::unordered_map<std::string, std::shared_ptr<AgentSessionContext>> activeSessionMap_;
+
+    std::mutex waitNotifyMtx_;
+    std::unordered_map<std::string, std::shared_ptr<WaitNotifyContext>> waitNotifyMap_;
+
+    std::shared_ptr<WaitNotifyContext> GetOrCreateWaitNotifyContext(const std::string &sessionId);
 };
 
 }  // namespace Libruntime

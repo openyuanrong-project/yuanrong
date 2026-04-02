@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+#include <future>
+#include <thread>
+
+#define private public
+#include "src/libruntime/invokeadaptor/agent_session_manager.h"
+
+using namespace YR::Libruntime;
+
+namespace YR {
+namespace test {
+
+class AgentSessionManagerTest : public testing::Test {
+public:
+    void SetUp() override
+    {
+        cfg_ = std::make_shared<LibruntimeConfig>();
+        cfg_->tenantId = "tenant-id";
+        rtCtx_ = std::make_shared<RuntimeContext>();
+        manager_ = std::make_shared<AgentSessionManager>(cfg_, rtCtx_);
+    }
+
+    std::shared_ptr<AgentSessionContext> BindLockedActiveSession(const std::string &sessionId)
+    {
+        auto sessionCtx = std::make_shared<AgentSessionContext>();
+        sessionCtx->mutex.lock();
+        manager_->BindActiveSessionContext(sessionId, sessionCtx);
+        return sessionCtx;
+    }
+
+    std::shared_ptr<LibruntimeConfig> cfg_;
+    std::shared_ptr<RuntimeContext> rtCtx_;
+    std::shared_ptr<AgentSessionManager> manager_;
+};
+
+TEST_F(AgentSessionManagerTest, WaitWithEmptySessionIdTest)
+{
+    auto [err, buf] = manager_->Wait("", 100);
+    ASSERT_EQ(err.Code(), ErrorCode::ERR_PARAM_INVALID);
+    ASSERT_EQ(buf, nullptr);
+}
+
+TEST_F(AgentSessionManagerTest, NotifyWithoutWaitingContextTest)
+{
+    auto err = manager_->Notify("not-exist-session", nullptr);
+    ASSERT_EQ(err.Code(), ErrorCode::ERR_OK);
+}
+
+TEST_F(AgentSessionManagerTest, WaitNotifySuccessTest)
+{
+    const std::string sessionId = "session-success";
+    BindLockedActiveSession(sessionId);
+
+    std::promise<std::pair<ErrorCode, std::string>> p;
+    auto f = p.get_future();
+    std::thread waiter([&]() {
+        auto [err, buf] = manager_->Wait(sessionId, 3000);
+        std::string got;
+        if (buf != nullptr && buf->GetSize() > 0) {
+            got.assign(static_cast<const char *>(buf->ImmutableData()), buf->GetSize());
+        }
+        p.set_value({err.Code(), got});
+        manager_->PersistAndReleaseInvokeSession(sessionId);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    const std::string payload = "payload";
+    auto data = std::make_shared<StringNativeBuffer>(payload.size());
+    ASSERT_EQ(data->MemoryCopy(payload.data(), payload.size()).Code(), ErrorCode::ERR_OK);
+    ASSERT_EQ(manager_->Notify(sessionId, data).Code(), ErrorCode::ERR_OK);
+
+    auto [code, got] = f.get();
+    ASSERT_EQ(code, ErrorCode::ERR_OK);
+    ASSERT_EQ(got, payload);
+    waiter.join();
+}
+
+TEST_F(AgentSessionManagerTest, WaitTimeoutTest)
+{
+    const std::string sessionId = "session-timeout";
+    BindLockedActiveSession(sessionId);
+
+    auto [err, buf] = manager_->Wait(sessionId, 20);
+    ASSERT_EQ(err.Code(), ErrorCode::ERR_SESSION_TIMEOUT);
+    ASSERT_EQ(buf, nullptr);
+    ASSERT_EQ(manager_->PersistAndReleaseInvokeSession(sessionId).Code(), ErrorCode::ERR_OK);
+}
+
+}  // namespace test
+}  // namespace YR

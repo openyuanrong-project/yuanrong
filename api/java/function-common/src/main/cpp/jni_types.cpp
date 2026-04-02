@@ -1553,6 +1553,9 @@ jobject JNIErrorCode::FromCc(JNIEnv *env, const YR::Libruntime::ErrorCode &error
         {YR::Libruntime::ErrorCode::ERR_DATASYSTEM_FAILED, 4299},
         {YR::Libruntime::ErrorCode::ERR_FINALIZED, 9000},
         {YR::Libruntime::ErrorCode::ERR_CREATE_RETURN_BUFFER, 9001},
+        {YR::Libruntime::ErrorCode::ERR_SESSION_TIMEOUT, 5001},
+        {YR::Libruntime::ErrorCode::ERR_SESSION_INTERRUPTED, 5002},
+        {YR::Libruntime::ErrorCode::ERR_SESSION_NOT_WAITING, 5003},
     };
 
     if (auto it = fieldMap.find(errorCode); it == fieldMap.end()) {

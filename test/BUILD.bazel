@@ -119,6 +119,7 @@ cc_test(
   name = "libruntime_test",
   srcs = [
     "libruntime/invoke_adaptor_test.cpp",
+    "libruntime/agent_session_manager_test.cpp",
     "libruntime/libruntime_manager_test.cpp",
     "libruntime/libruntime_test.cpp",
     "libruntime/fm_client_test.cpp",

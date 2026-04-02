@@ -114,6 +114,9 @@ cdef extern from "src/libruntime/err_type.h" nogil:
         ERR_DATASYSTEM_FAILED "YR::Libruntime::ErrorCode::ERR_DATASYSTEM_FAILED"
         ERR_GENERATOR_FINISHED "YR::Libruntime::ErrorCode::ERR_GENERATOR_FINISHED"
         ERR_CLIENT_TERMINAL_KILLED "YR::Libruntime::ErrorCode::ERR_CLIENT_TERMINAL_KILLED"
+        ERR_SESSION_TIMEOUT "YR::Libruntime::ErrorCode::ERR_SESSION_TIMEOUT"
+        ERR_SESSION_INTERRUPTED "YR::Libruntime::ErrorCode::ERR_SESSION_INTERRUPTED"
+        ERR_SESSION_NOT_WAITING "YR::Libruntime::ErrorCode::ERR_SESSION_NOT_WAITING"
 
     cdef cppclass CErrorInfo "YR::Libruntime::ErrorInfo":
         CErrorInfo()
@@ -795,12 +798,15 @@ cdef extern from "src/libruntime/libruntime.h" nogil:
         CErrorInfo GroupSuspend(const string & groupName);
 
         CErrorInfo GroupResume(const string & groupName);
+        pair[CErrorInfo, shared_ptr[CBuffer]] SessionWait(const string &sessionId, int64_t timeout);
+        CErrorInfo SessionNotify(const string &sessionId, shared_ptr[CBuffer] data);
 
         # Session management: read/update session from libruntime's in-memory activeSessionMap
         # LoadCurrentSession: returns (sessionJson, errorInfo) — string first, then ErrorInfo
         # UpdateCurrentSession: writes sessionJson to libruntime's in-memory cache (not persisted yet)
         pair[string, CErrorInfo] LoadCurrentSession(const string & sessionId);
         CErrorInfo UpdateCurrentSession(const string & sessionId, const string & sessionJson);
+        bool IsSessionInterrupted(const string & sessionId);
 
 
 cdef extern from "src/libruntime/libruntime_manager.h" nogil:

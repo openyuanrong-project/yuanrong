@@ -15,6 +15,7 @@
  */
 #include <chrono>
 #include <future>
+#include <thread>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -1432,6 +1433,50 @@ TEST_F(InvokeAdaptorTest, EventHandlerTest)
 
     libConfig->enableEvent = false;
     ASSERT_NO_THROW(invokeAdaptor->EventHandler(req));
+}
+
+TEST_F(InvokeAdaptorTest, SessionWaitNotifyWithoutManagerTest)
+{
+    invokeAdaptor->agentSessionManager_ = nullptr;
+    auto [waitErr, waitBuf] = invokeAdaptor->SessionWait("sessionId", 100);
+    ASSERT_EQ(waitErr.Code(), ErrorCode::ERR_INNER_SYSTEM_ERROR);
+    ASSERT_EQ(waitBuf, nullptr);
+
+    auto notifyErr = invokeAdaptor->SessionNotify("sessionId", nullptr);
+    ASSERT_EQ(notifyErr.Code(), ErrorCode::ERR_INNER_SYSTEM_ERROR);
+}
+
+TEST_F(InvokeAdaptorTest, SessionWaitNotifyWithManagerTest)
+{
+    auto manager = std::make_shared<AgentSessionManager>(libConfig, invokeAdaptor->runtimeContext);
+    invokeAdaptor->agentSessionManager_ = manager;
+
+    const std::string sessionId = "session-1";
+    auto sessionCtx = std::make_shared<AgentSessionContext>();
+
+    std::promise<ErrorCode> waitResult;
+    auto waitFuture = waitResult.get_future();
+    // Same thread must hold sessionCtx->mutex when calling SessionWait, matching
+    // AcquireInvokeSession (lock -> BindActiveSessionContext) then Wait (unlock inside Wait).
+    // Locking on the main thread and calling SessionWait from another thread would deadlock:
+    // Wait() calls mutex.unlock() and must be the thread that locked.
+    std::thread waiter([&]() {
+        sessionCtx->mutex.lock();
+        manager->BindActiveSessionContext(sessionId, sessionCtx);
+        auto [err, buf] = invokeAdaptor->SessionWait(sessionId, 3000);
+        waitResult.set_value(err.Code());
+        manager->PersistAndReleaseInvokeSession(sessionId);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::string payload = "ok";
+    auto data = std::make_shared<StringNativeBuffer>(payload.size());
+    ASSERT_EQ(data->MemoryCopy(payload.data(), payload.size()).Code(), ErrorCode::ERR_OK);
+    auto notifyErr = invokeAdaptor->SessionNotify(sessionId, data);
+    ASSERT_EQ(notifyErr.Code(), ErrorCode::ERR_OK);
+
+    ASSERT_EQ(waitFuture.get(), ErrorCode::ERR_OK);
+    waiter.join();
 }
 
 TEST_F(InvokeAdaptorTest, CancelTest)

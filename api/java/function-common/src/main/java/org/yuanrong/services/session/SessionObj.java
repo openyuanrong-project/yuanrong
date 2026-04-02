@@ -16,6 +16,8 @@
 
 package org.yuanrong.services.session;
 
+import com.google.gson.JsonObject;
+
 import org.yuanrong.exception.YRException;
 
 import java.util.List;
@@ -62,11 +64,26 @@ public interface SessionObj {
     /**
      * Check whether the session has been interrupted.
      *
-     * <p>This method queries libruntime to determine if the current session
-     * has been interrupted (e.g., by a cancellation request).</p>
-     *
      * @return true if the session has been interrupted, false otherwise
-     * @throws YRException if the JNI call fails
+     * @throws YRException if the JNI call fails  throws YRException
      */
     boolean isInterrupted() throws YRException;
+
+    /**
+     * wait res after session notify
+     *
+     * @param timeoutMs, timeoutMs, in milliseconds
+     * @return JsonObject
+     * @throws YRException if the JNI fails throws YRException
+     */
+    JsonObject waitForNotify(long timeoutMs) throws YRException;
+
+    /**
+     * notify session obj
+     *
+     * @param data notify data
+     * @return void
+     * @throws YRException if JNI call fails throws YRException
+     */
+    void notify(JsonObject data) throws YRException;
 }

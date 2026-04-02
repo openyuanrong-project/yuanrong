@@ -211,6 +211,22 @@ public class ErrorCode {
      * ERR_CREATE_RETURN_BUFFER
      */
     public static final ErrorCode ERR_CREATE_RETURN_BUFFER = new ErrorCode(9001);
+
+    /**
+     * ERR_SESSION_TIMEOUT
+     */
+    public static final ErrorCode ERR_SESSION_TIMEOUT = new ErrorCode(5001);
+
+    /**
+     * ERR_SESSION_INTERRUPTED
+     */
+    public static final ErrorCode ERR_SESSION_INTERRUPTED = new ErrorCode(5002);
+
+    /**
+     * ERR_SESSION_NOT_WAITING
+     */
+    public static final ErrorCode ERR_SESSION_NOT_WAITING = new ErrorCode(5003);
+
     // ErrorCode provided for the jobExecutor interface:
 
     /**

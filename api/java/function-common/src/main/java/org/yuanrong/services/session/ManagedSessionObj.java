@@ -20,15 +20,17 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.yuanrong.errorcode.ErrorCode;
+import org.yuanrong.errorcode.ErrorInfo;
 import org.yuanrong.errorcode.ModuleCode;
 import org.yuanrong.exception.LibRuntimeException;
 import org.yuanrong.exception.YRException;
 import org.yuanrong.jni.LibRuntime;
 
-import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +50,7 @@ public class ManagedSessionObj implements SessionObj {
 
     private final String id;
     private List<String> histories;
+    private boolean interrupted;
 
     /**
      * Constructed by JNI / {@link SessionServiceImpl}.
@@ -87,6 +90,66 @@ public class ManagedSessionObj implements SessionObj {
         }
     }
 
+    /**
+     * notify session obj
+     *
+     * @param data notify data
+     * @throws YRException if the native update call fails
+     */
+    @Override
+    public void notify(JsonObject data) throws YRException {
+        if (data == null) {
+            throw new YRException(ErrorCode.ERR_PARAM_INVALID, ModuleCode.RUNTIME, "Notify data can't be null");
+        }
+        try {
+            String jsonStr = data.toString();
+            byte[] dataBytes = jsonStr.getBytes(StandardCharsets.UTF_8);
+            ErrorInfo err = LibRuntime.sessionNotify(id, dataBytes);
+            if (!ErrorCode.ERR_OK.equals(err.getErrorCode())) {
+                throw new YRException(err);
+            }
+        } catch (LibRuntimeException e) {
+            throw new YRException(e.getErrorCode(), e.getModuleCode(), e.getMessage());
+        } catch (Exception e) {
+            throw new YRException(ErrorCode.ERR_INNER_SYSTEM_ERROR, ModuleCode.RUNTIME,
+                    "Notify failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * wait res after session notify
+     *
+     * @param timeoutMs timeout, in milliseconds
+     * @return JsonObject
+     * @throws YRException if the native update call fails
+     */
+    @Override
+    public JsonObject waitForNotify(long timeoutMs) throws YRException {
+        if (Thread.currentThread().isInterrupted()) {
+            this.interrupted = true;
+            throw new YRException(ErrorCode.ERR_PARAM_INVALID, ModuleCode.RUNTIME,
+                    "Session wait interrupted: thread interrupted");
+        }
+        try {
+            byte[] resultBytes = LibRuntime.sessionWait(id, timeoutMs);
+            if (resultBytes == null) {
+                return null;
+            }
+            String jsonStr = new String(resultBytes, StandardCharsets.UTF_8);
+            return JsonParser.parseString(jsonStr).getAsJsonObject();
+        } catch (LibRuntimeException e) {
+            throw new YRException(e.getErrorCode(), e.getModuleCode(), e.getMessage());
+        } catch (Exception e) {
+            throw new YRException(ErrorCode.ERR_INNER_SYSTEM_ERROR, ModuleCode.RUNTIME,
+                    "wait for notify failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Serialize to the canonical JSON format stored in DataSystem.
+     * @param void
+     * @return String
+     */
     private String serialize() {
         SessionJsonDto dto = new SessionJsonDto(id, histories);
         return GSON.toJson(dto);

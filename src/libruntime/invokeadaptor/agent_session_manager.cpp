@@ -16,9 +16,11 @@
 
 #include "agent_session_manager.h"
 
+#include <array>
+#include <chrono>
+#include <json.hpp>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
-#include <array>
 #include <json.hpp>
 
 #include "src/dto/buffer.h"
@@ -296,6 +298,103 @@ std::string AgentSessionManager::BuildDefaultSession(const std::string &sessionI
     sessionJson["sessionID"] = sessionId;
     sessionJson["histories"] = json::array();
     return sessionJson.dump();
+}
+
+std::shared_ptr<WaitNotifyContext> AgentSessionManager::GetOrCreateWaitNotifyContext(const std::string &sessionId)
+{
+    std::lock_guard<std::mutex> lock(waitNotifyMtx_);
+    auto iter = waitNotifyMap_.find(sessionId);
+    if (iter != waitNotifyMap_.end()) {
+        return iter->second;
+    }
+    auto ctx = std::make_shared<WaitNotifyContext>();
+    waitNotifyMap_[sessionId] = ctx;
+    return ctx;
+}
+
+std::pair<ErrorInfo, std::shared_ptr<Buffer>> AgentSessionManager::Wait(const std::string &sessionId, int64_t timeoutMs)
+{
+    if (sessionId.empty()) {
+        YRLOG_WARN("current session id is empty, return directly");
+        return {ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "session id is empty"), nullptr};
+    }
+    auto sessionCtx = UnbindActiveSessionContext(sessionId);
+    if (sessionCtx == nullptr) {
+        YRLOG_WARN("session ctx of session id: {} is empty, return derectly", sessionId);
+        return {ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "no active session for wait"), nullptr};
+    }
+    sessionCtx->mutex.unlock();
+    auto waitNotifyCtx = GetOrCreateWaitNotifyContext(sessionId);
+    std::unique_lock<std::mutex> lock(waitNotifyCtx->mutex);
+    auto restoreActiveSession = [&]() {
+        std::lock_guard<std::mutex> sessionLock(sessionCtx->mutex);
+        BindActiveSessionContext(sessionId, sessionCtx);
+    };
+    if (waitNotifyCtx->state == WaitState::INTERRUPTED) {
+        restoreActiveSession();
+        return {ErrorInfo(ERR_SESSION_INTERRUPTED, ModuleCode::RUNTIME, "session has been interrupted"), nullptr};
+    }
+    if (waitNotifyCtx->state == WaitState::WAITING) {
+        restoreActiveSession();
+        return {ErrorInfo(ERR_SESSION_NOT_WAITING, ModuleCode::RUNTIME, "session is already waiting"), nullptr};
+    }
+    waitNotifyCtx->state = WaitState::WAITING;
+    waitNotifyCtx->notifyData = nullptr;
+    YRLOG_DEBUG("current notify ctx state of session id: {} is WAITING, timeoutMs is {}", sessionId, timeoutMs);
+    if (timeoutMs < 0) {
+        waitNotifyCtx->cv.wait(lock, [waitNotifyCtx]() {
+            return waitNotifyCtx->state == WaitState::NOTIFIED || waitNotifyCtx->state == WaitState::INTERRUPTED;
+        });
+    } else {
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
+        bool notified = waitNotifyCtx->cv.wait_until(lock, deadline, [waitNotifyCtx]() {
+            return waitNotifyCtx->state == WaitState::NOTIFIED || waitNotifyCtx->state == WaitState::INTERRUPTED;
+        });
+        if (!notified) {
+            waitNotifyCtx->state = WaitState::TIMEOUT;
+        }
+    }
+    auto result = waitNotifyCtx->notifyData;
+    auto finalState = waitNotifyCtx->state;
+    waitNotifyCtx->state = WaitState::IDLE;
+    waitNotifyCtx->notifyData = nullptr;
+    lock.unlock();
+    restoreActiveSession();
+    if (finalState == WaitState::INTERRUPTED) {
+        return {ErrorInfo(ERR_SESSION_INTERRUPTED, ModuleCode::RUNTIME, "session wait was interrupted"), nullptr};
+    }
+    if (finalState == WaitState::TIMEOUT) {
+        return {ErrorInfo(ERR_SESSION_TIMEOUT, ModuleCode::RUNTIME, "session wait timeout"), nullptr};
+    }
+    return {ErrorInfo(), result};
+}
+
+ErrorInfo AgentSessionManager::Notify(const std::string &sessionId, std::shared_ptr<Buffer> data)
+{
+    if (sessionId.empty()) {
+        YRLOG_WARN("session id is empty, no need notify, return directly");
+        return ErrorInfo(ERR_PARAM_INVALID, ModuleCode::RUNTIME, "session id is empty");
+    }
+
+    {
+        std::lock_guard<std::mutex> mapLock(waitNotifyMtx_);
+        auto iter = waitNotifyMap_.find(sessionId);
+        if (iter == waitNotifyMap_.end()) {
+            YRLOG_DEBUG("No waiting thread for session {}, notify request discarded", sessionId);
+            return ErrorInfo();
+        }
+        std::shared_ptr<WaitNotifyContext> waitNotifyCtx = iter->second;
+        std::lock_guard<std::mutex> ctxLock(waitNotifyCtx->mutex);
+        if (waitNotifyCtx->state != WaitState::WAITING) {
+            YRLOG_DEBUG("Session {} is not in waiting state, current state: {}", sessionId,
+                        static_cast<int>(waitNotifyCtx->state));
+            return ErrorInfo();
+        }
+        waitNotifyCtx->notifyData = std::move(data);
+        waitNotifyCtx->state = WaitState::NOTIFIED;
+        waitNotifyCtx->cv.notify_one();
+    }
+    return ErrorInfo();
 }
 
 }  // namespace Libruntime

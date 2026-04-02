@@ -523,4 +523,24 @@ public class LibRuntime {
      * @throws LibRuntimeException if the native call fails
      */
     public static native boolean isSessionInterrupted(String sessionId) throws LibRuntimeException;
+
+    /**
+     * Block until another invocation notifies this session, or timeout.
+     *
+     * @param sessionId session identifier
+     * @param timeoutMs timeout in milliseconds; -1 means wait indefinitely
+     * @return payload bytes from notify, or null on timeout
+     * @throws LibRuntimeException if the native call fails throws LibRuntimeException
+     */
+    public static native byte[] sessionWait(String sessionId, long timeoutMs) throws LibRuntimeException;
+
+    /**
+     * Wake a thread blocked in {@link #SessionWait} for the same session.
+     *
+     * @param sessionId session identifier
+     * @param data utf-8 json payload
+     * @return error info (ok when notify was applied or intentionally discarded)
+     * @throws LibRuntimeException if the native call fails throws LibRuntimeException
+     */
+    public static native ErrorInfo sessionNotify(String sessionId, byte[] data) throws LibRuntimeException;
 }

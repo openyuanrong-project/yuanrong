@@ -2057,6 +2057,22 @@ bool Libruntime::IsSessionInterrupted(const std::string &sessionId)
     return invokeAdaptor->IsSessionInterrupted(sessionId);
 }
 
+std::pair<ErrorInfo, std::shared_ptr<Buffer>> Libruntime::SessionWait(const std::string &sessionId, int64_t timeoutMs)
+{
+    if (invokeAdaptor == nullptr) {
+        return {ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "invoke adaptor is nullptr"), nullptr};
+    }
+    return invokeAdaptor->SessionWait(sessionId, timeoutMs);
+}
+
+ErrorInfo Libruntime::SessionNotify(const std::string &sessionId, std::shared_ptr<Buffer> data)
+{
+    if (invokeAdaptor == nullptr) {
+        return ErrorInfo(ERR_INNER_SYSTEM_ERROR, ModuleCode::RUNTIME, "invoke adaptor is nullptr");
+    }
+    return invokeAdaptor->SessionNotify(sessionId, data);
+}
+
 std::pair<std::string, std::string> Libruntime::GetRequestAndInstanceID()
 {
     if (threadLocalRequestId.empty() || threadLocalInstanceId.empty()) {

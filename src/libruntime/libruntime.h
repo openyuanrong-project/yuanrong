@@ -1108,6 +1108,10 @@ public:
 
     virtual bool IsSessionInterrupted(const std::string &sessionId);
 
+    virtual std::pair<ErrorInfo, std::shared_ptr<Buffer>> SessionWait(const std::string &sessionId, int64_t timeoutMs);
+
+    virtual ErrorInfo SessionNotify(const std::string &sessionId, std::shared_ptr<Buffer> data);
+
     virtual std::pair<std::string, std::string> GetRequestAndInstanceID();
 
     std::pair<ErrorInfo, std::string> GetNodeId(void);
