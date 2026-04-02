@@ -44,6 +44,9 @@ class SetupType(Enum):
     OPENYUANRONG_SDK = 2
     OPENYUANRONG_CPP_SDK = 3
     OPENYUANRONG_ALL = 4
+    OPENYUANRONG_RUNTIME = 5
+    OPENYUANRONG_DASHBOARD = 6
+    OPENYUANRONG_FAAS = 7
 
 
 class SetupSpec:
@@ -61,6 +64,10 @@ class SetupSpec:
     def get_packages(self):
         if self.setup_type == SetupType.OPENYUANRONG:
             return setuptools.find_packages(include=("yr.inner", "yr.inner.*"))
+        elif self.setup_type == SetupType.OPENYUANRONG_RUNTIME:
+            return setuptools.find_packages(
+                include=("yr.runtime", "yr.runtime.*", "yr.faas", "yr.faas.*")
+            )
         elif self.setup_type == SetupType.OPENYUANRONG_SDK:
             return setuptools.find_packages(
                 exclude=("yr.tests", "yr.tests.*", "yr.inner", "yr.inner.*")
@@ -91,6 +98,27 @@ if os.getenv("SETUP_TYPE") == "sdk":
             "yrcli=yr.cli.scripts:main",
         ]
     }
+elif os.getenv("SETUP_TYPE") == "dashboard":
+    base_name = os.getenv("YR_PACKAGE_NAME", "openyuanrong")
+    setup_spec = SetupSpec(
+        SetupType.OPENYUANRONG_DASHBOARD,
+        f"{base_name}_dashboard",
+        "openyuanrong dashboard",
+    )
+elif os.getenv("SETUP_TYPE") == "faas":
+    base_name = os.getenv("YR_PACKAGE_NAME", "openyuanrong")
+    setup_spec = SetupSpec(
+        SetupType.OPENYUANRONG_FAAS,
+        f"{base_name}_faas",
+        "openyuanrong faas",
+    )
+elif os.getenv("SETUP_TYPE") == "runtime":
+    base_name = os.getenv("YR_PACKAGE_NAME", "openyuanrong")
+    setup_spec = SetupSpec(
+        SetupType.OPENYUANRONG_RUNTIME,
+        f"{base_name}_runtime",
+        "openyuanrong runtime",
+    )
 elif os.getenv("SETUP_TYPE") == "sdk_cpp":
     base_name = os.getenv("YR_PACKAGE_NAME", "openyuanrong")
     setup_spec = SetupSpec(
@@ -208,6 +236,56 @@ def copy_openyuanrong_cpp_sdk(build_lib):
             f.write(new_content)
 
 
+def copy_openyuanrong_runtime(build_lib):
+    """copy openyuanrong runtime"""
+    runtime_files_to_include = []
+    root_dir = os.path.join(ROOT_DIR, "../../output/openyuanrong")
+    runtime_dir = os.path.join(root_dir, "runtime")
+    for root, _, fs in os.walk(runtime_dir):
+        if contains_keyword(
+            root, ["runtime/sdk", "runtime/service/python", "runtime/service/cpp"]
+        ):
+            continue
+        for i in fs:
+            runtime_files_to_include.append(os.path.join(root, i))
+    for filename in runtime_files_to_include:
+        copy_file(os.path.join(build_lib, "yr/runtime"), filename, runtime_dir)
+
+
+def copy_openyuanrong_faas(build_lib):
+    """copy openyuanrong faas"""
+    file_to_exclude = [
+        "faasfrontend",
+        "faasfrontend.zip",
+        "faasscheduler",
+        "faasscheduler.zip",
+    ]
+    faas_files_to_include = []
+    root_dir = os.path.join(ROOT_DIR, "../../output/openyuanrong")
+    faas_dir = os.path.join(root_dir, "pattern/pattern_faas")
+    for root, _, fs in os.walk(faas_dir):
+        if contains_keyword(root, ["faasmanager"]):
+            continue
+        for i in fs:
+            if compare_keyword(i, file_to_exclude):
+                continue
+            faas_files_to_include.append(os.path.join(root, i))
+    for filename in faas_files_to_include:
+        copy_file(os.path.join(build_lib, "yr/faas"), filename, faas_dir)
+
+
+def copy_openyuanrong_dashboard(build_lib):
+    """copy openyuanrong dashboard"""
+    root_dir = os.path.join(ROOT_DIR, "../../output/openyuanrong")
+    dashboard_files_to_include = []
+    dashboard_dir = os.path.join(root_dir, "dashboard")
+    for root, _, fs in os.walk(dashboard_dir):
+        for i in fs:
+            dashboard_files_to_include.append(os.path.join(root, i))
+    for filename in dashboard_files_to_include:
+        copy_file(os.path.join(build_lib, "yr/dashboard"), filename, dashboard_dir)
+
+
 def run_ext(build_lib):
     """run ext"""
     if setup_spec.setup_type == SetupType.OPENYUANRONG:
@@ -216,6 +294,12 @@ def run_ext(build_lib):
         copy_openyuanrong_cpp_sdk(build_lib)
     elif setup_spec.setup_type == SetupType.OPENYUANRONG_ALL:
         copy_openyuanrong(build_lib)
+    elif setup_spec.setup_type == SetupType.OPENYUANRONG_RUNTIME:
+        copy_openyuanrong_runtime(build_lib)
+    elif setup_spec.setup_type == SetupType.OPENYUANRONG_DASHBOARD:
+        copy_openyuanrong_dashboard(build_lib)
+    elif setup_spec.setup_type == SetupType.OPENYUANRONG_FAAS:
+        copy_openyuanrong_faas(build_lib)
 
 
 class BuildExtImpl(build_ext):
@@ -243,10 +327,8 @@ class BinaryDistribution(setuptools.Distribution):
 
 warnings.filterwarnings("ignore", category=setuptools.SetuptoolsDeprecationWarning)
 
-# 添加一个虚拟扩展模块来触发 build_ext
 ext_modules = []
-if setup_spec.setup_type in [SetupType.OPENYUANRONG, SetupType.OPENYUANRONG_CPP_SDK, SetupType.OPENYUANRONG_ALL]:
-    # 虚拟扩展模块，不实际编译，仅用于触发 build_ext
+if setup_spec.setup_type in [SetupType.OPENYUANRONG, SetupType.OPENYUANRONG_CPP_SDK, SetupType.OPENYUANRONG_ALL, SetupType.OPENYUANRONG_RUNTIME, SetupType.OPENYUANRONG_DASHBOARD, SetupType.OPENYUANRONG_FAAS]:
     ext_modules = [Extension("yr._dummy", sources=[])]
 
 setuptools.setup(
