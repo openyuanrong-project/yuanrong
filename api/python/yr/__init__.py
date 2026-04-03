@@ -77,6 +77,9 @@ from yr.apis import (  # noqa: E402
     cpp_function, java_function, go_function, cpp_instance_class, java_instance_class,
     go_instance_class, resources, create_resource_group, remove_resource_group, get_node_ip_address,
     list_named_instances, kill_instance,
+    StatelessFunction,
+    StatefulInstance,
+    StatefulInstanceCreator,
 )
 
 from yr.fcc import (  # noqa: E402
@@ -121,6 +124,7 @@ __all__ = [
     "AlarmSeverity", "AlarmInfo", "UInt64Counter", "DoubleCounter",
     "FunctionGroupOptions", "SchedulingAffinityType", "FunctionGroupContext", "ServerInfo", "DeviceInfo",
     "get_function_group_context", "create_resource_group", "remove_resource_group", "ResourceGroup",
+    "StatelessFunction", "StatefulInstance", "StatefulInstanceCreator",
     "FunctionProxy", "InstanceCreator", "InstanceProxy", "MethodProxy", "FunctionGroupHandler",
     "FunctionGroupMethodProxy", "get_node_ip_address", "list_named_instances", "Group", "GroupOptions",
     "DebugServer", "set_trace", "sandbox", "kill_instance",
