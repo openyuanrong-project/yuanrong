@@ -37,8 +37,8 @@ func TestGetInsSpecFromEtcdValue(t *testing.T) {
 	etcdValue := []byte("{\"instanceID\":\"51f71580-3a07-4000-8000-004b56e7f471\",\"requestID\":\"7fb31" +
 		"b50-7c5a-11ed-a991-fa163e3523c8\",\"runtimeID\":\"runtime-e06fe343-0000-4000-8000-00bbad15e23" +
 		"8\",\"runtimeAddress\":\"127.0.0.1:33333\",\"functionAgentID\":\"function_agent_127.0.0" +
-		".1-33333\",\"functionProxyID\":\"dggphis35893-8490\",\"function\":\"12345678901234561234567" +
-		"890123456/0-system-hello/$latest\",\"resources\":{\"resources\":{\"Memory\":{\"name\":\"Memor" +
+		".1-33333\",\"functionProxyID\":\"dggphis35893-8490\",\"function\":" +
+		"\"default/0-system-hello/$latest\",\"resources\":{\"resources\":{\"Memory\":{\"name\":\"Memor" +
 		"y\",\"scalar\":{\"value\":500}},\"CPU\":{\"name\":\"CPU\",\"scalar\":{\"value\":500}}}},\"sched" +
 		"uleOption\":{\"affinity\":{\"instanceAffinity\":{}}},\"instanceStatus\":{\"code\":3,\"msg\":\"i" +
 		"nstance is running\"}}")

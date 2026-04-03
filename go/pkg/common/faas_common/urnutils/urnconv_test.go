@@ -33,10 +33,10 @@ func TestCrNameByKey(t *testing.T) {
 			"yyrk1721-0-default-testurpccustomoom002-latest-1257561201"},
 		{"case2 long funcName", args{funcKey: "/sn/functions/business/yrk/tenant/default/" +
 			"function/0-actordemo-test-actor-support-version-publish-delete-version/version/$latest"},
-			"yyrk1234-port-version-publish-delete-versio-$latest-4279038269"},
+			"yyrkdefa-port-version-publish-delete-versio-$latest-3843651668"},
 		{"case3 long version", args{funcKey: "/sn/functions/business/yrk/tenant/default/function" +
 			"/0-actordemo-test-actor-support-version-publish-delete-version/version/123456789123456789123456789123456789123456789123456789123456"},
-			"yyrk1234-lete-versio-123456789123456789123456789123-3816641367"},
+			"yyrkdefa-elete-versio-123456789123456789123456789123-503881880"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

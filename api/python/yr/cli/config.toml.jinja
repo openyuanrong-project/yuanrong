@@ -589,7 +589,6 @@ LD_LIBRARY_PATH = "{{ values.yr_package_path }}/datasystem/lib:{{ values.yr_pack
 
 [collector.args]
 collect_id = "{{ values.node_id }}"
-datasystem_port = "{{ values.ds_worker.port }}"
 etcd_config_servers = "{{ etcd_cluster }}"
 ip = "{{ values.host_ip }}"
 log_root = "{{ values.deploy_path }}/logs"

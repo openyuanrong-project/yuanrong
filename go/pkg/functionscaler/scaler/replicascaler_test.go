@@ -24,6 +24,7 @@ import (
 	"github.com/smartystreets/goconvey/convey"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/instanceconfig"
+	"yuanrong.org/kernel/pkg/common/faas_common/logger/log"
 	commonTypes "yuanrong.org/kernel/pkg/common/faas_common/types"
 )
 

@@ -90,6 +90,14 @@ func TestNewFaaSManager(t *testing.T) {
 	defer gomonkey.ApplyFunc(registry.StartWatchEvent, func(vpcEventCh chan types.VPCEvent, stopCh chan struct{}, informer informers.GenericInformer) {
 		return
 	}).Reset()
+	listKinds := map[schema.GroupVersionResource]string{
+		// Example: MyResource GVK to MyResourceList GVK
+		patGVR: "PatList",
+	}
+	fakeClient := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), listKinds)
+	defer gomonkey.ApplyFunc(k8sclient.GetDynamicClient, func() dynamic.Interface {
+		return fakeClient
+	}).Reset()
 	type args struct {
 		sdkClient api.LibruntimeAPI
 		stopCh    chan struct{}

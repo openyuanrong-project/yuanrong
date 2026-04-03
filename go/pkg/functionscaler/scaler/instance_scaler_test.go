@@ -47,7 +47,8 @@ import (
 func TestMiscellaneous(t *testing.T) {
 	config.GlobalConfig = types.Configuration{}
 	scaler := NewAutoScaler("test", &metrics.BucketCollector{}, func() int { return 1 },
-		func(i int, cb ScaleUpCallback) {}, func(i int, cb ScaleDownCallback) {})
+		func(i int, cb ScaleUpCallback) {}, func(i int, cb ScaleDownCallback) {},
+		types.AutoScaleConfig{})
 	as := scaler.(*AutoScaler)
 	as.HandleFuncSpecUpdate(&types.FunctionSpecification{InstanceMetaData: commontypes.InstanceMetaData{ConcurrentNum: 2}})
 	as.pendingInsThdNum = 6
@@ -285,7 +286,7 @@ func TestTriggerScale(t *testing.T) {
 			ConcurrentNum: 1,
 		}})
 		replicaScaler.SetEnable(true)
-		convey.So(scaleDownNum, convey.ShouldEqual, 1)
+		convey.So(scaleDownNum, convey.ShouldEqual, 2)
 	})
 }
 

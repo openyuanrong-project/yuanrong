@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agiledragon/gomonkey/v2"
+	"github.com/agiledragon/gomonkey"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
@@ -29,6 +29,7 @@ import (
 
 	"yuanrong.org/kernel/pkg/common/faas_common/resspeckey"
 	"yuanrong.org/kernel/pkg/common/faas_common/types"
+	"yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/serviceaccount"
 	wisecloudTypes "yuanrong.org/kernel/pkg/common/faas_common/wisecloudtool/types"
 	"yuanrong.org/kernel/pkg/functionscaler/config"
 	types2 "yuanrong.org/kernel/pkg/functionscaler/types"
@@ -148,6 +149,10 @@ func TestNewWiseCloudScalerSetInsFetal(t *testing.T) {
 				TlsCipherSuites:         nil,
 			},
 		}
+		defer gomonkey.ApplyFunc(serviceaccount.GenerateJwtSignedHeaders, func(req *fasthttp.Request, body []byte,
+			wiseCloudCtx wisecloudTypes.NuwaRuntimeInfo, serviceAccountJwt *wisecloudTypes.ServiceAccountJwt) error {
+			return nil
+		}).Reset()
 		defer gomonkey.ApplyFunc((*fasthttp.Client).Do, func(_ *fasthttp.Client, req *fasthttp.Request, resp *fasthttp.Response) error {
 			return nil
 		}).Reset()

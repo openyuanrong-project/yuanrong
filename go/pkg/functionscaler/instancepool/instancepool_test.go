@@ -414,7 +414,7 @@ func TestAcquireInstance(t *testing.T) {
 					callCount++
 					if callCount == 1 {
 						return nil, snerror.New(statuscode.NoInstanceAvailableErrCode,
-							statuscode.NoInstanceAvailableErrMsg)
+							"no instance available")
 					}
 					return &types.InstanceAllocation{
 						AllocationID: "alloc-scale",

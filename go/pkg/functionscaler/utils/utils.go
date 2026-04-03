@@ -221,7 +221,7 @@ func IsUnrecoverableError(err error) bool {
 			return true
 		}
 		if snErr.Code() == statuscode.UserFuncEntryNotFoundErrCode || snErr.Code() == statuscode.KernelEtcdWriteFailedCode ||
-			snErr.Code() == statuscode.WiseCloudNuwaColdStartErrCode {
+			snErr.Code() == statuscode.WiseCloudNuwaColdStartErrCode || snErr.Code() == statuscode.StsConfigErrCode {
 			return true
 		}
 	}

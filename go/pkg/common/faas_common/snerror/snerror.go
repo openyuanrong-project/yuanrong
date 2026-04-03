@@ -81,7 +81,7 @@ func (s *snError) Error() string {
 // IsUserError true if a user error occurs
 func IsUserError(s SNError) bool {
 	// The user error is a four-digit integer.
-	if UserErrorMin >= s.Code() && s.Code() <= UserUnRecoveredErrorMax {
+	if UserErrorMin <= s.Code() && s.Code() <= UserUnRecoveredErrorMax {
 		return true
 	}
 	return false

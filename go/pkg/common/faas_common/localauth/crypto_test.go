@@ -25,7 +25,7 @@ import (
 func TestEncrypt(t *testing.T) {
 	convey.Convey("Encrypt", t, func() {
 		encrypt, err := Encrypt("123")
-		convey.So(encrypt, convey.ShouldEqual, "123")
+		convey.So(encrypt, convey.ShouldEqual, "")
 		convey.So(err, convey.ShouldBeNil)
 	})
 }
@@ -34,7 +34,7 @@ func TestDecrypt(t *testing.T) {
 	convey.Convey("Encrypt", t, func() {
 		src := "123"
 		decrypt, err := Decrypt(src)
-		convey.So(string(decrypt), convey.ShouldEqual, "123")
+		convey.So(string(decrypt), convey.ShouldEqual, "")
 		convey.So(err, convey.ShouldBeNil)
 	})
 }

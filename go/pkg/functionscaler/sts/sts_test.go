@@ -43,6 +43,7 @@ func Test_getStsServerConfig(t *testing.T) {
 			convey.So(serverConfig.Domain, convey.ShouldEqual, "12345")
 			convey.So(serverConfig.Path, convey.ShouldEqual, "/opt/certs/a/b/b.ini")
 			config.GlobalConfig.RawStsConfig.StsDomainForRuntime = "67890"
+			serverConfig = GetStsServerConfig(funcSpec)
 			convey.So(serverConfig.Domain, convey.ShouldEqual, "67890")
 			convey.So(serverConfig.Path, convey.ShouldEqual, "/opt/certs/a/b/b.ini")
 		})

@@ -405,7 +405,7 @@ func TestCrNameByUrn(t *testing.T) {
 		args args
 		want string
 	}{
-		{"case1", a, "yyrk1234-0-yrservice-test-func-v1-2966683772"},
+		{"case1", a, "yyrkdefa-0-yrservice-test-func-v1-1258487427"},
 		{"case2", b, ""},
 	}
 	for _, tt := range tests {

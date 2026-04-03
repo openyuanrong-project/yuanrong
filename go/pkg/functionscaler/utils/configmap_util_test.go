@@ -17,7 +17,6 @@
 package utils
 
 import (
-	"encoding/base64"
 	"testing"
 
 	"github.com/smartystreets/goconvey/convey"

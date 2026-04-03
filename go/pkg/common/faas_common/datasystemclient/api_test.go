@@ -986,7 +986,19 @@ func (f *invokerLibruntimeMock) GDecreaseRef(objectIDs []string, remoteClientID 
 	return []string{}, nil
 }
 
+func (c *invokerLibruntimeMock) ReleaseGRefs(remoteClientID string) error {
+	return nil
+}
+
 func (f *invokerLibruntimeMock) GetAsync(objectID string, cb api.GetAsyncCallback) {
+	return
+}
+
+func (f *invokerLibruntimeMock) GetEvent(objectID string, cb api.GetEventCallback) {
+	return
+}
+
+func (f *invokerLibruntimeMock) DeleteGetEventCallback(objectID string) {
 	return
 }
 

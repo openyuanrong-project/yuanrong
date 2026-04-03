@@ -17,9 +17,6 @@ set -e
 
 CUR_DIR=$(dirname "$(readlink -f "$0")")
 PROJECT_DIR=$(cd "${CUR_DIR}/.."; pwd)
-ROOT_PATH=${PROJECT_DIR}
-PROJECT_OUTPUT_DIR="${PROJECT_DIR}/output"
-POSIX_DIR="${PROJECT_DIR}/proto/posix"
 CLIENT_DIR="${PROJECT_DIR}/pkg/dashboard/client"
 
 # go module prepare
@@ -42,10 +39,7 @@ export GOCOVER_MODE="set"
 
 # protoc
 echo "generating fs proto pb objects"
-mkdir -p "${PROJECT_OUTPUT_DIR}"
-protoc --proto_path=${POSIX_DIR} --go_out=${PROJECT_OUTPUT_DIR} --go-grpc_out=${PROJECT_OUTPUT_DIR} ${POSIX_DIR}/*.proto
-cp -ar ${PROJECT_OUTPUT_DIR}/yuanrong.org/kernel/pkg/ ${PROJECT_DIR}
-rm -rf "${PROJECT_OUTPUT_DIR}/yuanrong.org"
+. "${PROJECT_DIR}/build/faas/compile_functions.sh"
 
 # dashboard test
 sh "${CUR_DIR}/dashboard/test.sh"
@@ -63,3 +57,11 @@ sh "${CUR_DIR}/collector/test.sh"
 
 # common test
 sh "${CUR_DIR}/common/test.sh"
+
+# faasmanager test
+sh "${CUR_DIR}/faasmanager/test.sh"
+
+# faasscheduler test
+sh "${CUR_DIR}/faasscheduler/test.sh"
+
+echo "faas llt compile complete!!"

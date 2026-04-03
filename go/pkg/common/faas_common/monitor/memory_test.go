@@ -17,6 +17,7 @@
 package monitor
 
 import (
+	"bufio"
 	"reflect"
 	"sync"
 	"testing"
@@ -33,8 +34,21 @@ func TestInitMemMonitor(t *testing.T) {
 	convey.Convey("TestInitMemMonitor", t, func() {
 		convey.Convey("success", func() {
 			patches := [...]*Patches{
+				ApplyFunc(readValue, func(path string) (uint64, error) {
+					return uint64(100), nil
+				}),
+				ApplyFunc(NewCGroupMemoryParser, func() (*Parser, error) {
+					return &Parser{
+						f:      nil,
+						reader: bufio.NewReader(nil),
+						parser: cgroupMemoryParserFunc,
+					}, nil
+				}),
 				ApplyMethod(reflect.TypeOf(new(Parser)), "Read", func(_ *Parser) (interface{}, error) {
 					return uint64(100), nil
+				}),
+				ApplyMethod(reflect.TypeOf(new(Parser)), "Close", func() error {
+					return nil
 				}),
 			}
 			defer func() {

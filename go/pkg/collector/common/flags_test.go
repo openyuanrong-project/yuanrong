@@ -34,7 +34,7 @@ func TestCommandLineArguments(t *testing.T) {
 		expectedUserLogPath    string
 	}{
 		{
-			args:                   []string{"--collect_id", "12345", "--ip", "192.168.1.1", "--port", "8080", "--manager_address", "10.10.10.10:5678", "--datasystem_port", "9090", "--log_root", "/var/log", "--user_log_path", "/tmp"},
+			args:                   []string{"--collect_id", "12345", "--ip", "192.168.1.1", "--port", "8080", "--manager_address", "10.10.10.10:5678", "--log_root", "/var/log", "--user_log_path", "/tmp"},
 			expectedID:             "12345",
 			expectedIP:             "192.168.1.1",
 			expectedPort:           "8080",
@@ -44,7 +44,7 @@ func TestCommandLineArguments(t *testing.T) {
 			expectedUserLogPath:    "/tmp",
 		},
 		{
-			args:                   []string{"--collect_id", "abcde12345", "--ip", "192.168.1.1", "--port", "8080", "--manager_address", "10.10.10.10:5678", "--datasystem_port", "9090", "--log_root", "/var/log"},
+			args:                   []string{"--collect_id", "abcde12345", "--ip", "192.168.1.1", "--port", "8080", "--manager_address", "10.10.10.10:5678", "--log_root", "/var/log"},
 			expectedID:             "abcde12345",
 			expectedIP:             "192.168.1.1",
 			expectedPort:           "8080",
@@ -68,7 +68,6 @@ func TestCommandLineArguments(t *testing.T) {
 		assert.Equal(t, tc.expectedIP, CollectorConfigs.IP, "IP mismatch")
 		assert.Equal(t, tc.expectedPort, CollectorConfigs.Port, "Port mismatch")
 		assert.Equal(t, tc.expectedManagerAddress, CollectorConfigs.ManagerAddress, "Manager Address mismatch")
-		assert.Equal(t, tc.expectedDatasystemPort, CollectorConfigs.DatasystemPort, "Datasystem Port mismatch")
 		assert.Equal(t, tc.expectedLogRoot, CollectorConfigs.LogRoot, "Log Root mismatch")
 		assert.Equal(t, tc.expectedUserLogPath, CollectorConfigs.UserLogPath, "User Log Path mismatch")
 	}
@@ -112,19 +111,15 @@ func TestInvalidCommandLineArguments(t *testing.T) {
 			errorMsg: "manager address 10.10.10.10:-3 has invalid port",
 		},
 		{
-			args:     []string{"--collect_id", "1", "--ip", "10.10.10.10", "--port", "8080", "--manager_address", "10.10.10.10:90", "--datasystem_port", "-2"},
-			errorMsg: "datasystem has invalid port -2",
-		},
-		{
-			args:     []string{"--collect_id", "1", "--ip", "10.10.10.10", "--port", "8080", "--manager_address", "10.10.10.10:90", "--datasystem_port", "91", "--log_root", "./here"},
+			args:     []string{"--collect_id", "1", "--ip", "10.10.10.10", "--port", "8080", "--manager_address", "10.10.10.10:90", "--log_root", "./here"},
 			errorMsg: "./here should be absolute path",
 		},
 		{
-			args:     []string{"--collect_id", "1", "--ip", "10.10.10.10", "--port", "8080", "--manager_address", "10.10.10.10:90", "--datasystem_port", "91", "--log_root", "/var/log", "--user_log_path", "./here"},
+			args:     []string{"--collect_id", "1", "--ip", "10.10.10.10", "--port", "8080", "--manager_address", "10.10.10.10:90", "--log_root", "/var/log", "--user_log_path", "./here"},
 			errorMsg: "./here should be absolute path",
 		},
 		{
-			args:     []string{"--collect_id", "1", "--ip", "10.10.10.10", "--port", "8080", "--manager_address", "10.10.10.10:90", "--datasystem_port", "91", "--log_root", "/var/log", "--user_log_path", "/here"},
+			args:     []string{"--collect_id", "1", "--ip", "10.10.10.10", "--port", "8080", "--manager_address", "10.10.10.10:90", "--log_root", "/var/log", "--user_log_path", "/here"},
 			errorMsg: "no such directory: /here",
 		},
 	}

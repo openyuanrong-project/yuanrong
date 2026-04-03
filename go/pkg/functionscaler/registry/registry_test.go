@@ -18,8 +18,10 @@
 package registry
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -1454,7 +1456,7 @@ func TestFaaSFrontendRegistry_RunWatcher(t *testing.T) {
 
 			deleteErrEv := &etcd3.Event{
 				Type:      etcd3.DELETE,
-				Key:       "/sn/frontend/instances/cluster001/127.0.0.1/frontend-768df8f66b-gvz4z",
+				Key:       "/sn/frontend/instances/cluster001/127.0.0.2/frontend-768df8f66b-gvz4z",
 				Value:     []byte(`active`),
 				PrevValue: nil,
 				Rev:       0,

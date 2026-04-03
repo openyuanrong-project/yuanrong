@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/agiledragon/gomonkey/v2"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/rest"
 
 	"yuanrong.org/kernel/pkg/common/faas_common/constant"
 	commonType "yuanrong.org/kernel/pkg/common/faas_common/types"
@@ -42,6 +44,9 @@ import (
 )
 
 func TestNewAgentRegistry_BasicInitialization(t *testing.T) {
+	defer gomonkey.ApplyFunc(rest.InClusterConfig, func() (*rest.Config, error) {
+		return &rest.Config{}, nil
+	}).Reset()
 	os.Setenv(constant.EnableAgentCRDRegistry, "true")
 	stopCh := make(chan struct{})
 	registry := NewAgentRegistry(stopCh)
