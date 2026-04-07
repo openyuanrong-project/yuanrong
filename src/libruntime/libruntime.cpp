@@ -1587,9 +1587,7 @@ ErrorInfo Libruntime::SetTraceId(const std::string &traceId)
 
 ErrorInfo Libruntime::SetTenantId(const std::string &tenantId, bool isReturnErrWhenTenantIDEmpty)
 {
-    if (!config->enableAuth && config->inCluster) {
-        return ErrorInfo();
-    }
+    // Always set tenant id to ensure DS client uses consistent tenant prefix
     if (isReturnErrWhenTenantIDEmpty && tenantId.empty()) {
         auto msg = "tenant id is empty, please set the correct tenant id or function urn in config.";
         YRLOG_ERROR("failed to set tenantId, err: {}", msg);

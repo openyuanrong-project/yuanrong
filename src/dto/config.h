@@ -162,7 +162,7 @@ public:
     CONFIG_DECLARE_CONDITION(int, MAX_ARGS_IN_MSG_BYTES, [this]() -> int {
         return RUNTIME_DIRECT_CONNECTION_ENABLE() ? 10 * 1024 * 1024 : 100 * 1024;
     });
-    CONFIG_DECLARE(std::string, YR_TENANT_ID, "");
+    CONFIG_DECLARE(std::string, YR_TENANT_ID, "default");
     CONFIG_DECLARE(int64_t, DS_DELAY_FLUSH_TIME, 0);
     CONFIG_DECLARE(size_t, MEM_STORE_SIZE_THRESHOLD, 100 * 1024);
     CONFIG_DECLARE(size_t, FASS_SCHEDULE_TIMEOUT, 120);  // 120 seconds
