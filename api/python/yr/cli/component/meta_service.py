@@ -51,6 +51,8 @@ class MetaServiceLauncher(ComponentLauncher):
         etcd_table_prefix = values["etcd"].get("table_prefix", "")
 
         ssl_enable = str(values["fs"]["tls"].get("enable", "false")).lower()
+        meta_service_ssl_enable = str(service_config.get("ssl_enable", "false")).lower()
+        client_auth_type = service_config.get("client_auth_type", "RequireAndVerifyClientCert")
         scc_enable = str(service_config.get("scc_enable", "false")).lower()
         ssl_base_path = values["fs"]["tls"].get("base_path", "")
         scc_base_path = service_args.get("scc_base_path", "")
@@ -58,22 +60,22 @@ class MetaServiceLauncher(ComponentLauncher):
 
         root_ca = (
             f"{ssl_base_path}/{values['fs']['tls'].get('ca_file', '')}"
-            if values["fs"]["tls"].get("ca_file") and ssl_enable == "true"
+            if values["fs"]["tls"].get("ca_file") and meta_service_ssl_enable == "true"
             else ""
         )
         module_cert = (
             f"{ssl_base_path}/{values['fs']['tls'].get('cert_file', '')}"
-            if values["fs"]["tls"].get("cert_file") and ssl_enable == "true"
+            if values["fs"]["tls"].get("cert_file") and meta_service_ssl_enable == "true"
             else ""
         )
         module_key = (
             f"{ssl_base_path}/{values['fs']['tls'].get('key_file', '')}"
-            if values["fs"]["tls"].get("key_file") and ssl_enable == "true"
+            if values["fs"]["tls"].get("key_file") and meta_service_ssl_enable == "true"
             else ""
         )
         pwd_file = (
             f"{ssl_base_path}/{values['fs']['tls'].get('pwd_file', '')}"
-            if values["fs"]["tls"].get("pwd_file") and ssl_enable == "true"
+            if values["fs"]["tls"].get("pwd_file") and meta_service_ssl_enable == "true"
             else ""
         )
         etcd_ca = (
@@ -109,17 +111,21 @@ class MetaServiceLauncher(ComponentLauncher):
             else ""
         )
 
+        # Replace literal string before dict-based substitutions so it applies unconditionally
+        text = text.replace("RequireAndVerifyClientCert", client_auth_type)
+
         replacements = {
             "{ip}": ip_address,
             "{port}": str(port),
             "{etcdAddr}": etcd_addrs,
             "{sslEnable}": ssl_enable,
+            "{metaserviceSslEnable}": meta_service_ssl_enable,
             "{azPrefix}": etcd_table_prefix,
             "{etcdAuthType}": etcd_auth_type,
             "{clusters}": service_config.get("clusters", ""),
             "{sccEnable}": scc_enable,
             "{sccBasePath}": scc_base_path,
-            # if ssl enable
+            # if meta_service ssl enable
             "{rootCAFile}": root_ca,
             "{moduleCertFile}": module_cert,
             "{moduleKeyFile}": module_key,
@@ -129,10 +135,7 @@ class MetaServiceLauncher(ComponentLauncher):
             "{etcdCertFile}": etcd_cert,
             "{etcdKeyFile}": etcd_key,
             "{passphraseFile}": pass_phrase,
-            "{sslDecryptTool}": service_config.get(
-                "ssl_decrypt_tool",
-                "SCC",
-            ),
+            "{sslDecryptTool}": service_config.get("ssl_decrypt_tool", "SCC") if scc_enable == "true" else "",
         }
 
         for placeholder, value in replacements.items():

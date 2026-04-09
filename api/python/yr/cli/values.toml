@@ -82,6 +82,7 @@ global_scheduler_port = "{{ 22770|check_port() }}"
 ip = "{{ values.host_ip }}"
 port = "{{ 22772|check_port() }}"
 grpc_listen_port = "{{ 22773|check_port() }}"
+exec_grpc_port = "{{ 22774|check_port() }}"
 
 [values.function_agent]
 ip = "{{ values.host_ip }}"
@@ -106,3 +107,16 @@ base_path = ""
 ca_file = ""
 cert_file = ""
 key_file = ""
+
+[values.frontend]
+ssl_enable = false
+client_auth_type = "RequireAndVerifyClientCert"
+enable_function_token_auth = false
+
+[values.meta_service]
+ssl_enable = false
+client_auth_type = "RequireAndVerifyClientCert"
+
+[values.iam_server]
+ip = "{{ values.host_ip }}"
+port = "{{ 31112|check_port() }}"

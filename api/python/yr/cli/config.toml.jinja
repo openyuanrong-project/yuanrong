@@ -348,6 +348,7 @@ etcd_table_prefix = ""
 etcd_target_name_override = ""
 address = "{{ values.function_proxy.ip }}:{{ values.function_proxy.port }}"
 grpc_listen_port = {{ values.function_proxy.grpc_listen_port }}
+session_grpc_port = {{ values.function_proxy.exec_grpc_port }}
 enable_driver = false
 enable_trace = false
 runtime_heartbeat_enable = true
@@ -514,6 +515,9 @@ bin_path = "{{ values.yr_package_path }}/runtime/service/go/bin/goruntime"
 src_init_config_path = "{{ values.yr_package_path }}/faas/init_frontend_args.json"
 ip = "{{ values.host_ip }}"
 port = "{{ 8888|check_port() }}"
+ssl_enable = {{ values.frontend.ssl_enable | lower }}
+client_auth_type = "{{ values.frontend.client_auth_type }}"
+enable_function_token_auth = {{ values.frontend.enable_function_token_auth | lower }}
 
 [frontend.env]
 LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib:{{ values.yr_package_path }}/runtime/service/go/bin"
@@ -609,8 +613,10 @@ bin_path = "{{ values.yr_package_path }}/functionsystem/bin/meta_service"
 src_config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/metaservice_config.json"
 src_log_config_path = "{{ values.yr_package_path }}/functionsystem/config/meta_service/metaservice_log.json"
 ip = "{{ values.host_ip }}"
-port = "{{ 31182|check_port() }}" 
+port = "{{ 31182|check_port() }}"
 clusters = ""
+ssl_enable = {{ values.meta_service.ssl_enable | lower }}
+client_auth_type = "{{ values.meta_service.client_auth_type }}"
 
 [meta_service.env]
 LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
