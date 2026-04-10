@@ -248,6 +248,11 @@ def copy_openyuanrong(ctx):
     # Get python runtime version from environment variable
     python_runtime_version = os.getenv("PYTHON_RUNTIME_VERSION", "python3.11")
 
+    # Get python tag (e.g., py311, py310)
+    import sys
+    ver = sys.version_info
+    python_tag = f"py{ver.major}{ver.minor}"
+
     # Copy third_party from source tree
     third_party_files_to_include = []
     third_party_source_dir = os.path.join(ROOT_DIR, "yr", "third_party")
@@ -279,7 +284,10 @@ def copy_openyuanrong(ctx):
         os.makedirs(os.path.dirname(cli_services_dst), exist_ok=True)
         with open(cli_services_src, 'r') as f:
             content = f.read()
+        # Replace runtime version
         new_content = re.sub(r'runtime: python3\.\d+', f'runtime: {python_runtime_version}', content)
+        # Replace function name 'py:' with python tag (e.g., 'py311:')
+        new_content = re.sub(r'^(\s*)py:', f'\\1{python_tag}:', new_content, flags=re.MULTILINE)
         with open(cli_services_dst, 'w') as f:
             f.write(new_content)
     # Replace version in yr/deploy/process/services.yaml (copied from output)
@@ -287,7 +295,10 @@ def copy_openyuanrong(ctx):
     if os.path.exists(deploy_services_dst):
         with open(deploy_services_dst, 'r') as f:
             content = f.read()
+        # Replace runtime version
         new_content = re.sub(r'runtime: python3\.\d+', f'runtime: {python_runtime_version}', content)
+        # Replace function name 'py:' with python tag (e.g., 'py311:')
+        new_content = re.sub(r'^(\s*)py:', f'\\1{python_tag}:', new_content, flags=re.MULTILINE)
         with open(deploy_services_dst, 'w') as f:
             f.write(new_content)
 
