@@ -628,3 +628,49 @@ timeout = 60
 [meta_service.args]
 config_path="{{ values.deploy_path }}/metaservice_config.json"
 log_config_path="{{ values.deploy_path }}/metaservice_log.json"
+
+[iam_server]
+bin_path = "{{ values.yr_package_path }}/functionsystem/bin/iam_server"
+
+[iam_server.env]
+LD_LIBRARY_PATH = "{{ values.yr_package_path }}/functionsystem/lib"
+
+[iam_server.health_check]
+enable = true
+timeout = 60
+
+[iam_server.args]
+ip = "{{ values.iam_server.ip }}"
+http_listen_port = "{{ values.iam_server.port }}"
+{% if values.meta_store.enable and values.meta_store.mode == "local" %}
+meta_store_address = "{{ values.function_master.ip }}:{{ values.function_master.global_scheduler_port }}"
+{% else %}
+meta_store_address = "{{ etcd_cluster }}"
+{% endif %}
+log_config = '''{{ fs_log_config | tojson }}'''
+node_id = "{{ values.node_id }}"
+enable_iam = true
+enable_trace = false
+token_expired_time_span = 86400
+iam_credential_type = "token"
+election_mode = "{{ 'etcd' if values.etcd.enable_multi_master else 'standalone' }}"
+ssl_enable = "{{ 'true' if values.fs.tls.enable else 'false' }}"
+ssl_base_path = "{{ values.fs.tls.base_path }}"
+ssl_root_file = "{{ values.fs.tls.ca_file }}"
+ssl_cert_file = "{{ values.fs.tls.cert_file }}"
+ssl_key_file = "{{ values.fs.tls.key_file }}"
+auth_provider = "{{ values.auth.provider }}"
+keycloak_enabled = "{{ 'true' if values.auth.keycloak.enabled else 'false' }}"
+keycloak_url = "{{ values.auth.keycloak.internal_url or values.auth.keycloak.url }}"
+keycloak_issuer_url = "{{ values.auth.keycloak.issuer_url or values.auth.keycloak.url }}"
+keycloak_realm = "{{ values.auth.keycloak.realm }}"
+casdoor_enabled = "{{ 'true' if values.auth.casdoor.enabled else 'false' }}"
+casdoor_endpoint = "{{ values.auth.casdoor.endpoint }}"
+casdoor_public_endpoint = "{{ values.auth.casdoor.public_endpoint or values.auth.casdoor.endpoint }}"
+casdoor_client_id = "{{ values.auth.casdoor.client_id }}"
+casdoor_client_secret = "{{ values.auth.casdoor.client_secret }}"
+casdoor_organization = "{{ values.auth.casdoor.organization }}"
+casdoor_application = "{{ values.auth.casdoor.application }}"
+casdoor_admin_user = "{{ values.auth.casdoor.admin_user }}"
+casdoor_admin_password = "{{ values.auth.casdoor.admin_password }}"
+casdoor_jwt_public_key = "{{ values.auth.casdoor.jwt_public_key }}"

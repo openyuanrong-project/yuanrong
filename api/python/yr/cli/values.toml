@@ -120,3 +120,27 @@ client_auth_type = "RequireAndVerifyClientCert"
 [values.iam_server]
 ip = "{{ values.host_ip }}"
 port = "{{ 31112|check_port() }}"
+
+[values.auth]
+provider = "casdoor"  # casdoor or keycloak
+
+[values.auth.casdoor]
+enabled = false
+endpoint = "http://127.0.0.1:8000"
+public_endpoint = ""  # defaults to endpoint if empty
+client_id = ""
+client_secret = ""
+organization = "yuanrong"
+application = "app-yuanrong"
+admin_user = ""
+admin_password = ""
+jwt_public_key = ""
+
+[values.auth.keycloak]
+enabled = false
+url = ""
+internal_url = ""  # defaults to url if empty
+issuer_url = ""    # defaults to url if empty
+realm = "yuanrong"
+client_id = "frontend"
+client_secret = ""

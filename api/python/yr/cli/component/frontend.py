@@ -68,6 +68,25 @@ class FrontendLauncher(ComponentLauncher):
             else ""
         )
 
+        auth_config = values.get("auth", {})
+        auth_provider = auth_config.get("provider", "casdoor")
+        if auth_provider == "casdoor":
+            casdoor = auth_config.get("casdoor", {})
+            auth_enabled = str(casdoor.get("enabled", False)).lower()
+            auth_public_url = casdoor.get("public_endpoint") or casdoor.get("endpoint", "")
+            auth_internal_url = casdoor.get("endpoint", "")
+            auth_realm = casdoor.get("organization", "openyuanrong.org")
+            auth_client_id = casdoor.get("client_id", "")
+            auth_client_secret = casdoor.get("client_secret", "")
+        else:
+            keycloak = auth_config.get("keycloak", {})
+            auth_enabled = str(keycloak.get("enabled", False)).lower()
+            auth_public_url = keycloak.get("url", "")
+            auth_internal_url = keycloak.get("internal_url") or keycloak.get("url", "")
+            auth_realm = keycloak.get("realm", "yuanrong")
+            auth_client_id = keycloak.get("client_id", "frontend")
+            auth_client_secret = keycloak.get("client_secret", "")
+
         etcd_ca = (
             f"{etcd_ssl_base_path}/{values['etcd']['auth'].get('ca_file', '')}"
             if values["etcd"]["auth"].get("ca_file") and etcd_auth_type == "TLS" and etcd_ssl_base_path
@@ -110,6 +129,20 @@ class FrontendLauncher(ComponentLauncher):
             "{etcdCertFile}": etcd_cert,
             "{etcdKeyFile}": etcd_key,
             "{passphraseFile}": pass_phrase,
+            # Generic auth placeholders (casdoor or keycloak depending on provider)
+            "{auth_enabled}": auth_enabled,
+            "{auth_public_url}": auth_public_url,
+            "{auth_internal_url}": auth_internal_url,
+            "{auth_realm}": auth_realm,
+            "{auth_client_id}": auth_client_id,
+            "{auth_client_secret}": auth_client_secret,
+            # Legacy keycloak placeholders — same values as generic auth
+            "{keycloak_enabled}": auth_enabled,
+            "{keycloak_url}": auth_public_url,
+            "{keycloak_internal_url}": auth_internal_url,
+            "{keycloak_realm}": auth_realm,
+            "{keycloak_client_id}": auth_client_id,
+            "{keycloak_client_secret}": auth_client_secret,
         }
 
         for placeholder, value in replacements.items():
