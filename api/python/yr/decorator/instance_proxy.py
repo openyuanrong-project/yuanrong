@@ -387,8 +387,8 @@ class InstanceCreator:
                 return get_instance_by_name(invoke_options.name,
                                             "" if invoke_options.namespace is None else invoke_options.namespace, 60)
             except Exception as e:
-                _logger.warning("can not get instance of id: %s, err is : %s",
-                             invoke_options.name, e)
+                _logger.debug("instance: %s not exist, current get instance err is : %s",
+                              invoke_options.name, e)
         is_cross_invoke = self.__user_class_descriptor__.target_language != LanguageType.Python
         skip_serialize = getattr(invoke_options, "skip_serialize", False)
         need_embedded_serialization = (
