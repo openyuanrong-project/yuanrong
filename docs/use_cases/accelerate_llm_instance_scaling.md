@@ -288,8 +288,11 @@ docker run \
    执行如下命令部署：
 
    ```bash
-   # 替换 MASTER_IP 为您当前主机 IP，选择任意空闲端口配置 etcd_port 和 etcd_peer_port
-   yr start --master -l DEBUG --runtime_direct_connection_enable=true --enable_separated_redirect_runtime_std=true --etcd_addr_list=${MASTER_IP}  --etcd_port=22440 --etcd_peer_port=22441
+   # 替换 MASTER_IP 为您当前主机 IP，选择任意空闲端口配置 etcd port 和 peer_port
+   yr start --master -v \
+     -s 'values.etcd.address=[{ip="'${MASTER_IP}'",port=22440,peer_port=22441}]' \
+     -s 'function_agent.args.runtime_direct_connection_enable=true' \
+     -s 'function_agent.args.enable_separated_redirect_runtime_std=true'
    ```
 
    记录命令输出 `Cluster master info:` 中的 `ds_master_port` 端口，例如 11373。配置环境变量 `export DS_WORKER_ADDR=${MASTER_IP}:11373`，用于在部署推理实例时连接到数据系统。
@@ -297,7 +300,7 @@ docker run \
    检查部署状态，显示 agent 个数为 1：
 
    ```bash
-   yr status --etcd_endpoint ${MASTER_IP}:22440
+   yr status
 
    # ...
    # YuanRong cluster status:
@@ -326,7 +329,8 @@ export VLLM_WORKER_MULTIPROC_METHOD=spawn
 export vLLM_MODEL_MEMORY_USE_GB=20
 export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
-# 替换 YR_INSTALL_PATH 为 openYuanrong 安装路径，可使用 yr version 命令查看
+# 替换 YR_INSTALL_PATH 为 openYuanrong 安装路径
+# 可使用 python -c "import yr; print(yr.__path__[0])" 查看，取 inner 目录
 # 例如：/usr/local/Python-3.11.9/lib/python3.11/site-packages/yr/inner
 export LD_LIBRARY_PATH=${YR_INSTALL_PATH}/functionsystem/lib:$LD_LIBRARY_PATH
 export HCL_OP_EXPANSION_MODE="AIV"
