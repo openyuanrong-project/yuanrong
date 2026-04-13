@@ -22,6 +22,8 @@ import os
 from yr.session_service import ManagedSessionObj, SessionService  # noqa: E402
 
 for so_path in [
+    "libcrypto.so.1.1",
+    "libssl.so.1.1",
     "librpc_option_protos.so",
     "libprotobuf.so.25.5.0",
     "libabseil_dll.so.2407.0.0",
