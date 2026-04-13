@@ -39,6 +39,13 @@ logger = logging.getLogger(__name__)
 print_logger = logging.getLogger("print")
 
 
+def normalize_deploy_path(deploy_path: str | Path, cwd: Path) -> Path:
+    path = Path(deploy_path).expanduser()
+    if not path.is_absolute():
+        path = cwd / path
+    return path.resolve(strict=False)
+
+
 class ConfigResolver:
     def __init__(
         self,
@@ -141,6 +148,11 @@ class ConfigResolver:
         full_values = {**merged_values, **rendered_root}
         values_template = tomli_w.dumps({"values": full_values})
         final_values = tomllib.loads(self.jinja_env.from_string(values_template).render(values=full_values))
+        deploy_path = final_values.get("values", {}).get("deploy_path")
+        if deploy_path is not None:
+            final_values["values"]["deploy_path"] = str(
+                normalize_deploy_path(deploy_path, self.runtime_context["cwd"])
+            )
         logger.debug(f"Final rendered values: {final_values}")
 
         # Render config template and merge remaining user config

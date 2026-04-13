@@ -670,7 +670,6 @@ class SystemLauncher:
         Path(DEFAULT_LOG_DIR).mkdir(parents=True, exist_ok=True)
         Path(DEFAULT_DEPLOY_DIR).mkdir(parents=True, exist_ok=True)
         os.chdir(DEFAULT_DEPLOY_DIR)
-        self.resolver.runtime_context["deploy_path"] = deploy_path
 
     def _apply_component_overrides(self, comp_name: str, launcher: ComponentLauncher) -> None:
         """Apply per-component configuration tweaks after a launcher is constructed."""
