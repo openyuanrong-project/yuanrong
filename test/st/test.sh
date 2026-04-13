@@ -88,8 +88,7 @@ function install_python_pkg() {
     python3.9 -m pip install requests
     python3.9 -m pip install numpy
     python3.9 -m pip uninstall -y yr
-    python3.9 -m pip install $YUANRONG_DIR/runtime/sdk/python/openyuanrong_sdk-*cp39-cp39-linux*.whl
-    python3.9 -m pip install $YUANRONG_DIR/runtime/sdk/python/openyuanrong-*cp39-cp39-linux*.whl
+    python3.9 -m pip install $YUANRONG_DIR/runtime/sdk/python/openyuanrong-*-cp39-cp39-*.whl
 }
 
 function common_check_st_result() {
