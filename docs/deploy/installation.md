@@ -16,13 +16,19 @@ openYuanrong 目前支持在 Linux x86_64 及 aarch64 (ARM) 上安装。不同�
 
 ```bash
 # 支持以下版本
-# openyuanrong-0.7.0-cp310-cp310-manylinux_2_34_x86_64.whl
-# openyuanrong-0.7.0-cp311-cp311-manylinux_2_34_x86_64.whl
-# openyuanrong-0.7.0-cp39-cp39-manylinux_2_34_x86_64.whl
-# openyuanrong-0.7.0-cp310-cp310-manylinux_2_34_aarch64.whl
-# openyuanrong-0.7.0-cp311-cp311-manylinux_2_34_aarch64.whl
-# openyuanrong-0.7.0-cp39-cp39-manylinux_2_34_aarch64.whl
-pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.7.0/linux/x86_64/openyuanrong-0.7.0-cp39-cp39-manylinux_2_34_x86_64.whl
+# openyuanrong-0.8.0-cp310-cp310-manylinux_2_34_x86_64.whl
+# openyuanrong-0.8.0-cp311-cp311-manylinux_2_34_x86_64.whl
+# openyuanrong-0.8.0-cp39-cp39-manylinux_2_34_x86_64.whl
+# openyuanrong-0.8.0-cp310-cp310-manylinux_2_34_aarch64.whl
+# openyuanrong-0.8.0-cp311-cp311-manylinux_2_34_aarch64.whl
+# openyuanrong-0.8.0-cp39-cp39-manylinux_2_34_aarch64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.8.0/linux/x86_64/openyuanrong-0.8.0-cp39-cp39-manylinux_2_34_x86_64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.8.0/linux/x86_64/openyuanrong_runtime-0.8.0-cp39-cp39-manylinux_2_34_x86_64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.8.0/linux/x86_64/openyuanrong_dashboard-0.8.0-cp39-cp39-manylinux_2_34_x86_64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.8.0/linux/x86_64/openyuanrong_datasystem-0.8.0-cp39-cp39-manylinux_2_34_x86_64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.8.0/linux/x86_64/openyuanrong_faas-0.8.0-cp39-cp39-manylinux_2_34_x86_64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.8.0/linux/x86_64/openyuanrong_functionsystem-0.8.0-py3-none-manylinux_2_34_x86_64.whl
+pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.8.0/linux/x86_64/openyuanrong_cpp_sdk-0.8.0-cp39-cp39-manylinux_2_34_x86_64.whl
 ```
 
 您可能希望从源码编译 openYuanrong 版本，以满足更多自定义场景，请参考章节：[源码编译 openYuanrong](../contributor_guide/source_code_build.md)。
