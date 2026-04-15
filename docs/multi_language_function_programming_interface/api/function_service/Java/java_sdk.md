@@ -402,8 +402,35 @@ This method immediately synchronizes the new value to libruntime, ensuring the r
 
    - **YRException** (YRException) - Thrown when the JNI call fails.
 
-```java
+#### JsonObject wait(long timeoutMs)
 
+Suspends the current execution thread, waiting for subsequent input from the same session. During the wait, the current thread releases the session lock, allowing other requests (such as `notify`) to enter.
+
+- Parameters:
+
+   - **timeoutMs** (long) - Wait timeout in milliseconds.
+
+- Returns:
+
+    userInput (JsonObject): Received input data, or `null` on timeout.
+
+#### void notify(JsonObject payload)
+
+Wakes up the thread in `wait` status and passes `payload` to it.
+
+- Parameters:
+
+   - **payload** (JsonObject) - Data to be passed to the waiting thread.
+
+#### boolean getInterrupted()
+
+Checks whether the current session has been interrupted externally.
+
+- Returns:
+
+    interrupted (boolean): ``true`` if interrupted.
+
+```java
 public class demo {
     public String handleRequest(JsonObject jsonObject, Context context) {
         SessionService sessionService = context.getSessionService();
@@ -414,8 +441,25 @@ public class demo {
         if (session == null) {
             return "session not found";
         }
+
+        // Check for notify request
+        if (isNotifyRequest(jsonObject)) {
+            session.notify(jsonObject);
+            return "Notified";
+        }
+
+        // Wait for user input
+        JsonObject userInput = session.wait(60000);
+        if (userInput == null) {
+            return "Wait timeout";
+        }
+
+        if (session.getInterrupted()) {
+            return "Session Interrupted";
+        }
+
         List<String> histories = new ArrayList<>(session.getHistories());
-        histories.add("new message");
+        histories.add(userInput.get("message").getAsString());
         session.setHistories(histories);
         return "history updated";
     }

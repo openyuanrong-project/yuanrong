@@ -57,9 +57,58 @@ yr.Context
     yr.Context.getTenantID
     yr.Context.getUserData
     yr.Context.getVersion
-    yr.Context.get_session_id
     yr.Context.get_session_service
     yr.Context.set_session_id
+
+yr.SessionService
+---------------------
+
+.. py:class:: yr.SessionService()
+
+    提供会话加载能力的 SDK 接口。
+
+    **方法**：
+
+    .. list-table::
+       :header-rows: 0
+       :widths: 30 70
+
+       * - :ref:`load_session <load_session>`
+         - 加载当前调用关联的会话对象。
+
+.. toctree::
+    :maxdepth: 1
+    :hidden:
+
+    yr.SessionService.load_session
+
+yr.Session
+---------------------
+
+.. py:class:: yr.Session()
+
+    表示一个 Agent 会话对象。
+
+    **方法**：
+
+    .. list-table::
+       :header-rows: 0
+       :widths: 30 70
+
+       * - :ref:`wait_for_notify <wait_for_notify>`
+         - 阻塞当前执行并等待输入。
+       * - :ref:`notify <notify>`
+         - 唤醒正在等待的线程。
+       * - :ref:`is_interrupted <is_interrupted>`
+         - 检查当前会话是否已被外部中断。
+
+.. toctree::
+    :maxdepth: 1
+    :hidden:
+
+    yr.Session.wait_for_notify
+    yr.Session.notify
+    yr.Session.is_interrupted
 
 yr.Function
 ------------------

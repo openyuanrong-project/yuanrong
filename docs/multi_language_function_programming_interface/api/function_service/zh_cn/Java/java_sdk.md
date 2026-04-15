@@ -197,6 +197,34 @@ public class demo {
 
    - **YRException** (YRException) - JNI 调用失败时抛出。
 
+#### JsonObject wait(long timeoutMs)
+
+挂起当前执行线程，等待同一个会话的后续输入。在等待期间，当前线程会释放会话锁，允许其他请求（如 `notify`）进入。
+
+- 参数：
+
+   - **timeoutMs** (long) - 等待超时时间（毫秒）。
+
+- 返回：
+
+    userInput (JsonObject)：接收到的输入数据，如果超时则返回 `null`。
+
+#### void notify(JsonObject payload)
+
+唤醒正在 `wait` 状态的线程，并将 `payload` 传递给它。
+
+- 参数：
+
+   - **payload** (JsonObject) - 要传递给等待线程的数据。
+
+#### boolean getInterrupted()
+
+检查当前会话是否已被外部中断。
+
+- 返回：
+
+    interrupted (boolean)：如果已中断则返回 ``true``。
+
 ```java
 
 public class demo {
@@ -209,8 +237,25 @@ public class demo {
         if (session == null) {
             return "session not found";
         }
+
+        // 检查是否为 notify 请求
+        if (isNotifyRequest(jsonObject)) {
+            session.notify(jsonObject);
+            return "Notified";
+        }
+
+        // 等待用户输入
+        JsonObject userInput = session.wait(60000);
+        if (userInput == null) {
+            return "Wait timeout";
+        }
+
+        if (session.getInterrupted()) {
+            return "Session Interrupted";
+        }
+
         List<String> histories = new ArrayList<>(session.getHistories());
-        histories.add("new message");
+        histories.add(userInput.get("message").getAsString());
         session.setHistories(histories);
         return "history updated";
     }

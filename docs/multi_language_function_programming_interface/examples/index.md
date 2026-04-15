@@ -7,6 +7,7 @@
 
    simple-function-template
    use_stream
+   ai_agent_multiturn_dialogue
    faas-invoke-stateless-function
    affinity
    use_NPU_resource

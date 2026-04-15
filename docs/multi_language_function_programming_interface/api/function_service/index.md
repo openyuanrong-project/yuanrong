@@ -8,10 +8,13 @@
    
    zh_cn/Python/python_sdk
    zh_cn/Cpp/cpp_sdk
-   zh_cn/Java/java_sdk
+   zh_cn/Java/java_sdk.md
    function_invocation
    stream_invocation
+   session_interrupt
+   session_delete
    register_function
+
    update_function
    release_function
    get_function
@@ -36,6 +39,11 @@
 
 - [调用服务](./function_invocation.md)
 - [订阅流服务](./stream_invocation.md)
+
+## 会话管理 REST API
+
+- [中断会话](./session_interrupt.md)
+- [删除会话](./session_delete.md)
 
 ## 函数管理 REST API
 

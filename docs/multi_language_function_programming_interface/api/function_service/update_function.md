@@ -48,6 +48,7 @@
 | s3CodePath | S3Object | 否 | 代码包 S3 路径，`storageType` 配置为 ``s3`` 时生效。 |
 | poolId | String | 否 | 自定义亲和 pool 池 ID。函数实例创建资源不足（或者亲和条件不满足），内核创建指定 poolID 的 POD，用于实例调度。<br> **约束**：仅对函数服务生效; 配置约束与创建 pool 池接口一致。                                                                |
 | resourceAffinitySelectors | ResourceAffinitySelector | 否 | 函数调度亲和、优先级配置。 |
+| enable_agent_session | boolean | 否 | 是否启用 AI Agent 会话。开启后支持 `wait`/`notify` SDK 及会话亲和性调度。默认 ``false``。 |
 
 :::{Note}
 

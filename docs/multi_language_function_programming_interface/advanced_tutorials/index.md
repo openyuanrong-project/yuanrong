@@ -14,6 +14,7 @@
    use_wait
    use_InvokeOptions_limit_concurrent_num
    hierarchical_scheduling
+   ai_agent_session
    worldwide_shared_signal_station
 ```
 
@@ -27,4 +28,5 @@
 - [使用 yr.wait 限制并发/待处理任务的数量](./use_wait.md)
 - [使用资源用量限制任务并发数量](./use_InvokeOptions_limit_concurrent_num.md)
 - [使用有状态函数构造树状作业图](./hierarchical_scheduling.md)
+- [AI Agent 会话与亲和性调度](./ai_agent_session.md)
 - [使用有状态函数作为全局信号站](./worldwide_shared_signal_station.md)
