@@ -29,7 +29,7 @@
 
     ```python
     import yr
-
+    
     # Define stateless function
     @yr.invoke
     def say_hello(name):
@@ -38,15 +38,15 @@
 
     # Init only once
     yr.init()
-
+    
     # Asynchronously invoke stateless functions in parallel
     results_ref = [say_hello.invoke('yuanrong') for i in range(3)]
     print(yr.get(results_ref))
-
+    
     # Release environmental resources
     yr.finalize()
     ```
-
+    
     :::
 
 2. 运行程序
@@ -85,7 +85,7 @@
     ```cpp
     #include <iostream>
     #include "yr/yr.h"
-
+    
     // Define stateless function
     std::string SayHello(std::string name)
     {
@@ -98,59 +98,59 @@
     {
         // Init only once
         YR::Init(YR::Config{}, argc, argv);
-
+    
         // Asynchronously invoke stateless functions in parallel
         std::vector<YR::ObjectRef<std::string>> results_ref;
         for (int i = 0; i < 3; i++) {
             auto result_ref = YR::Function(SayHello).Invoke(std::string("yuanrong"));
             results_ref.emplace_back(result_ref);
         }
-
+    
         for (auto result : YR::Get(results_ref)) {
             std::cout << *result << std::endl;
         }
-
+    
         // Release environmental resources
         YR::Finalize();
         return 0;
     }
     ```
-
+    
     :::
     :::{dropdown} CMakeLists.txt 文件内容，**需对应修改 YR_INSTALL_PATH 为您的 openYuanrong 安装路径**
     :chevron: down-up
     :icon: chevron-down
-
+    
     ```cmake
     cmake_minimum_required(VERSION 3.16.1)
     # 指定项目名称，例如：cpp-stateless-function
     project(cpp-stateless-function LANGUAGES C CXX)
     set(CMAKE_CXX_STANDARD 17)
-
+    
     # 指定编译生成文件路径在 build 目录下
     set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
     set(BINARY_DIR ${SOURCE_DIR}/build)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_DIR})
-
+    
     set(CMAKE_CXX_FLAGS "-pthread")
     set(BUILD_SHARED_LIBS ON)
-
-    # 替换 YR_INSTALL_PATH 的值为 openYuanrong 安装路径，可通过 python3 -c "import yr;print(yr.__path__[0])" 命令查看
-    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr/inner")
-    link_directories(${YR_INSTALL_PATH}/runtime/sdk/cpp/lib)
+    
+    # 替换 YR_INSTALL_PATH 的值为 openYuanrong 实际安装路径
+    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr")
+    link_directories(${YR_INSTALL_PATH}/cpp/lib)
     include_directories(
-        ${YR_INSTALL_PATH}/runtime/sdk/cpp/include
+        ${YR_INSTALL_PATH}/cpp/include
     )
-
+    
     # 生成可执行文件 example，修改 example.cpp 为您对应的源码文件
     add_executable(example src/example.cpp)
     target_link_libraries(example yr-api)
-
+    
     # 生成动态库文件 example-dll，修改 example.cpp 为您对应的源码文件
     add_library(example-dll SHARED src/example.cpp)
     target_link_libraries(example-dll yr-api)
     ```
-
+    
     :::
 
 2. 编译构建
@@ -373,38 +373,38 @@
     ```python
     # example.py
     import yr
-
+    
     # Define stateful function
     @yr.instance
     class Object:
         def __init__(self):
             self.value = 0
-
+    
         def save(self, value):
             self.value = value
-
+    
         def get(self):
             return self.value
 
 
     # Init only once
     yr.init()
-
+    
     # Create three stateful function instances
     objs = [Object.invoke() for i in range(3)]
-
+    
     # Asynchronously invoke stateful functions in parallel
     [obj.save.invoke(9) for obj in objs]
     results_ref = [obj.get.invoke() for obj in objs]
     print(yr.get(results_ref))
-
+    
     # Destroy stateful function instance
     [obj.terminate() for obj in objs]
-
+    
     # Release environmental resources
     yr.finalize()
     ```
-
+    
     :::
 
 2. 运行程序
@@ -522,11 +522,11 @@
     set(CMAKE_CXX_FLAGS "-pthread")
     set(BUILD_SHARED_LIBS ON)
 
-    # 替换 YR_INSTALL_PATH 的值为 openYuanrong 安装路径，可通过 python3 -c "import yr;print(yr.__path__[0])" 命令查看
-    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr/inner")
-    link_directories(${YR_INSTALL_PATH}/runtime/sdk/cpp/lib)
+    # 替换 YR_INSTALL_PATH 的值为 openYuanrong 实际安装路径
+    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr")
+    link_directories(${YR_INSTALL_PATH}/cpp/lib)
     include_directories(
-        ${YR_INSTALL_PATH}/runtime/sdk/cpp/include
+        ${YR_INSTALL_PATH}/cpp/include
     )
 
     # 生成可执行文件 example，修改 example.cpp 为您对应的源码文件
@@ -842,7 +842,7 @@
     X-Log-Result: dGhpcyBpcyB1c2VyIGxvZyBUT0RP
     Date: Tue, 20 May 2025 02:03:09 GMT
     Content-Length: 36
-
+    
     "hello yuanrong,today is 2025-05-20"
     ```
 
@@ -930,7 +930,7 @@
     ```
 
     :::
-    :::{dropdown} CMakeLists.txt 文件内容，**需对应修改 YR_INSTALL_PATH 为您的openYuanrong安装路径**
+    :::{dropdown} CMakeLists.txt 文件内容，**需对应修改 YR_INSTALL_PATH 的值为 openYuanrong 实际安装路径**
     :chevron: down-up
     :icon: chevron-down
 
@@ -942,12 +942,12 @@
     set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
     set(BINARY_DIR ${SOURCE_DIR}/build)
 
-    # 替换 YR_INSTALL_PATH 的值为openYuanrong安装路径，可通过 python3 -c "import yr;print(yr.__path__[0])" 命令查看
-    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr/inner")
-    link_directories(${YR_INSTALL_PATH}/runtime/sdk/cpp/lib)
+    # 替换 YR_INSTALL_PATH 的值为 openYuanrong 实际安装路径
+    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr")
+    link_directories(${YR_INSTALL_PATH}/cpp/lib)
     include_directories(
-        ${YR_INSTALL_PATH}/runtime/sdk/cpp/include/faas
-        ${YR_INSTALL_PATH}/runtime/sdk/cpp/include
+        ${YR_INSTALL_PATH}/cpp/include/faas
+        ${YR_INSTALL_PATH}/cpp/include
     )
 
     add_executable(demo demo.cpp)
@@ -1015,7 +1015,7 @@
     X-Log-Result: this is user log TODO
     Date: Tue, 20 May 2025 03:43:57 GMT
     Content-Length: 35
-
+    
     "hello yuanrong,today is 2025-5-20"
     ```
 
@@ -1246,7 +1246,7 @@
     X-Log-Result: dGhpcyBpcyB1c2VyIGxvZyBUT0RP
     Date: Tue, 20 May 2025 06:27:49 GMT
     Content-Length: 36
-
+    
     "hello yuanrong,today is 2025-05-20"
     ```
 
@@ -1281,14 +1281,14 @@ K8s 中运行函数服务需要先创建资源池，如果您在部署 openYuanr
     ]
 }
 ```
-    
+
 使用 curl 工具创建资源池，参数含义详见[API 说明](../../deploy/deploy_on_k8s/api/create_pod_pool.md)：
 
 ```bash
 META_SERVICE_ENDPOINT=<meta service 组件的服务端点，默认为：http://{主节点 IP}:31182>
 curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type: application/json' -d @create_pool.json
 ```
-    
+
 返回结果格式如下。
     
 ```json
@@ -1299,7 +1299,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     "failed_pools": null
   }
 }
-``` 
+```
 
 :::::{tab-set}
 ::::{tab-item} Python
@@ -1370,7 +1370,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
           }  
      }
     ```
-     
+    
     通过 curl 工具注册函数，参数含义详见 [API 说明](../api/function_service/register_function.md)：
         
     ```bash 
@@ -1380,7 +1380,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
             -d @create_func.json
         
     ```
-        
+    
     结果格式如下， 记录 ` functionVersionUrn ` 字段的值用于调用， 这里对应 ` sn:cn:yrk:default:function:0@myService@python-demo:latest `
         
     ```json
@@ -1483,7 +1483,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     ```
 
     :::
-    :::{dropdown} CMakeLists.txt 文件内容，**需对应修改 YR_INSTALL_PATH 为您的openYuanrong安装路径**
+    :::{dropdown} CMakeLists.txt 文件内容，**需对应修改 YR_INSTALL_PATH 的值为 openYuanrong 实际安装路径**
     :chevron: down-up
     :icon: chevron-down
 
@@ -1495,12 +1495,12 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
     set(BINARY_DIR ${SOURCE_DIR}/build)
 
-    # 替换 YR_INSTALL_PATH 的值为openYuanrong安装路径，可通过 python3 -c "import yr;print(yr.__path__[0])" 命令查看
-    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr/inner")
-    link_directories(${YR_INSTALL_PATH}/runtime/sdk/cpp/lib)
+    # 替换 YR_INSTALL_PATH 的值为 openYuanrong 实际安装路径
+    set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr")
+    link_directories(${YR_INSTALL_PATH}/cpp/lib)
     include_directories(
-        ${YR_INSTALL_PATH}/runtime/sdk/cpp/include/faas
-        ${YR_INSTALL_PATH}/runtime/sdk/cpp/include
+        ${YR_INSTALL_PATH}/cpp/include/faas
+        ${YR_INSTALL_PATH}/cpp/include
     )
 
     add_executable(demo demo.cpp)
@@ -1599,7 +1599,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     X-Log-Result: this is user log TODO
     Date: Tue, 26 Jan 2026 11:31:57 GMT
     Content-Length: 35
-
+    
     "hello yuanrong,today is 2026-1-26"
     ```
 
@@ -1867,7 +1867,7 @@ curl -X POST -i ${META_SERVICE_ENDPOINT}/serverless/v1/podpools -H 'Content-Type
     X-Log-Result: dGhpcyBpcyB1c2VyIGxvZyBUT0RP
     Date: Tue, 26 Jan 2026 11:30:49 GMT
     Content-Length: 36
-
+    
     "hello yuanrong,today is 2026-1-26"
     ```
 

@@ -76,11 +76,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BINARY_DIR})
 set(CMAKE_CXX_FLAGS "-pthread")
 set(BUILD_SHARED_LIBS ON)
 
-# 替换 YR_INSTALL_PATH 的值为 openYuanrong 安装路径，可通过 python3 -c "import yr;print(yr.__path__[0])" 命令查看
-set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr/inner")
-link_directories(${YR_INSTALL_PATH}/runtime/sdk/cpp/lib)
+# 替换 YR_INSTALL_PATH 的值为 openYuanrong 实际安装路径
+set(YR_INSTALL_PATH "/usr/local/lib/python3.9/site-packages/yr")
+link_directories(${YR_INSTALL_PATH}/cpp/lib)
 include_directories(
-    ${YR_INSTALL_PATH}/runtime/sdk/cpp/include
+    ${YR_INSTALL_PATH}/cpp/include
 )
 
 # 生成可执行文件 cpp-demo，修改 demo.cpp 为您对应的源码文件

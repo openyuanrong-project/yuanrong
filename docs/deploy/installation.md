@@ -1,5 +1,3 @@
-(overview-installation)=
-
 # 安装指南
 
 openYuanrong 目前支持在 Linux x86_64 及 aarch64 (ARM) 上安装。不同的开发环境安装依赖如下：
@@ -55,6 +53,9 @@ pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.
 ```console
 [xxx]# python3 -c "import yr;print(yr.__path__[0])"
 /usr/local/lib/python3.9/site-packages/yr
+
+[xxx]# ls /usr/local/lib/python3.9/site-packages/yr/cpp/
+bin  include  lib  VERSION
 ```
 
 (install-yuanrong-java-sdk)=
@@ -67,7 +68,7 @@ pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.
 [xxx]# python3 -c "import yr;print(yr.__path__[0])"
 /usr/local/lib/python3.9/site-packages/yr
 
-[xxx]# ls /usr/local/lib/python3.9/site-packages/yr/inner/runtime/sdk/java/
+[xxx]# ls /usr/local/lib/python3.9/site-packages/yr/java/
 yr-api-sdk-1.0.0.jar faas-function-sdk-1.0.0.jar pom.xml
 ```
 
