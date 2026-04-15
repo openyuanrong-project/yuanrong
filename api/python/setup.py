@@ -302,6 +302,16 @@ def copy_openyuanrong(ctx):
         with open(deploy_services_dst, 'w') as f:
             f.write(new_content)
 
+    # Copy Java SDK jars and pom.xml from build output to yr/java/
+    java_sdk_dir = os.path.join(output_root_dir, "runtime/sdk/java")
+    if os.path.exists(java_sdk_dir):
+        java_files_to_include = []
+        for f in os.listdir(java_sdk_dir):
+            if f.endswith(".jar") or f == "pom.xml":
+                java_files_to_include.append(os.path.join(java_sdk_dir, f))
+        for filename in java_files_to_include:
+            copy_file(os.path.join(ctx.build_lib, "yr/java"), filename, java_sdk_dir)
+
 
 def run_ext(ctx):
     """run ext"""
@@ -399,6 +409,8 @@ setuptools.setup(
             "cli/*.toml",
             "cli/*.yaml",
             "cli/*.jinja",
+            "java/*.jar",
+            "java/pom.xml",
         ],
     },
     exclude_package_data={
