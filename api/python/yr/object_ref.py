@@ -84,6 +84,9 @@ class ObjectRef:
             if runtime_holder is None:
                 return
             global_runtime = runtime_holder.global_runtime.get_runtime()
+        except RuntimeError:
+            return
+        try:
             if self._need_decre and global_runtime:
                 global_runtime.decrease_global_reference([self._id])
             if self._enable_tensor_transport and len(self.npu_obj_ids) != 0:
