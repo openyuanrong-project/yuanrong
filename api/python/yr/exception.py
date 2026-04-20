@@ -69,6 +69,19 @@ class YRInvokeError(YRError):
         """
         return str(self.traceback_str)
 
+    def __reduce__(self):
+        """
+        Custom pickle reducer: try to pickle the cause object directly,
+        fall back to a string representation if the cause is unpicklable.
+        This ensures the traceback_str is never lost during serialization.
+        """
+        try:
+            cloudpickle.dumps(self.cause)
+            return (YRInvokeError, (self.cause, self.traceback_str))
+        except Exception:
+            cause_str = _cause_to_str(self.cause)
+            return (_UnpicklableYRInvokeError, (cause_str, self.traceback_str))
+
     def origin_error(self):
         """
         Return a origin error for invoke stateless function.
@@ -109,6 +122,32 @@ class YRInvokeError(YRError):
         Cls.__qualname__ = Cls.__name__
 
         return Cls(self.cause)
+
+
+class _UnpicklableYRInvokeError(YRInvokeError):
+    """
+    Fallback YRInvokeError used when the original cause cannot be pickled.
+    Preserves the full traceback_str and a string representation of the cause.
+    """
+
+    def __init__(self, cause_str: str, traceback_str: str):
+        super().__init__(RuntimeError(cause_str), traceback_str)
+
+    def __str__(self):
+        return str(self.traceback_str)
+
+    def origin_error(self):
+        return self
+
+
+def _cause_to_str(cause):
+    """Convert an unpicklable cause to a descriptive string."""
+    cause_cls = type(cause).__name__
+    try:
+        cause_repr = repr(cause)
+    except Exception:
+        cause_repr = "<unrepresentable>"
+    return f"{cause_cls}: {cause_repr}"
 
 
 class YRequestError(YRError, RuntimeError):
@@ -183,7 +222,7 @@ def deal_with_error(future, code, message, task_id=""):
     """
     try:
         obj = cloudpickle.loads(utils.hex_to_binary(message))
-    except (ValueError, EOFError):
+    except Exception:
         future.set_exception(YRequestError(code, message, task_id))
         return
     if isinstance(obj, YRInvokeError):
