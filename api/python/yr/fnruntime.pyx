@@ -16,6 +16,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pickle
 import asyncio
 import concurrent
 import inspect
@@ -51,7 +52,7 @@ from yr.base_runtime import (ExistenceOpt, WriteMode, CacheType, ConsistencyType
                         GetParam, GetParams, AlarmInfo, AlarmSeverity)
 from yr import runtime_env
 from yr import port_forwarding
-from yr.exception import YRInvokeError
+from yr.exception import YRInvokeError, _cause_to_str
 from yr.stream import (Element, ProducerConfig, SubscriptionConfig,
                        SubscriptionType)
 from yr.accelerate.shm_broadcast import Handle, MessageQueue, decode, ResponseStatus
@@ -790,7 +791,19 @@ cdef CErrorInfo function_execute_callback_internal(const CFunctionMeta & functio
         result_list, error_info = Executor(func_meta, args, invoke_type, return_nums, _serialization_ctx, False).execute()
     if error_info.error_code == ErrorCode.ERR_USER_FUNCTION_EXCEPTION and result_list \
             and isinstance(result_list[0], YRInvokeError):
-        serialized_object = _serialization_ctx.serialize(result_list[0])
+        try:
+            serialized_object = _serialization_ctx.serialize(result_list[0])
+        except (pickle.PickleError, TypeError, AttributeError) as serialize_err:
+            _logger.warning("Failed to serialize YRInvokeError, falling back to string representation: %s",
+                            str(serialize_err))
+            fallback_err = YRInvokeError(result_list[0].cause, result_list[0].traceback_str)
+            fallback_err.cause = RuntimeError(_cause_to_str(result_list[0].cause))
+            try:
+                serialized_object = _serialization_ctx.serialize(fallback_err)
+            except Exception as fallback_err_inner:
+                _logger.error("Fallback serialization also failed: %s", str(fallback_err_inner))
+                return error_info_from_py(ErrorInfo(ErrorCode.ERR_USER_FUNCTION_EXCEPTION, ModuleCode.RUNTIME,
+                                                    "Failed to serialize invocation error"))
         meta_size = constants.METALEN
         data_size = len(serialized_object) - constants.METALEN
         with nogil:
