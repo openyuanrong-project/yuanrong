@@ -791,14 +791,6 @@ func (fs *FaaSScheduler) handleInstanceBatchRetain(target string, metricsData []
 		if _, ok := insThdMetrics[name]; !ok {
 			continue
 		}
-		if ownerSchedulerInstanceId, ok := selfregister.GlobalSchedulerProxy.CheckFuncOwner(
-			insThdMetrics[name].FunctionKey); !ok {
-			batchInstanceResp.InstanceAllocFailed[name] = commonTypes.InstanceAllocationFailedInfo{
-				ErrorCode:    statuscode.AcquireNonOwnerSchedulerErrorCode,
-				ErrorMessage: ownerSchedulerInstanceId,
-			}
-			continue
-		}
 		insAlloc, err := fs.retainInstance(name, traceID, insThdMetrics[name], logger)
 		if err != nil {
 			batchInstanceResp.InstanceAllocFailed[name] = commonTypes.InstanceAllocationFailedInfo{
@@ -854,6 +846,11 @@ func (fs *FaaSScheduler) retainInstance(targetName, traceID string, insThdMetric
 		logger.Errorf("instance thread allocation type error")
 		return nil, snerror.New(statuscode.StatusInternalServerError,
 			statuscode.InternalErrorMessage)
+	}
+	if ownerSchedulerInstanceId, ok := selfregister.GlobalSchedulerProxy.CheckFuncOwner(
+		insAlloc.Instance.FuncKey); !ok {
+		logger.Errorf("non-owner faasscheduler, return owner faasscheduelr: %s", ownerSchedulerInstanceId)
+		return nil, snerror.New(statuscode.AcquireNonOwnerSchedulerErrorCode, ownerSchedulerInstanceId)
 	}
 	if strings.Contains(insAlloc.AllocationID, "stateThread") { // %s-stateThread%d
 		return fs.retainStateInstance(targetName, insAlloc, logger)

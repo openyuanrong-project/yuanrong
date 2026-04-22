@@ -1885,17 +1885,58 @@ func TestAcquireNonOwnerSchedulerErrorCode(t *testing.T) {
 		resp := faasScheduler.handleInstanceAcquire(targetName, bytes, "traceId-123")
 		convey.So(resp.ErrorCode, convey.ShouldEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
 		convey.So(resp.ErrorMessage, convey.ShouldEqual, expectSchedulerInstanceId)
-		resp1 := faasScheduler.handleInstanceBatchRetain(targetName, bytes, "traceId-123")
-		convey.So(resp1.InstanceAllocFailed, convey.ShouldContainKey, targetName)
-		convey.So(resp1.InstanceAllocFailed[targetName].ErrorCode, convey.ShouldEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
 
 		expectOk = true
 		resp = faasScheduler.handleInstanceAcquire(targetName, bytes, "traceId-123")
 		convey.So(resp.ErrorCode, convey.ShouldNotEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
-		resp1 = faasScheduler.handleInstanceBatchRetain(targetName, bytes, "traceId-123")
-		_, ok := resp1.InstanceAllocFailed[targetName]
-		if ok {
-			convey.So(resp1.InstanceAllocFailed[targetName].ErrorCode, convey.ShouldNotEqual, statuscode.AcquireNonOwnerSchedulerErrorCode)
-		}
 	})
+}
+
+func TestHandleInstanceBatchRetainUsesAllocRecordFuncKeyForOwnerCheck(t *testing.T) {
+	faasScheduler := &FaaSScheduler{
+		allocRecord: sync.Map{},
+		PoolManager: &instancepool.PoolManager{},
+	}
+	faasScheduler.allocRecord.Store("lease-1", &types.InstanceAllocation{
+		AllocationID: "lease-1",
+		Instance: &types.Instance{
+			FuncKey: "func-from-alloc",
+			ResKey:  resspeckey.ResSpecKey{},
+			InstanceStatus: commonTypes.InstanceStatus{
+				Code: int32(constant.KernelInstanceStatusRunning),
+			},
+		},
+		Lease: &fakeLease{},
+	})
+
+	var checkedFuncKey string
+	defer ApplyMethodFunc(selfregister.GlobalSchedulerProxy, "CheckFuncOwner", func(funcKey string) (string, bool) {
+		checkedFuncKey = funcKey
+		return "", true
+	}).Reset()
+
+	metricsData, err := json.Marshal(map[string]*types.InstanceThreadMetrics{
+		"lease-1": {
+			ProcReqNum:  1,
+			AvgProcTime: 10,
+			MaxProcTime: 20,
+		},
+	})
+	assert.NoError(t, err)
+
+	resp := faasScheduler.handleInstanceBatchRetain("lease-1", metricsData, "traceId-123")
+	assert.Equal(t, "func-from-alloc", checkedFuncKey)
+	assert.Contains(t, resp.InstanceAllocSucceed, "lease-1")
+	assert.NotContains(t, resp.InstanceAllocFailed, "lease-1")
+
+	singleMetricsData, err := json.Marshal(&types.InstanceThreadMetrics{
+		ProcReqNum:  1,
+		AvgProcTime: 10,
+		MaxProcTime: 20,
+	})
+	assert.NoError(t, err)
+
+	singleResp := faasScheduler.handleInstanceRetain("lease-1", singleMetricsData, "traceId-123")
+	assert.Equal(t, "func-from-alloc", checkedFuncKey)
+	assert.Equal(t, constant.InsReqSuccessCode, singleResp.ErrorCode)
 }
