@@ -779,7 +779,7 @@ yr start --master \
 部署从节点：
 
 ```bash
-# 替换 {function_master_ip} 和 {function_master_port} 为成功部署主节点时输出的对应信息
+# 替换 {http_scheme}、{function_master_ip} 和 {function_master_port} 为成功部署主节点时输出的对应信息
 yr start --master_address {http_scheme}://{function_master_ip}:{function_master_port}
 ```
 

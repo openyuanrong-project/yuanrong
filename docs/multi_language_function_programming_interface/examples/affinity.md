@@ -22,7 +22,7 @@ yr start --master \
 再部署从节点，设置一个标签 `{"agent":"uat"}`。
 
 ```bash
-# 替换 {function_master_ip} 和 {function_master_port} 为成功部署主节点时输出的对应信息
+# 替换 {http_scheme}、{function_master_ip} 和 {function_master_port} 为成功部署主节点时输出的对应信息
 yr start \
 -s 'mode.agent.collector=true' -s 'function_agent.args.enable_separated_redirect_runtime_std=true' \
 -s 'function_agent.env.INIT_LABELS="{\"agent\":\"uat\"}"' \
@@ -42,7 +42,7 @@ class Detector:
         self.number = number
 
     def show(self):
-        print("Detector " + str(self.number) + ",NODE_ID:" + os.getenv('NODE_ID') + ",LABELS:" + os.getenv('LABELS'))
+        print("Detector " + str(self.number) + ",NODE_ID:" + os.getenv('NODE_ID') + ",INIT_LABELS:" + os.getenv('INIT_LABELS'))
 
 if __name__ == '__main__':
     yr.init()
@@ -76,8 +76,8 @@ if __name__ == '__main__':
 执行命令 `python resource-affinity.py` 运行程序。查看从节点上的函数[日志](../../../docs/observability/logs.md)文件 `{node_id}-user_func_std.log`，可见如下输出，表明两个实例都部署在标签为 `{"agent":"uat"}` 节点。
 
 ```bash
-2025-07-18 17:12:33|56412d11-0000-4000-8000-005cef06b506|runtime-56412d11-0000-4000-8000-005cef06b506-c6d59c3a409e|INFO|Detector 0,NODE_ID:dggphis35945-2731346,LABELS:{"agent":"uat"}
-2025-07-18 17:12:33|04d8cf02-727f-4714-8000-000000000071|runtime-04d8cf02-727f-4714-8000-000000000071-000000d8f917|INFO|Detector 1,NODE_ID:dggphis35945-2731346,LABELS:{"agent":"uat"}
+2025-07-18 17:12:33|56412d11-0000-4000-8000-005cef06b506|runtime-56412d11-0000-4000-8000-005cef06b506-c6d59c3a409e|INFO|Detector 0,NODE_ID:dggphis35945-2731346,INIT_LABELS:{"agent":"uat"}
+2025-07-18 17:12:33|04d8cf02-727f-4714-8000-000000000071|runtime-04d8cf02-727f-4714-8000-000000000071-000000d8f917|INFO|Detector 1,NODE_ID:dggphis35945-2731346,INIT_LABELS:{"agent":"uat"}
 ```
 
 ## 配置函数实例间亲和
@@ -99,10 +99,10 @@ yr start --master \
 再部署从节点：
 
 ```bash
-# 替换 {master_ip} 和 {function_master_port} 为成功部署主节点时输出的对应信息
+# 替换 {http_scheme}、{function_master_ip} 和 {function_master_port} 为成功部署主节点时输出的对应信息
 yr start \
 -s 'mode.agent.collector=true' -s 'function_agent.args.enable_separated_redirect_runtime_std=true' \
---master_address http://{master_ip}:{function_master_port}
+--master_address {http_scheme}://{function_master_ip}:{function_master_port}
 ```
 
 代码中有状态函数的 show 方法将帮助打印函数实例所在节点信息。我们配置 Detector 实例的标签 key 为 detector，不与有相同标签的实例部署在同一节点。Partner 实例配置标签 key 为 partner，不与有相同标签的实例部署在同一节点，但要与标签 key 为 detector 的实例部署在同一节点。
