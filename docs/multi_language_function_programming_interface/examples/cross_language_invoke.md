@@ -119,7 +119,7 @@
     yr.init()
 
     # 我们将在后续步骤中注册C++函数，生成如下URN
-    cpp_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest"
+    cpp_function_urn = "sn:cn:yrk:default:function:0-yr-mycpp:$latest"
 
     # 调用C++无状态函数Square
     cpp_function = yr.cpp_function("Square", cpp_function_urn)
@@ -153,7 +153,7 @@
 
 3. 注册 C++ 函数为 openYuanrong 函数
 
-    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-mycpp` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest`。
+    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-mycpp` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:default:function:0-yr-mycpp:$latest`。
 
     ```bash
     # 替换 /opt/mycode/python-invoke-cpp 为您编译后动态库所在目录
@@ -210,7 +210,7 @@
     yr.init()
 
     # 我们将在后续步骤中注册java函数，生成如下URN
-    java_function_urn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest"
+    java_function_urn = "sn:cn:yrk:default:function:0-yr-myjava:$latest"
 
     # 调用java无状态函数square
     java_function = yr.java_function("com.yuanrong.demo.Square", "square", java_function_urn)
@@ -332,7 +332,7 @@
 
 3. 注册 Java 函数为 openYuanrong 函数
 
-    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-myjava` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest`。
+    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-myjava` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:default:function:0-yr-myjava:$latest`。
 
      ```bash
     # 替换 /opt/mycode/python-invoke-java 为您的代码包目录
@@ -404,7 +404,7 @@
     int main(int argc, char **argv)
     {
         // 我们将在后续步骤中注册python函数，生成如下URN
-        std::string pyFunctionUrn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mypython:$latest";
+        std::string pyFunctionUrn = "sn:cn:yrk:default:function:0-yr-mypython:$latest";
 
         YR::Config conf;
         YR::Init(conf, argc, argv);
@@ -459,7 +459,7 @@
 
 2. 注册 python 函数为 openYuanrong 函数
 
-    先拷贝 `calculator.py` 文件到所有节点您创建的代码包目录下。再使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-mypython` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mypython:$latest`。
+    先拷贝 `calculator.py` 文件到所有节点您创建的代码包目录下。再使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-mypython` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:default:function:0-yr-mypython:$latest`。
 
     ```bash
     # 替换 /opt/mycode/cpp-invoke-python 为您的代码包目录
@@ -530,7 +530,7 @@
     int main(int argc, char **argv)
     {
         // 我们将在后续步骤中注册java函数，生成如下URN
-        std::string javaFunctionUrn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest";
+        std::string javaFunctionUrn = "sn:cn:yrk:default:function:0-yr-myjava:$latest";
 
         YR::Config conf;
         YR::Init(conf, argc, argv);
@@ -684,7 +684,7 @@
 
 3. 注册 Java 函数为 openYuanrong 函数
 
-    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-myjava` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:12345678901234561234567890123456:function:0-yr-myjava:$latest`。
+    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-myjava` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:default:function:0-yr-myjava:$latest`。
 
     ```bash
     # 替换 /opt/mycode/cpp-invoke-java 为您的代码包目录
@@ -827,7 +827,7 @@
         public static void main(String[] args) throws Exception {
             YR.init();
             // 我们将在后续步骤中注册C++函数，生成如下URN
-            String cppFunctionUrn = "sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest";
+            String cppFunctionUrn = "sn:cn:yrk:default:function:0-yr-mycpp:$latest";
 
             try {
                 // 调用无状态函数Square
@@ -939,7 +939,7 @@
 
 3. 注册 C++ 函数为 openYuanrong 函数
 
-    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-mycpp` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:12345678901234561234567890123456:function:0-yr-mycpp:$latest`。
+    使用 curl 工具调用[注册函数 API](../api/function_service/register_function.md) 注册名为 `0-yr-mycpp` 的 openYuanrong 函数，对应函数 URN 为 `sn:cn:yrk:default:function:0-yr-mycpp:$latest`。
 
     ```bash
     # 替换 /opt/mycode/java-invoke-cpp 为您的代码包目录

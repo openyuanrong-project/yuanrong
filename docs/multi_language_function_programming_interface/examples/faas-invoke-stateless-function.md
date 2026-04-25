@@ -53,7 +53,7 @@ curl -H "Content-type: application/json" -X POST -i ${META_SERVICE_ENDPOINT}/ser
 
 ```python
 import yr
-import monte-carlo
+import monte_carlo
 
 def handler(event, context):
     tasks_number = event.get("tasksNumber")
