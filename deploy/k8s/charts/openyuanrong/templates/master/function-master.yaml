@@ -1,0 +1,169 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: function-master
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.global.replicas.functionMaster }}
+  selector:
+    matchLabels:
+        app: function-master
+  template:
+    metadata:
+      labels:
+        app: function-master
+    spec:
+      volumes:
+        - name: log-volume
+          hostPath:
+            path: "{{ .Values.global.log.hostPath.componentLog }}"
+            type: DirectoryOrCreate
+        - name: data-volume
+          emptyDir:
+            sizeLimit: 5Gi
+        - configMap:
+            defaultMode: 0440
+            name: function-agent
+          name: function-agent
+        - configMap:
+            defaultMode: 0440
+            items:
+              - key: services.yaml
+                path: services.yaml
+            name: services-config
+          name: services
+        - name: config-volume
+          configMap:
+            defaultMode: 0440
+            name: components-toml-config
+      initContainers:
+        - name: agent-init-container
+          image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.agentInit }}
+          command: ["/bin/sh", "-c", "chown 1002:1002 /home/sn/log && chmod 777 /home/sn/log"]
+          resources:
+            limits:
+              cpu: {{ .Values.global.resources.functionAgentInit.limits.cpu }}
+              memory: {{ .Values.global.resources.functionAgentInit.limits.memory }}
+            requests:
+              cpu: {{ .Values.global.resources.functionAgentInit.requests.cpu }}
+              memory: {{ .Values.global.resources.functionAgentInit.requests.memory }}
+          volumeMounts:
+            - name: log-volume
+              mountPath: {{ .Values.global.log.functionSystem.path}}
+              subPathExpr: $(RUNTIME_POD_NAME)
+          env:
+            - name: RUNTIME_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - CHOWN
+                - NET_RAW
+                - NET_ADMIN
+                - SYS_ADMIN
+                - CHOWN
+                - SETGID
+                - SETUID
+                - DAC_OVERRIDE
+                - FOWNER
+                - FSETID
+              drop:
+                - ALL
+            runAsUser: 0
+      containers:
+        - name: service-container
+          image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.common }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+                umask 0027
+                if [ -f /home/sn/bin/alias/control_plane_alias.sh ]; then
+                  bash /home/sn/bin/alias/control_plane_alias.sh "function_master"
+                fi
+                [ ! -d {{quote .Values.global.log.functionSystem.path}} ] && mkdir -p {{quote .Values.global.log.functionSystem.path}}
+                python3 -m yr.cli.main -v launch --env-subst RUNTIME_POD_IP,RUNTIME_HOST_IP,RUNTIME_POD_NAME function_master
+          ports:
+            - containerPort: {{ .Values.global.port.functionMasterPort }}
+              protocol: TCP
+          env:
+            - name: RUNTIME_HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: RUNTIME_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: RUNTIME_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          resources:
+            limits:
+              cpu: {{ .Values.global.resources.functionMaster.limits.cpu }}
+              memory: {{ .Values.global.resources.functionMaster.limits.memory }}
+            requests:
+              cpu: {{ .Values.global.resources.functionMaster.requests.cpu }}
+              memory: {{ .Values.global.resources.functionMaster.requests.memory }}
+          volumeMounts:
+            - name: log-volume
+              mountPath: {{ .Values.global.log.functionSystem.path}}
+              subPathExpr: $(RUNTIME_POD_NAME)
+            - name: data-volume
+              mountPath: /opt/yuanrong/data
+            - mountPath: /home/sn/scaler/template
+              name: function-agent
+            - mountPath: /home/sn/service-config
+              name: services
+              readOnly: true
+            - name: config-volume
+              mountPath: /etc/yuanrong/config.toml
+              subPath: config.toml
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.global.port.functionMasterPort }}
+            initialDelaySeconds: 3
+            timeoutSeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.global.port.functionMasterPort }}
+            initialDelaySeconds: 3
+            timeoutSeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 10
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - sleep 1
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1002
+            runAsNonRoot: true
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 300
+      dnsPolicy: ClusterFirst
+      securityContext:
+        fsGroup: {{ .Values.global.runtime.fsGroup }}
+      serviceAccountName: function-master
+      imagePullSecrets:
+        - name: default-secret
+      schedulerName: default-scheduler

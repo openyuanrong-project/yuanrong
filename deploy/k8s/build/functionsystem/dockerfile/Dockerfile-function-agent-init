@@ -1,0 +1,36 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
+
+ARG docker_image 
+FROM ${docker_image}
+ARG SNUSER_ID
+ARG SN_ID
+ENV USER_UID=${SN_ID} \
+    USER_NAME=sn \
+    SNUSER_NAME=snuser \
+    SNUSER_ID=${SNUSER_ID} \
+    FUNCTIONSYSTEM_OUTPUT_DIR=openyuanrong
+
+ENV GROUP_ID=${USER_UID} \
+    GROUP_NAME=${USER_NAME} \
+    SNUSER_GROUP_NAME=${SNUSER_NAME} \
+    HOME=/home/${USER_NAME} \
+    SNUSER_GID=${SNUSER_ID}
+
+RUN chmod u+s $(which iptables) && \
+    chmod u+s $(which ipset)
+
+RUN mkdir -p ${HOME}/bin/ && \
+    groupadd -g ${SNUSER_GID} ${SNUSER_GROUP_NAME} && \
+    useradd -K MAIL_DIR=/dev/null -u ${SNUSER_ID} -g ${SNUSER_GID} -s /sbin/nologin ${SNUSER_NAME} && \
+    groupadd -g ${GROUP_ID} ${GROUP_NAME} && \
+    useradd -K MAIL_DIR=/dev/null -u ${USER_UID} -g ${GROUP_ID} -s /sbin/nologin ${USER_NAME} && \
+    chown -R ${USER_UID}:${GROUP_ID} ${HOME}
+
+RUN setcap 'cap_net_admin,cap_net_raw,cap_sys_admin+ep' $(readlink -f $(which iptables)) && \
+    setcap 'cap_net_admin+ep'                           $(readlink -f $(which ipset))
+
+COPY --chown=sn:sn ${FUNCTIONSYSTEM_OUTPUT_DIR}/deploy/k8s/build/functionsystem/entrypoints/entrypoint-function-agent-init ${HOME}/bin
+
+RUN chmod -R 500 ${HOME}/bin
+
+USER ${USER_UID}

@@ -1,0 +1,148 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+option go_package = "./;pb";
+
+message FunctionProperty {
+    string TenantID = 1;
+    string FunctionName = 2;
+    string FunctionVersion = 3;
+    string InstanceID = 4;
+    string StateID = 5;
+    string futureID = 7;
+}
+
+message CallRequest {
+    // log type
+    string LogType = 1;
+    // request data
+    bytes RawData = 2;
+    // request ID
+    uint64 RequestID = 3;
+    // userData
+    map<string, string> UserData = 4;
+    // Priority
+    int32 Priority = 5;
+    // cpu size
+    string CPU = 6;
+    // memory size
+    string Memory = 7;
+    // affinity info
+    AffinityInfoPb AffinityInfoPb = 8;
+    // group info
+    GroupInfo groupInfo = 9;
+    // resource MetaData
+    map<string, float> ResourceMetaData = 10;
+}
+
+message CallResponse {
+    // Success: 0, Failed for others
+    uint32 ErrorCode = 1;
+    // Message for error
+    string ErrorMessage = 2;
+    // response data
+    bytes RawData = 3;
+    // logs
+    string Logs = 4;
+    // request ID
+    uint64 RequestID = 5;
+    // summary
+    string Summary = 6;
+}
+
+message Message {
+    enum MessageType {
+        REGISTER = 0;
+        CALL_REQUEST = 1;
+        CALL_RESPONSE = 2;
+        CANCEL_REQUEST = 3;
+        CANCEL_RESPONSE = 4;
+        GROUP_REQUEST = 5;
+        GROUP_RESPONSE = 6;
+        CHECKPOINT_REQUEST = 7;
+        CHECKPOINT_RESPONSE = 8;
+    }
+    message CallMessage {
+        string traceID = 1;
+        FunctionProperty dst = 2;
+        CallRequest req = 3;
+    }
+    message CancelMessage {
+        string traceID = 1;
+        uint64 RequestID = 2;
+        string futureID = 3;
+        bool force = 4;
+        bool recursive = 5;
+        string instanceID = 6;
+    }
+    message CancelResponse {
+        // Success: 0, Failed for others
+        uint32 ErrorCode = 1;
+        // Message for error
+        string ErrorMessage = 2;
+    }
+    message GroupRequest {
+        string traceID = 1;
+        string businessID = 2;
+        string tenantID = 3;
+        string groupID = 4;
+        string operation = 5;
+        bytes data = 6;
+    }
+    message GroupResponse {
+        string traceID = 1;
+        uint32 errorCode = 2;
+        string errorMessage = 3;
+        bytes result = 4;
+    }
+    message CheckpointRequest {
+        string traceID = 1;
+        string stateID = 2;
+        string instanceID = 3;
+    }
+    message CheckpointResponse {
+        uint32 errorCode = 1;
+        string errorMessage = 2;
+        bytes rawData = 3;
+    }
+    MessageType type = 1;
+    FunctionProperty registerMessage = 2;
+    CallMessage callMessage = 3;
+    CallResponse callResponse = 4;
+    CancelMessage cancelMessage = 5;
+    CancelResponse cancelResponse = 6;
+    GroupRequest groupRequest = 7;
+    GroupResponse groupResponse = 8;
+    CheckpointRequest checkpointRequest = 9;
+    CheckpointResponse checkpointResponse = 10;
+}
+
+message AffinityInfoPb {
+    AffinityRequestPb AffinityRequest = 1;
+    string AffinityNode = 2;
+}
+
+message AffinityRequestPb {
+    repeated string ObjectIDs = 1;
+    string Strategy = 2;
+}
+
+message GroupInfo {
+    string groupID = 1;
+    string stackID = 2;
+}

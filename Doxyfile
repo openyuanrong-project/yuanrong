@@ -1,0 +1,20 @@
+# The default value is: YuanRong-runtime-java.
+PROJECT_NAME           = "YuanRong-runtime"
+OUTPUT_DIRECTORY       = .doxygendocs
+INPUT                  = api/cpp \
+                         api/java \
+                         src
+
+RECURSIVE              = YES
+
+EXCLUDE                = api/cpp/example/
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+
+EXAMPLE_PATH           = api/cpp/example/,api/java/example/
+EXAMPLE_PATTERNS       = *.cpp,*.java
+EXAMPLE_RECURSIVE      = YES
+
+EXTRACT_ALL = YES
+JAVADOC_AUTOBRIEF = YES

@@ -1,0 +1,471 @@
+load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
+load("//bazel:yr.bzl", "cc_strip")
+load("//bazel:yr_java.bzl", "group_of_java_tests")
+
+package(default_visibility = ["//visibility:public"])
+
+java_plugin(
+    name = "lombok_edge_basic_plugin",
+    processor_class = "lombok.launch.AnnotationProcessorHider$AnnotationProcessor",
+    visibility = ["//visibility:public"],
+    deps = ["@maven//:org_projectlombok_lombok"],
+)
+
+java_library(
+    name = "lombok_basic_edge",
+    exported_plugins = [":lombok_edge_basic_plugin"],
+    visibility = ["//visibility:public"],
+    exports = ["@maven//:org_projectlombok_lombok"],
+)
+
+java_library(
+    name = "function_common",
+    srcs = glob([
+        "function-common/src/main/java/**/*.java",
+    ]),
+    deps = [
+        "//api/java:lombok_basic_edge",
+        "//src/proto:libruntime_java_proto",
+        "//src/proto:socket_java_proto",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:org_projectlombok_lombok",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:commons_io_commons_io_2_16_1",
+        "@maven//:org_msgpack_jackson_dataformat_msgpack",
+        "@maven//:org_msgpack_msgpack_core",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:org_apache_logging_log4j_log4j_slf4j_impl",
+        "@maven//:org_apache_logging_log4j_log4j_api",
+        "@maven//:org_apache_logging_log4j_log4j_core",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_ow2_asm_asm",
+    ],
+)
+
+java_library(
+    name = "lib_yr_api_sdk",
+    srcs = glob([
+        "yr-api-sdk/src/main/java/**/*.java",
+        "function-common/src/main/java/**/*.java",
+    ]),
+    deps = [
+        "//api/java:lombok_basic_edge",
+        "//src/proto:libruntime_java_proto",
+        "//src/proto:socket_java_proto",
+        "@maven//:org_projectlombok_lombok",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:commons_io_commons_io_2_16_1",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:org_apache_logging_log4j_log4j_slf4j_impl",
+        "@maven//:org_apache_logging_log4j_log4j_api",
+        "@maven//:org_apache_logging_log4j_log4j_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:org_msgpack_jackson_dataformat_msgpack",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_ow2_asm_asm",
+    ],
+)
+
+java_binary(
+    name = "yr_runtime",
+    srcs = glob([
+        "yr-runtime/src/main/java/**/*.java",
+    ]),
+    deps = [
+        "//api/java:lombok_basic_edge",
+        "//api/java:function_common",
+        "//src/proto:libruntime_java_proto",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:commons_io_commons_io_2_16_1",
+        "@maven//:org_projectlombok_lombok",
+        "@maven//:org_apache_logging_log4j_log4j_slf4j_impl",
+        "@maven//:org_apache_logging_log4j_log4j_api",
+        "@maven//:org_apache_logging_log4j_log4j_core",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:org_msgpack_jackson_dataformat_msgpack",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:org_apache_commons_commons_lang3",
+    ],
+)
+
+java_library(
+    name = "lib_faas_function_sdk",
+    srcs = glob([
+        "faas-function-sdk/src/main/java/**/*.java",
+        "function-common/src/main/java/**/*.java",
+    ]),
+    deps = [
+        "//api/java:lombok_basic_edge",
+        "//api/java:function_common",
+        "//src/proto:libruntime_java_proto",
+        "//src/proto:socket_java_proto",
+        "@maven//:org_projectlombok_lombok",
+        "@maven//:commons_io_commons_io_2_16_1",
+        "@maven//:org_apache_logging_log4j_log4j_slf4j_impl",
+        "@maven//:org_apache_logging_log4j_log4j_api",
+        "@maven//:org_apache_logging_log4j_log4j_core",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:com_fasterxml_jackson_core_jackson_annotations",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_msgpack_jackson_dataformat_msgpack",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:org_ow2_asm_asm",
+    ],
+)
+
+group_of_java_tests(
+    test_suite_name = "all_faas_function_sdk_tests",
+    test_classes = [
+        "org.yuanrong.function.common.TestUtil",
+        "org.yuanrong.function.runtime.exception.TestInvokeException",
+        "org.yuanrong.function.TestFunction",
+        "org.yuanrong.function.TestCreateOptions",
+        "org.yuanrong.function.TestObjectRef"
+    ],
+    srcs = glob([
+        "faas-function-sdk/src/test/java/**/*.java",
+    ]),
+    deps = [
+        ":create_native_jar",
+        ":native_yr_api_sdk",
+        ":lib_faas_function_sdk",
+        ":function_common",
+        "@maven//:junit_junit",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_mockito_mockito_core",
+        "@maven//:org_powermock_powermock_core",
+        "@maven//:org_powermock_powermock_module_junit4",
+        "@maven//:org_powermock_powermock_api_mockito2",
+        "@jacoco//:jacoco_agent",
+    ],
+    jvm_flags = [
+        "-javaagent:$(execpath @jacoco//:jacoco_agent)=destfile=jacoco.exec",
+    ],
+    local = True
+)
+
+group_of_java_tests(
+    test_suite_name = "all_yr_api_sdk_tests",
+    test_classes = [
+        "org.yuanrong.call.TestCppFunctionHandler",
+        "org.yuanrong.call.TestCppInstanceCreator",
+        "org.yuanrong.call.TestCppInstanceFunctionHandler",
+        "org.yuanrong.call.TestCppInstanceHandler",
+        "org.yuanrong.call.TestFunctionHandler",
+        "org.yuanrong.call.TestInstanceFunctionHandler",
+        "org.yuanrong.call.TestInstanceHandler",
+        "org.yuanrong.call.TestJavaFunctionHandler",
+        "org.yuanrong.call.TestJavaInstanceCreator",
+        "org.yuanrong.call.TestJavaInstanceFunctionHandler",
+        "org.yuanrong.call.TestJavaInstanceHandler",
+        "org.yuanrong.runtime.TestClusterModeRuntime",
+        "org.yuanrong.runtime.TestYR",
+        "org.yuanrong.runtime.client.TestKVManager",
+        "org.yuanrong.storage.TestWaitResult",
+        "org.yuanrong.utils.TestSdkUtils",
+        "org.yuanrong.TestConfig",
+        "org.yuanrong.TestConfigManager",
+        "org.yuanrong.TestGroup",
+        "org.yuanrong.TestYRGetInstance"
+    ],
+    srcs = glob([
+        "yr-api-sdk/src/test/java/**/*.java",
+    ]),
+    deps = [
+        ":create_native_jar",
+        ":native_yr_api_sdk",
+        ":lib_faas_function_sdk",
+        "@maven//:junit_junit",
+        "@maven//:org_mockito_mockito_core",
+        "@maven//:org_powermock_powermock_core",
+        "@maven//:org_powermock_powermock_module_junit4",
+        "@maven//:org_powermock_powermock_api_mockito2",
+        "@jacoco//:jacoco_agent",
+    ],
+    jvm_flags = [
+        "-javaagent:$(execpath @jacoco//:jacoco_agent)=destfile=jacoco.exec",
+    ],
+    local = True,
+)
+
+group_of_java_tests(
+    test_suite_name = "all_function_common_tests",
+    test_classes = [
+        "org.yuanrong.services.TestUDFManager",
+        "org.yuanrong.services.logger.TestUserFunctionLogger",
+        "org.yuanrong.services.model.TestCallRequest",
+        "org.yuanrong.services.runtime.action.TestContextImpl",
+        "org.yuanrong.services.runtime.action.TestCustomLoggerStream",
+        "org.yuanrong.services.runtime.action.TestFunctionLoggerImpl",
+        "org.yuanrong.services.runtime.action.TestStream",
+        "org.yuanrong.services.runtime.utils.TestDataTypeAdapter",
+        "org.yuanrong.services.runtime.utils.TestUtil",
+        "org.yuanrong.TestGroupOptions",
+        "org.yuanrong.TestInvokeOptions",
+        "org.yuanrong.TestSetParam",
+        "org.yuanrong.affinity.TestAffinity",
+        "org.yuanrong.affinity.TestCondition",
+        "org.yuanrong.affinity.TestInstanceAffinity",
+        "org.yuanrong.affinity.TestLabelExpression",
+        "org.yuanrong.affinity.TestLabelOperator",
+        "org.yuanrong.affinity.TestResourceAffinity",
+        "org.yuanrong.affinity.TestSubCondition",
+        "org.yuanrong.api.TestInvokeArg",
+        "org.yuanrong.errorcode.TestErrorCode",
+        "org.yuanrong.errorcode.TestErrorInfo",
+        "org.yuanrong.errorcode.TestPair",
+        "org.yuanrong.exception.TestYRException",
+        "org.yuanrong.exception.TestFunctionRuntimeException",
+        "org.yuanrong.exception.TestHandlerNotAvailableException",
+        "org.yuanrong.exception.TestJNIException",
+        "org.yuanrong.exception.TestLibRuntimeException",
+        "org.yuanrong.exception.TestPosixCallException",
+        "org.yuanrong.exception.TestStatusCode",
+        "org.yuanrong.exception.handle.filter.TestFilterFactory",
+        "org.yuanrong.exception.handle.filter.TestFuncCallStackTraceFilter",
+        "org.yuanrong.exception.handle.filter.TestUserStackTraceFilter",
+        "org.yuanrong.exception.handle.traceback.TestStackTraceInfo",
+        "org.yuanrong.exception.handle.traceback.TestStackTraceUtils",
+        "org.yuanrong.instance.TestDataObject",
+        "org.yuanrong.instance.TestFunctionMetaFactory",
+        "org.yuanrong.jni.TestLibRunTimeConfig",
+        "org.yuanrong.jni.TestLoadUtil",
+        "org.yuanrong.runtime.TestObjectRef",
+        "org.yuanrong.runtime.TestReferenceCount",
+        "org.yuanrong.runtime.TestRuntimeContext",
+        "org.yuanrong.runtime.TestUtils",
+        "org.yuanrong.serialization.TestStrategy",
+        "org.yuanrong.storage.TestInternalWaitResult",
+    ],
+    srcs = glob([
+        "function-common/src/test/java/**/*.java",
+    ]),
+    deps = [
+        "//api/java:function_common",
+        "//src/proto:libruntime_java_proto",
+        "@maven//:junit_junit",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:org_mockito_mockito_core",
+        "@maven//:org_powermock_powermock_core",
+        "@maven//:org_powermock_powermock_module_junit4",
+        "@maven//:org_powermock_powermock_api_mockito2",
+        "@jacoco//:jacoco_agent",
+    ],
+    jvm_flags = [
+        "-javaagent:$(execpath @jacoco//:jacoco_agent)=destfile=jacoco.exec",
+    ],
+    local = True
+)
+
+group_of_java_tests(
+    test_suite_name = "all_yr_runtime_tests",
+    test_classes = [
+        "org.yuanrong.codemanager.TestCodeExecutor",
+        "org.yuanrong.codemanager.TestCodeLoader",
+        "org.yuanrong.executor.TestFunctionHandler",
+        "org.yuanrong.executor.TestReturnType",
+        "org.yuanrong.runtime.server.TestRuntimeLogger",
+        "org.yuanrong.TestEntrypoint",
+        "com.yuanrong.utils.TestRuntimeUtils"
+    ],
+    srcs = glob([
+        "yr-runtime/src/test/java/**/*.java",
+    ]),
+    deps = [
+        "//api/java:function_common",
+        "//src/proto:libruntime_java_proto",
+        "//api/java:yr_runtime",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:junit_junit",
+        "@maven//:org_mockito_mockito_core",
+        "@maven//:org_powermock_powermock_api_mockito2",
+        "@maven//:org_powermock_powermock_core",
+        "@maven//:org_powermock_powermock_module_junit4",
+        "@maven//:org_powermock_powermock_reflect",
+        "@maven//:org_powermock_powermock_api_support",
+        "@maven//:org_apache_logging_log4j_log4j_api",
+        "@maven//:org_projectlombok_lombok",
+        "@jacoco//:jacoco_agent",
+    ],
+    jvm_flags = [
+        "-javaagent:$(execpath @jacoco//:jacoco_agent)=destfile=jacoco.exec",
+    ],
+    local = True
+)
+
+cc_strip(
+    name = "java_strip",
+    srcs = ["//api/java/function-common/src/main/cpp:libruntime_lib_jni.so"],
+)
+
+genrule(
+    name = "create_native_jar",
+    srcs = [
+        "//api/java:lib_yr_api_sdk",
+        "//src/proto:libruntime_java_proto",
+        "//src/proto:socket_java_proto",
+        "//api/java/function-common/src/main/cpp:libruntime_lib_jni.so",
+        "@datasystem_sdk//:shared",
+        "@metrics_sdk//:shared",
+        "@boringssl//:shared",
+    ],
+    outs = ["native_yr_api_sdk.jar"],
+    cmd = """
+    # make folders
+    BASE_DIR=$$(pwd)
+    WORKING_DIR=$$BASE_DIR/temp
+    NATIVE_DIR=$$WORKING_DIR/native/$$(uname -m)
+    JAVA_SDK_DIR=$$BASE_DIR/build/output/runtime/sdk/java
+    rm -rf $$WORKING_DIR $$JAVA_SDK_DIR
+    mkdir -p $$NATIVE_DIR $$JAVA_SDK_DIR
+    chmod +w $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so) && chrpath -r '$$ORIGIN' $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so) &&
+    # decompress jars to WORKING_DIR
+    cd $$WORKING_DIR
+    jar xf $$BASE_DIR/$(locations //api/java:lib_yr_api_sdk)
+    LIBRUNTIME_PROTO_JAR=$$(echo $(locations //src/proto:libruntime_java_proto) | awk '{print $$1}')
+    jar xf $$BASE_DIR/$$LIBRUNTIME_PROTO_JAR
+    SOCKET_PROTO_JAR=$$(echo $(locations //src/proto:socket_java_proto) | awk '{print $$1}')
+    jar xf $$BASE_DIR/$$SOCKET_PROTO_JAR
+
+    # copy native lib to WORKING_DIR
+    cd $$BASE_DIR
+    NATIVE_LIB=$$(echo $(locations @datasystem_sdk//:shared))
+    NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations @metrics_sdk//:shared))
+    NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations @boringssl//:shared))
+    NATIVE_LIB=$$(echo $$NATIVE_LIB $(locations //api/java/function-common/src/main/cpp:libruntime_lib_jni.so))
+    LIB_REQUIRED=(
+        "libcommon_flags.so"
+        "librpc_option_protos.so"
+        "libprotobuf.so.25.5.0"
+        "libabseil_dll.so.2407.0.0"
+        "libtbb.so.2"
+        "libds-spdlog.so.1.12.0"
+        "libzmq.so.5.2.5"
+        "libsecurec.so"
+        "libssl.so.1.1"
+        "libcrypto.so.1.1"
+        "libssl.so.3"
+        "libcrypto.so.3"
+        "libaddress_sorting.so.42.0.0"
+        "libupb_json_lib.so.42.0.0"
+        "libupb_textformat_lib.so.42.0.0"
+        "libutf8_range_lib.so.42.0.0"
+        "libupb_message_lib.so.42.0.0"
+        "libupb_base_lib.so.42.0.0"
+        "libupb_mem_lib.so.42.0.0"
+        "libgpr.so.42.0.0"
+        "libgrpc.so.42.0.0"
+        "libgrpc++.so.1.65.4"
+        "libetcdapi_proto.so"
+        "libdatasystem.so"
+        "libspdlog.so.1.12.0"
+        "libyrlogs.so"
+        "liblitebus.so.0.0.1"
+        "libobservability-metrics-sdk.so"
+        "libobservability-metrics.so"
+        "libruntime_lib_jni.so")
+
+    unique_array=()
+
+    for f in $$NATIVE_LIB;
+    do
+        filename=$$(basename $$f)
+        if [[ ! "$${unique_array[*]-}" =~ "$${filename}" ]]; then
+            unique_array+=("$$filename")
+        else
+            echo "$$f already existed."
+            continue
+        fi
+        if [[ -L $$f || ! "$${LIB_REQUIRED[@]}" =~ "$$filename" ]];then
+            continue
+        fi
+        cp -a $$f $$NATIVE_DIR
+        if [[ "$$filename" == "libdatasystem.so" || "$$filename" == "libetcdapi_proto.so" ]];then
+            patchelf --set-rpath '$$ORIGIN' $$NATIVE_DIR/$$filename 2>/dev/null || true
+        fi
+        echo $$f $$filename
+        sha256value=$$(sha256sum $$f | awk '{{print $$1}}')
+        echo "$$filename=$$sha256value" >> $$NATIVE_DIR/so.properties
+    done
+
+    # make jar with native files
+    cd $$WORKING_DIR
+    zip -rqy yr_api_sdk.jar .
+    cp -rf yr_api_sdk.jar $$JAVA_SDK_DIR/yr-api-sdk-$$BUILD_VERSION.jar
+    cp $$BASE_DIR/api/java/yr-api-sdk/resource/sdkpom.xml $$JAVA_SDK_DIR/pom.xml
+
+    cd $$BASE_DIR && cp -rf $$WORKING_DIR/yr_api_sdk.jar $@
+    """,
+    local = True,
+)
+
+java_library(
+    name = "native_yr_api_sdk",
+    srcs = [],
+    deps = [],
+    runtime_deps = [":native_yr_api_sdk.jar"],
+    data = ["native_yr_api_sdk.jar"]
+)
+
+genrule(
+    name = "yr_java_pkg",
+    srcs = [
+        ":java_strip",
+        "yr_runtime_deploy.jar",
+        ":lib_faas_function_sdk",
+        ":create_native_jar",
+    ],
+    outs = ["yr_java_pkg.out"],
+    cmd = """
+        BASE_DIR="$$(pwd)" &&
+        JAVA_SDK_DIR=$$BASE_DIR/build/output/runtime/sdk/java &&
+        JAVA_SERVICE_DIR=$$BASE_DIR/build/output/runtime/service/java &&
+        rm -rf $$JAVA_SERVICE_DIR  && mkdir -p $$JAVA_SERVICE_DIR &&
+        echo "$(locations :create_native_jar)"
+        cp -rf $(locations yr_runtime_deploy.jar) $$JAVA_SERVICE_DIR/yr-runtime-1.0.0.jar &&
+        cp -rf $$BASE_DIR/api/java/yr-runtime/src/main/resources/* $$JAVA_SERVICE_DIR/ &&
+        cp -rf $(locations :lib_faas_function_sdk) $$JAVA_SDK_DIR/faas-function-sdk-$$BUILD_VERSION.jar &&
+        mkdir -p $$JAVA_SERVICE_DIR/lib &&
+        chmod +w $(locations :java_strip) &&
+        chrpath -r '$$ORIGIN' $(locations :java_strip) &&
+        cp -fr $(locations :java_strip) $$JAVA_SERVICE_DIR/lib &&
+        DATASYSTEM_DIR=$$BASE_DIR/external/datasystem_sdk &&
+        METRICS_DIR=$$BASE_DIR/external/metrics_sdk &&
+        cp -rf $$DATASYSTEM_DIR/lib/* $$JAVA_SERVICE_DIR/lib &&
+        cp -rf $$METRICS_DIR/lib/* $$JAVA_SERVICE_DIR/lib &&
+        ln -f -s libgrpc++.so.1.65.4 $$JAVA_SERVICE_DIR/lib/libgrpc++.so.1.65 &&
+        ln -f -s libgrpc.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libgrpc.so.42 &&
+        ln -f -s libupb_json_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_json_lib.so.42 &&
+        ln -f -s libupb_textformat_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_textformat_lib.so.42 &&
+        ln -f -s libutf8_range_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libutf8_range_lib.so.42 &&
+        ln -f -s libupb_message_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_message_lib.so.42 &&
+        ln -f -s libupb_base_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_base_lib.so.42 &&
+        ln -f -s libupb_mem_lib.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libupb_mem_lib.so.42 &&
+        ln -f -s libgpr.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libgpr.so.42 &&
+        ln -f -s libaddress_sorting.so.42.0.0 $$JAVA_SERVICE_DIR/lib/libaddress_sorting.so.42 &&
+        patchelf --set-rpath '$$ORIGIN' $$JAVA_SERVICE_DIR/lib/libdatasystem.so 2>/dev/null || true &&
+        patchelf --set-rpath '$$ORIGIN' $$JAVA_SERVICE_DIR/lib/libetcdapi_proto.so 2>/dev/null || true &&
+        echo "$$BASE_DIR" > $@
+    """,
+    local = True,
+    visibility = ["//visibility:public"],
+)
+
+test_suite(
+    name = "java_tests",
+    tests = [
+      "//api/java:all_yr_api_sdk_tests",
+      "//api/java:all_function_common_tests",
+      "//api/java:all_yr_runtime_tests",
+      "//api/java:all_faas_function_sdk_tests",
+    ]
+)

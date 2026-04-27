@@ -1,0 +1,84 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package invoke;
+
+option go_package = "api/invoke";
+
+option java_package = "com.sn.msgstruct";
+option java_outer_classname = "Invoke";
+
+message RequestPb {
+    string funcName = 1;
+    string version = 2;
+    string payload = 3;
+    bool byKey = 4;
+    string key = 5;
+    string stateID = 6;
+    int32 countOfFuncName = 7;
+    map<string, int32> requestAttributes = 9;
+    map<string, float> resourceMetaData = 10;
+    AffinityRequestPb affinityRequestPb = 11;
+    GroupInfo groupInfo = 12;
+    string invokeType = 13;
+}
+
+message ResponsePb {
+    int32 code = 1;
+    string message = 2;
+    string stateID = 3;
+    string futureID = 4;
+}
+
+message TaskRequestPb {
+    string funcName = 1;
+    string version = 2;
+    string payload = 3;
+    string stateID = 4;
+    string futureID = 5;
+    bool createStateQueue = 6;
+    string stateKey = 7;
+    string invokeType = 8;
+}
+
+message TaskResponsePb {
+    int32 code = 1;
+    string message = 2;
+}
+
+message TaskCrateStateQueueRequestPb {
+    string stateID = 1;
+}
+
+message OnCompleteRequestPb {
+    string funcName = 1;
+    string version = 2;
+    string stateID = 3;
+    string futureID = 4;
+    int32 countOfFuncName = 5;
+}
+
+message AffinityRequestPb {
+    repeated string objectIDs = 1;
+    string strategy = 2;
+}
+
+message GroupInfo {
+  string groupID = 1;
+  string stackID = 2;
+}

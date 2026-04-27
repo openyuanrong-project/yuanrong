@@ -1,0 +1,12 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: function-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: function-scheduler
+    namespace: "default"
+roleRef:
+  kind: ClusterRole
+  name: function-scheduler
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,123 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package commonargs;
+
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/commonargs;commonargs";
+
+message Arg {
+  enum ArgType {
+    VALUE      = 0;
+    OBJECT_REF = 1;
+  }
+  ArgType type  = 1;
+  bytes   value = 2;
+  repeated string nested_refs = 3;
+}
+
+
+// IN: Labels has the Requirement's key and Labels' value is in Requirement's value set
+message LabelIn {
+  repeated string values = 1;
+}
+
+// NOT_IN: contrary to the operator In
+message LabelNotIn {
+  repeated string values = 1;
+}
+
+// EXISTS: Labels has the Requirement's key
+message LabelExists {}
+
+// DOES_NOT_EXIST: contrary to the operator Exists
+message LabelDoesNotExist {}
+
+message LabelOperator {
+  oneof LabelOperator {
+    LabelIn in = 1;
+    LabelNotIn notIn = 2;
+    LabelExists exists = 3;
+    LabelDoesNotExist notExist = 4;
+  }
+}
+
+message LabelMatchExpression {
+  string key = 1;
+  LabelOperator op = 2;
+}
+
+message LabelMatchExpressions {
+  repeated LabelMatchExpression expressions = 1;
+  int64 weight = 2;
+}
+
+message RequiredSelector {
+  repeated LabelMatchExpression expressions = 1;
+}
+
+message PreferredSelector {
+  repeated LabelMatchExpressions matchLabels = 1; // max length = 10
+  bool priority = 2;  // ONLY valid while preffered, default is true
+}
+
+message ResourceAffinity {
+  // key: PreferredAffinity PreferredAntiAffinity
+  map<string, PreferredSelector> preferred = 1;
+  // key: RequiredAffinity RequiredAntiAffinity
+  map<string, RequiredSelector> required = 2;
+}
+
+message InstanceAffinity {
+  // key: PreferredAffinity PreferredAntiAffinity
+  map<string, PreferredSelector> preferred = 1;
+  // key: RequiredAffinity RequiredAntiAffinity
+  map<string, RequiredSelector> required = 2;
+  string topologyKey = 3;  // By default, only the node level or function_proxy deamonSet level is supported. 
+}
+
+message Affinity {
+  ResourceAffinity resource = 1;
+  InstanceAffinity instance = 2;
+}
+
+enum ErrorCode {
+  ERR_NONE                        = 0;
+  ERR_PARAM_INVALID               = 1001;
+  ERR_RESOURCE_NOT_ENOUGH         = 1002;
+  ERR_INSTANCE_NOT_FOUND          = 1003;
+  ERR_INSTANCE_DUPLICATED         = 1004;
+  ERR_INVOKE_RATE_LIMITED         = 1005;
+  ERR_RESOURCE_CONFIG_ERROR       = 1006;
+  ERR_INSTANCE_EXITED             = 1007;
+  ERR_EXTENSION_META_ERROR        = 1008;
+  ERR_USER_CODE_LOAD              = 2001;
+  ERR_USER_FUNCTION_EXCEPTION     = 2002;
+  ERR_REQUEST_BETWEEN_RUNTIME_BUS = 3001;
+  ERR_INNER_COMMUNICATION         = 3002;
+  ERR_INNER_SYSTEM_ERROR          = 3003;
+  ERR_DISCONNECT_FRONTEND_BUS     = 3004;
+  ERR_ETCD_OPERATION_ERROR        = 3005;
+  ERR_BUS_DISCONNECTION           = 3006;
+  ERR_REDIS_OPERATION_ERROR       = 3007;
+  ERR_NPU_FAULT_ERROR             = 3016;
+}
+
+message SmallObject {
+  string id    = 1;
+  bytes  value = 2;  // sbuffer
+}

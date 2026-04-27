@@ -1,0 +1,172 @@
+html {
+    --pst-font-family-base: 'Microsoft Yahei', 'Inter', sans-serif;
+}
+
+.bd-page-width {
+    max-width: 100%;
+    min-width: 100%;
+}
+
+.bd-content .sd-tab-set>input:checked+label {
+    border-color: #d3d3d3 #d3d3d3 transparent;
+}
+
+.bd-content .sd-tab-set .sd-tab-content {
+    border-color: #d3d3d3;
+}
+
+/* 覆盖 PyData 主题的默认内容宽度 */
+.bd-container {
+    max-width: none !important;
+}
+
+/* 或者设置一个更大的固定宽度（可选） */
+/* .bd-container { max-width: 1400px !important; } */
+
+/* 确保主内容区撑满 */
+.bd-main .bd-content .bd-article-container {
+    max-width: none;
+}
+
+/* 可选：隐藏右侧 ToC 边栏（如果你希望内容完全占据右侧空间） */
+/* .bd-toc { display: none !important; } */
+
+/* 点击后（当前页面）字体加粗 */
+.navbar-nav .nav-item.active .nav-link {
+    font-weight: 700 !important;
+    color: inherit !important;
+}
+
+/* 移除悬停效果 */
+.navbar-nav .nav-link:hover {
+    text-decoration: none;
+    color: inherit !important;
+}
+
+/* ========== 修正版：右侧整体滚动 ========== */
+
+/* 1. 最外层容器 */
+.bd-header__inner {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+}
+
+/* 2. 左侧区域（logo）- 保持原有结构 */
+.bd-header__inner .navbar-header-items__start {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    
+    /* 不固定宽度，保持原有大小 */
+    flex: 0 0 auto !important;
+    width: auto !important;
+    overflow: visible !important;
+    
+    /* 右边距 */
+    margin-right: 1rem !important;
+}
+
+/* Logo 保持原样 */
+.bd-header__inner .navbar-brand {
+    flex: 0 0 auto !important;
+}
+
+/* 3. 关键：右侧大容器（col-lg-9）- 设置为滚动区域 */
+.bd-header__inner > .navbar-header-items {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    
+    /* 占据剩余空间 */
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    
+    /* 整体横向滚动 */
+    overflow-x: auto !important;
+    overflow-y: visible !important;  /* 修改：从 hidden 改为 visible */
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+.bd-header__inner > .navbar-header-items::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* 4. 右侧容器内的 nav - 保持水平排列 */
+.bd-header__inner > .navbar-header-items #navbar-main-elements,
+.bd-header__inner > .navbar-header-items .navbar-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    flex: 0 0 auto !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+}
+
+/* 5. 右侧容器内的 version-switcher - 保持在右侧 */
+.bd-header__inner > .navbar-header-items .navbar-header-items__end {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    
+    flex: 0 0 auto !important;
+    margin-left: auto !important;  /* 推到最右 */
+    margin-right: 0 !important;
+}
+
+/* 确保 switcher 不压缩 */
+.bd-header__inner > .navbar-header-items .version-switcher__container,
+.bd-header__inner > .navbar-header-items [class*="version-switcher"] {
+    flex: 0 0 auto !important;
+}
+
+/* ========== 6. 关键新增：version-switcher 按钮向左移动 + 下拉框层级置顶 ========== */
+
+/* version-switcher 按钮向左移动 */
+.bd-header__inner .navbar-header-items__end {
+    margin-right: 1rem !important;  /* 右边距，把按钮往左推 */
+}
+
+/* 或者更精确地针对 switcher 容器 */
+.bd-header__inner .version-switcher__container,
+.bd-header__inner [class*="version-switcher__container"] {
+    margin-right: 0.5rem !important;  /* 右边距 */
+    /* 或者使用 transform 微调 */
+    /* transform: translateX(-10px) !important; */
+}
+
+/* 下拉菜单使用 fixed 定位突破父容器限制 */
+.bd-header__inner .version-switcher__container .dropdown-menu,
+.bd-header__inner [class*="version-switcher"] .dropdown-menu,
+.bd-header__inner .version-switcher__menu {
+    position: fixed !important;
+    z-index: 99999 !important;
+    top: 60px !important;  /* 根据你的页眉高度调整 */
+    right: 1.5rem !important;  /* 配合按钮左移，下拉框也相应调整 */
+    left: auto !important;
+    transform: none !important;
+}
+
+/* 确保 switcher 容器本身有正确的定位上下文 */
+.bd-header__inner .version-switcher__container,
+.bd-header__inner [class*="version-switcher__container"] {
+    position: static !important;
+}
+
+/* 更精确的选择器 */
+.navbar-header-items__end .version-switcher__container .dropdown-menu.show,
+.navbar-header-items__end [class*="version-switcher"] .dropdown-menu.show {
+    position: fixed !important;
+    top: 60px !important;
+    right: 1.5rem !important;
+    left: auto !important;
+    z-index: 99999 !important;
+}

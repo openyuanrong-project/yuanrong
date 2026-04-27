@@ -1,0 +1,52 @@
+load("//bazel:yr.bzl", "COPTS", "LOPTS")
+
+cc_library(
+    name = "cpplibruntime_lib",
+    deps = [
+        "//:runtime_lib",
+        "@securec//:securec",
+    ],
+    hdrs = [
+        "clibruntime.h",
+    ],
+    srcs = [
+        "cpplibruntime.cpp",
+    ],
+    alwayslink = True,
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "libcpplibruntime.so",
+    deps = select(
+        {
+            "test_mode": [":mockcpplibruntime_lib"],
+            "//conditions:default": [":cpplibruntime_lib"],
+        }
+    ),
+    copts = COPTS,
+    linkopts = LOPTS,
+    linkshared = True,
+    linkstatic = True,
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "test_mode",
+    values = { "define": "mode=test" }
+)
+
+cc_library(
+    name = "mockcpplibruntime_lib",
+    deps = [
+        "//:runtime_lib",
+    ],
+    hdrs = [
+        "clibruntime.h",
+    ],
+    srcs = [
+        "mock/mock_cpplibruntime.cpp",
+    ],
+    alwayslink = True,
+    visibility = ["//visibility:public"],
+)

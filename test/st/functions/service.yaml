@@ -1,0 +1,19 @@
+service: yr
+kind: yrlib
+description: this is a hello world service
+functions:
+  stpython:
+    memory: 1000
+    cpu: 1000
+    runtime: python3.9
+    timeout: 900
+  stcpp:
+    cpu: 1000
+    memory: 1000
+    runtime: cpp11
+    timeout: 900
+  stjava:
+    cpu: 1000
+    memory: 1000
+    runtime: java1.8
+    timeout: 900

@@ -1,0 +1,35 @@
+From 13fcf2cb5b9288a9323e60929871fcb62bca9952 Mon Sep 17 00:00:00 2001
+From: Hans Wennborg <hans@chromium.org>
+Date: Fri, 18 Aug 2023 11:05:33 +0200
+Subject: [PATCH] [Backport]Reject overflows of zip header fields in minizip.
+CVE: CVE-2023-45853
+Reference: https://github.com/madler/zlib/commit/73331a6a0481067628f065ffe87bb1d8f787d10c
+---
+ contrib/minizip/zip.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git contrib/minizip/zip.c contrib/minizip/zip.c
+index 66d693f..ac5de7c 100644
+--- contrib/minizip/zip.c
++++ contrib/minizip/zip.c
+@@ -1083,6 +1083,17 @@ extern int ZEXPORT zipOpenNewFileInZip4_64 (zipFile file, const char* filename,
+       return ZIP_PARAMERROR;
+ #endif
+ 
++    // The filename and comment length must fit in 16 bits.
++    if ((filename!=NULL) && (strlen(filename)>0xffff))
++        return ZIP_PARAMERROR;
++    if ((comment!=NULL) && (strlen(comment)>0xffff))
++        return ZIP_PARAMERROR;
++    // The extra field length must fit in 16 bits. If the member also requires
++    // a Zip64 extra block, that will also need to fit within that 16-bit
++    // length, but that will be checked for later.
++    if ((size_extrafield_local>0xffff) || (size_extrafield_global>0xffff))
++        return ZIP_PARAMERROR;
++
+     zi = (zip64_internal*)file;
+ 
+     if (zi->in_opened_file_inzip == 1)
+-- 
+2.1.4
+

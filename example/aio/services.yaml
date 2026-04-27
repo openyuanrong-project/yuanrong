@@ -1,0 +1,42 @@
+- service: defaultservice # 服务名（必填）
+  kind: yrlib # 函数类型（必填） 进程部署只支持 yrlib
+  description: this is the default service # 函数描述（非必填）
+  functions: # 函数（必填）
+    default: # 函数名（必填）
+      cpu: 0 # 函数 CPU 大小，单位：1/1000 核（必填）
+      memory: 0 # 函数 MEM 大小，单位：MB（必填）
+      runtime: python3.11 # 函数 runtime 类型（必填）
+        # environment: # 函数环境变量，内置环境变量定义
+      # "key1" : "value1"
+      # storageType: "local" # 代码包存储类型，默认值为 local, 进程部署只支持 local: 代码包存储在磁盘中
+      # codePath: "/home/sn/function-packages" # 代码包本地路径，默认值为空（除了 python，此项必填）
+    py311:
+      cpu: 0
+      memory: 0
+      runtime: python3.11
+    py39:
+      cpu: 0
+      memory: 0
+      runtime: python3.9
+      rootfs:
+        runtime: runc
+        type: image
+        imageurl: "swr.cn-southwest-2.myhuaweicloud.com/openyuanrong/openyuanrongaio:latest"
+        readonly: true
+        mountpoint: /mnt
+      bootstrap:
+        type: path
+        root: "/"
+        entrypoint: "python3.9 -m yr.cli.scripts runtime_main"
+    py310:
+      cpu: 0
+      memory: 0
+      runtime: python3.10
+    java:
+      cpu: 500
+      memory: 500
+      runtime: java1.8
+    cpp:
+      cpu: 500
+      memory: 500
+      runtime: cpp11

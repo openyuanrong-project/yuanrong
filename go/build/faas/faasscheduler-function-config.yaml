@@ -1,0 +1,100 @@
+#apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: faasscheduler-function-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  faasscheduler_config.json: |-
+    {
+      "0-system-faasscheduler": {
+        "systemFunctionName":"0-system-faascontroller",
+        "signal":66,
+        "payload":{
+          "scenario": "faas",
+          "schedulerNum": {{ .Values.global.systemFunc.faasScheduler.instanceNum }},
+          "clusterID":"cluster001",
+          "clusterName": "dsweb_cceturbo_bj4_auto_az1",
+          "regionName": "beijing4",
+          "affinity": {{ quote .Values.global.systemFunc.faasScheduler.affinity | default "\"\"" }},
+          "alarmConfig": {
+            "enableAlarm": false,
+            "minInsStartInterval": 15,
+            "minInsCheckInterval": 15,
+            "alarmLogConfig": {
+              "filepath": "/opt/huawei/logs/alarms",
+              "level": "Info",
+              "tick": 0,
+              "first": 0,
+              "thereafter": 0,
+              "singlesize": 500,
+              "threshold": 3,
+              "disable": false
+            },
+            "xiangYunFourConfig": {
+              "site": "cn_dev_default",
+              "tenantID": "T014",
+              "applicationID": "com.huawei.cloud_enhance_device",
+              "serviceID": "com.huawei.hmscorecameracloudenhanceservice"
+            }
+          },
+          "cpu": {{ .Values.global.systemFunc.faasScheduler.cpu }},
+          "memory": {{ .Values.global.systemFunc.faasScheduler.memory }},
+          "image": "",
+          "version":"",
+          "nameSpace": {{ quote .Values.global.namespace }},
+          "autoScaleConfig":{
+              "slaQuota": 1000,
+              "scaleDownTime": 60000,
+              "burstScaleNum": 1000
+          }, 
+          "leaseSpan": 5000,
+          "functionLimitRate": 5000,
+          "ephemeralStorage": 512,
+          "dockerRootPath":"/var/lib/docker",
+          "rawStsConfig": {
+            "stsEnable": {{ .Values.global.sts.enable }},
+            "serverConfig": {
+              "domain": {{ quote .Values.global.sts.serverDomain }},
+              "path": "/opt/huawei/certs/HMSClientCloudAccelerateService/HMSCaaSYuanRongWorker/HMSCaasYuanRongWorker.ini"
+            }
+          },
+          "routerEtcd": {
+            "servers": ["{{ .Values.global.etcdManagement.detcd }}"],
+            {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+            "sslEnable": true,
+            {{- else }}
+            "sslEnable": false,
+            {{- end}}
+            "user":"",
+            "password":"",
+            "authType": {{ quote .Values.global.etcdManagement.authType }},
+            "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+            "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+          },
+          "metaEtcd": {
+            "servers": ["{{ .Values.global.etcdManagement.metcd }}"],
+            {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+            "sslEnable": true,
+            {{- else }}
+            "sslEnable": false,
+            {{- end}}
+            "user":"",
+            "password":"",
+            "authType": {{ quote .Values.global.etcdManagement.authType }},
+            "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+            "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+          },
+          "tlsConfig": {
+            "caContent": {{ quote .Values.global.systemFunc.tlsConfig.caContent }},
+            "keyContent": {{ quote .Values.global.systemFunc.tlsConfig.keyContent }},
+            "certContent": {{ quote .Values.global.systemFunc.tlsConfig.certContent }}
+          },
+          "sccConfig": {
+            "enable": {{ .Values.global.scc.enable }},
+            "secretName": {{ quote .Values.global.scc.secretName }},
+            "algorithm": {{ quote .Values.global.scc.algorithm }}
+          }
+        }
+      }
+    }
+

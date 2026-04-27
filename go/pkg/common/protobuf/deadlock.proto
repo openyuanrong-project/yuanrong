@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package deadlock;
+
+option go_package = "api/deadlock";
+
+option java_package = "com.sn.msgstruct";
+option java_outer_classname = "Deadlock";
+
+message ReqIDListPb {
+    repeated string reqIDs = 1;
+}
+
+message StartRequestPb {
+    string stateID = 1;
+    string state = 2;
+    repeated ReqIDListPb futureReqIDLists = 3;
+    string tenantID = 4;
+    string serviceID = 5;
+}
+
+message StartResponsePb {
+    int32 code = 1;
+    string message = 2;
+    string deadlockID = 3;
+}
+
+message EndRequestPb {
+    string stateID = 1;
+    string deadlockID = 2;
+    string tenantID = 4;
+    string serviceID = 5;
+}
+
+message EndResponsePb {
+    int32 code = 1;
+    string message = 2;
+    string state = 3;
+}

@@ -1,0 +1,45 @@
+{
+  "ip": "{ip}",
+  "port": {port},
+  "grpcIP": "{grpcIP}",
+  "grpcPort": {grpcPort},
+  "staticPath": "{staticPath}",
+  "functionMasterAddr": "{functionMasterAddr}",
+  "frontendAddr": "{frontendAddr}",
+  "prometheusAddr": "{prometheusAddr}",
+  "routerEtcdConfig": {
+    "servers": ["{etcdAddr}"],
+    "sslEnable": {etcdSsl},
+    "authType": "{etcdAuthType}",
+    "azPrefix": "{azPrefix}",
+    "cafile": "{etcdCAFile}",
+    "certfile": "{etcdCertFile}",
+    "keyfile": "{etcdKeyFile}"
+  },
+  "metaEtcdConfig": {
+    "servers": ["{etcdAddr}"],
+    "sslEnable": {etcdSsl},
+    "authType": "{etcdAuthType}",
+    "azPrefix": "{azPrefix}",
+    "cafile": "{etcdCAFile}",
+    "certfile": "{etcdCertFile}",
+    "keyfile": "{etcdKeyFile}"
+  },
+  "functionSystemConfig": {
+    "sslEnable": {functionSystemSsl},
+    "cafile": "{functionSystemCAFile}",
+    "certfile": "{functionSystemCertFile}",
+    "keyfile": "{functionSystemKeyFile}"
+  },
+  "prometheusConfig": {
+    "sslEnable": {prometheusSsl},
+    "cafile": "{prometheusCAFile}",
+    "certfile": "{prometheusCertFile}",
+    "keyfile": "{prometheusKeyFile}"
+  },
+  "sslConfig": {
+    "sslEnable": {dashboardSsl},
+    "certfile": "{dashboardCertFile}",
+    "keyfile": "{dashboardKeyFile}"
+  }
+}

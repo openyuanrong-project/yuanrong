@@ -1,0 +1,104 @@
+apiVersion: v1
+metadata:
+  name: function-agent-config
+  namespace: {{ .Values.global.namespace }}
+  creationTimestamp: null
+kind: ConfigMap
+data:
+  {{- if .Values.global.runtime.useAscendCustomConfig }}
+  PATH: /home/snuser/.local/bin:/home/snuser/bin:/bin:/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/function/runtime/java8/rtsp/jre/bin:/opt/function/runtime/java11/rtsp/jre/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/Ascend/toolbox/latest/Ascend-DMI/bin:/usr/local/Ascend/ascend-toolkit/latest/bin:/usr/local/Ascend/ascend-toolkit/latest/compiler/ccec_compiler/bin
+  LD_LIBRARY_PATH: /usr/lib64:/home/snuser/snlib:/tmp:/home/snuser/.local/lib/python3.9/site-packages/datasystem:/usr/local/Ascend/toolbox/latest/Ascend-DMI/lib64:/usr/local/Ascend/toolbox/latest/Ascend-DMI/bin:/usr/local/dcmi:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver:/usr/local/Ascend/ascend-toolkit/latest/lib64:/usr/local/Ascend/ascend-toolkit/latest/lib64/plugin/opskernel:/usr/local/Ascend/ascend-toolkit/latest/lib64/plugin/nnengine
+  ASCEND_TOOLKIT_HOME: /usr/local/Ascend/ascend-toolkit/latest
+  ASCEND_AICPU_PATH: /usr/local/Ascend/ascend-toolkit/latest
+  ASCEND_OPP_PATH: /usr/local/Ascend/ascend-toolkit/latest/opp
+  TOOLCHAIN_HOME: /usr/local/Ascend/ascend-toolkit/latest/toolkit
+  ASCEND_HOME_PATH: /usr/local/Ascend/ascend-toolkit/latest
+  _env: ASCEND_TOOLKIT_HOME, ASCEND_AICPU_PATH, ASCEND_OPP_PATH, TOOLCHAIN_HOME, ASCEND_HOME_PATH
+  {{- end }}
+  runtime.json: |-
+    {
+      "maxRequestBodySize": "6",
+      "maxFdNum": 1024,
+      "dataSystemConnectionTimeout": "1",
+      "maxLogSize": 40,
+      "maxLogFileNum": 20
+    }
+  python-runtime-log.json: |-
+    {
+        "version": 1,
+        "disable_existing_loggers": false,
+        "formatters": {
+            "extra": {
+                "format": "[%(asctime)s %(levelname)s %(filename)s:%(lineno)d] [%(podname)s %(thread)d] [%(runtime_id)s] %(message)s"
+            }
+        },
+        "handlers": {
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": "{{ .Values.global.log.runtime.path }}",
+                "formatter": "extra",
+                "maxBytes": 419430400,
+                "backupCount": 1
+            }
+        },
+        "loggers": {
+            "FileLogger": {
+                "handlers": [
+                    "file"
+                ],
+                "level": "{{ .Values.global.log.runtime.level }}",
+                "propagate": false
+            }
+        }
+    }
+  log4j2.xml: |-
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configuration status="error" monitorInterval="60">
+        <appenders>
+            <console name="Console" target="SYSTEM_OUT">
+                <PatternLayout charset="UTF-8" pattern=" | %l | %m%n"/>
+                <replace regex="\r\t" replacement=""/>
+                <replace regex="\n" replacement=""/>
+            </console>
+            <console name="Console" target="SYSTEM_ERR">
+                <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY"/>
+                <PatternLayout charset="UTF-8" pattern=" %l | %m%n"/>
+                <replace regex="\r\t" replacement=""/>
+                <replace regex="\n" replacement=""/>
+            </console>
+            <RollingFile name="RollingFileLog" fileName="${sys:logPath}/${sys:logId}_runtime.log"
+                         filePattern="${sys:logPath}/$${date:yyyy-MM}/${sys:runtimeId}_runtime-%d{yyyy-MM-dd}-%i.log">
+                <ThresholdFilter level="${sys:logLevel}" onMatch="ACCEPT" onMismatch="DENY"/>
+                <PatternLayout charset="UTF-8" pattern="[%d{HH:mm:ss:SSS}{GMT+8} %p %t %F:%L] [${sys:runtimeId}] %m%n"/>
+                <replace regex="\r\t" replacement=""/>
+                <replace regex="\n" replacement=""/>
+                <Policies>
+                    <TimeBasedTriggeringPolicy/>
+                    <SizeBasedTriggeringPolicy size="400 MB"/>
+                </Policies>
+            </RollingFile>
+            <Async name="AsyncRollingFileLog" includeLocation="true">
+                <AppenderRef ref="RollingFileLog"/>
+            </Async>
+        </appenders>
+        <loggers>
+            <root level="${sys:logLevel}">
+                <appender-ref ref="AsyncRollingFileLog"/>
+            </root>
+        </loggers>
+    </configuration>
+  iptabelsRule: |-
+    *filter
+    :INPUT ACCEPT [193520:13189012]
+    :FORWARD ACCEPT [0:0]
+    :OUTPUT ACCEPT [208122:17531363]
+    -A OUTPUT -d aaa.bbb.ccc.ddd/32 -m comment --comment "yangtse OUTPUT rules" -j DROP
+    COMMIT
+    *nat
+    :PREROUTING ACCEPT [23377:1215612]
+    :INPUT ACCEPT [23377:1215612]
+    :OUTPUT ACCEPT [3662:358152]
+    :POSTROUTING ACCEPT [3662:358152]
+    -A PREROUTING -s aaa.bbb.ccc.ddd/32 -i veth1 -m comment --comment "yangtse PREROUTING rules" -j RETURN
+    -A POSTROUTING ! -s aaa.bbb.ccc.ddd/32 -o eth0 -m comment --comment "yangtse SNAT rules" -j MASQUERADE
+    COMMIT

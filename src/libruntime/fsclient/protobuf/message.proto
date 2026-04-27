@@ -1,0 +1,141 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+import "src/libruntime/fsclient/protobuf/resource.proto";
+import "src/libruntime/fsclient/protobuf/common.proto";
+import "src/libruntime/fsclient/protobuf/core_service.proto";
+
+package messages;
+
+message QueryResourcesInfoRequest {
+  string requestID = 1;
+}
+
+message QueryResourcesInfoResponse {
+  string requestID = 1;
+  resources.ResourceUnit resource = 2;
+}
+
+message QueryNamedInsRequest {
+  string requestID = 1;
+}
+
+message QueryNamedInsResponse {
+  string requestID = 1;
+  repeated string names = 2; // names of named ins
+}
+
+message QueryResourceGroupRequest {
+  string requestID = 1;
+  string rGroupName = 2;
+}
+
+message CommonStatus {
+  int32  code = 1;
+  string message = 2;
+}
+
+message BundleInfo {
+  string bundleID = 1;
+  string rGroupName = 2;
+  // upper resource group, empty if it belongs to top resource group
+  string parentRGroupName = 3;
+  string functionProxyID = 4;
+  string functionAgentID = 5;
+  string tenantID = 6;
+  // bundle resource capacity
+  resources.Resources resources = 7;
+  // bundle labels
+  repeated string labels = 8;
+  CommonStatus status = 9;
+  // indicate which resource unit this bundle belongs to
+  string parentId = 10;
+  map<string, string> kvLabels = 11;
+}
+
+message ResourceGroupInfo {
+  string name = 1;
+  string owner = 2;
+  string appID = 3;
+  string tenantID = 4;
+  repeated BundleInfo bundles = 5;
+  CommonStatus status = 6;
+  string parentID = 7;
+  string requestID = 8;
+  string traceID = 9;
+  message Option {
+    // resource group schedule priority
+    int64  priority = 1;
+    common.GroupPolicy   groupPolicy = 2;
+    // etc:
+    // "lifetime" : "detached"
+    map<string, string>  extension = 100;
+  }
+  Option opt = 10;
+}
+
+message QueryResourceGroupResponse {
+  string requestID = 1;
+  repeated ResourceGroupInfo rGroup = 2;
+}
+
+// Snapshot metadata stored in etcd
+message SnapshotMetadata {
+  resources.InstanceInfo instanceInfo = 1; // 实例信息
+  resources.SnapshotInfo snapshotInfo = 2; // 快照信息
+}
+
+message SnapshotRuntimeRequest {
+  string requestID = 1;
+  string runtimeID = 2;
+  string instanceID = 3;
+  string containerID = 4;
+  int32 ttl = 5;
+}
+
+message SnapshotRuntimeResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  resources.SnapshotInfo snapshotInfo = 4;
+}
+
+message RestoreSnapshotRequest {
+  string requestID = 1;
+  string checkpointID = 2;
+  core_service.SnapStartOptions snapStartOptions = 3;
+}
+
+message RestoreSnapshotResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  string instanceID = 4;
+}
+
+message RecordSnapshotRequest {
+  string requestID = 1;
+  resources.SnapshotInfo snapshotInfo = 2;
+  resources.InstanceInfo instanceInfo = 3;
+}
+
+message RecordSnapshotResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+}

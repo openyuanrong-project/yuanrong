@@ -1,0 +1,98 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package affinity;
+
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/affinity;affinity";
+
+
+// IN: True if the candinate has label with desired label key and its label value is in the specified value set
+message LabelIn {
+  repeated string values = 1;
+}
+
+// NOT_IN: True if the candinate has label with desired label key and its label value is NOT in the specified value set
+message LabelNotIn {
+  repeated string values = 1;
+}
+
+// EXISTS: True if the candinate has label with desired label key
+message LabelExists {}
+
+// DOES_NOT_EXIST: True if the candinate does't have any label with desired label key
+message LabelDoesNotExist {}
+
+message LabelOperator {
+  oneof LabelOperator {
+    LabelIn in = 1;
+    LabelNotIn notIn = 2;
+    LabelExists exists = 3;
+    LabelDoesNotExist notExist = 4;
+  }
+}
+
+message LabelExpression {
+  string key = 1;  // label key
+  LabelOperator op = 2;
+}
+
+message SubCondition {
+  repeated LabelExpression expressions = 1;  // AND between expressions
+  int64 weight = 2;   // weight of this sub condition for ranking
+}
+
+message Condition {
+  repeated SubCondition subConditions = 1;  // OR between sub conditions
+  bool orderPriority = 2;  // in order of priority instead of weights rank
+}
+
+message Selector {
+  Condition condition = 1;
+}
+
+enum AffinityType {
+  PreferredAffinity     = 0;
+  PreferredAntiAffinity = 1;
+  RequiredAffinity      = 2;
+  RequiredAntiAffinity  = 3;
+}
+
+enum AffinityScope {
+  POD           = 0;
+  NODE          = 1;
+}
+
+message ResourceAffinity {
+  Selector preferredAffinity     = 1;
+  Selector preferredAntiAffinity = 2;
+  Selector requiredAffinity      = 3;
+  Selector requiredAntiAffinity  = 4;
+}
+
+message InstanceAffinity {
+  Selector preferredAffinity     = 1;
+  Selector preferredAntiAffinity = 2;
+  Selector requiredAffinity      = 3;
+  Selector requiredAntiAffinity  = 4;
+  AffinityScope scope            = 5;  
+}
+
+message Affinity {
+  ResourceAffinity resource = 1;
+  InstanceAffinity instance = 2;
+}

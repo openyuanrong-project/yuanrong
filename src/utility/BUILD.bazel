@@ -1,0 +1,53 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//bazel:yr.bzl", "COPTS", "LOPTS")
+
+
+cc_library(
+    name = "yr_utils",
+    srcs = glob([
+        "*.cpp",
+        "**/*.cpp",
+    ], exclude = [
+        "metrics/**",
+    ]),
+    hdrs = glob([
+        "logger/*.h",
+        "*.h"
+    ]),
+    copts = COPTS,
+    linkopts = ["-lpthread", "-lstdc++fs"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@spdlog//:spdlog",
+        "@boost//:boost",
+        "@nlohmann_json//:nlohmann_json",
+        "@zlib//:zlib",
+        "@com_google_absl//absl/debugging:symbolize",
+        "@com_google_absl//absl/debugging:failure_signal_handler",
+        "@com_google_absl//absl/random:random",
+        "@com_google_absl//absl/synchronization:synchronization",
+        "@securec",
+        "@com_googlesource_code_re2//:re2",
+    ],
+)
+
+cc_library(
+    name = "yr_utils_hdrs",
+    hdrs = glob([
+        "logger/*.h",
+        "*.h"
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "@spdlog//:spdlog",
+        "@boost//:boost",
+        "@nlohmann_json//:nlohmann_json",
+        "@zlib//:zlib",
+        "@com_google_absl//absl/debugging:symbolize",
+        "@com_google_absl//absl/debugging:failure_signal_handler",
+        "@com_google_absl//absl/random:random",
+        "@com_google_absl//absl/synchronization:synchronization",
+        "@securec",
+        "@com_googlesource_code_re2//:re2",
+    ],
+)

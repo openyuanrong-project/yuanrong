@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Package types -
+package types
+
+import (
+	"testing"
+
+	"github.com/smartystreets/goconvey/convey"
+)
+
+func TestInvokeResponse(t *testing.T) {
+	convey.Convey("Test InvokeResponse", t, func() {
+		i := &InvokeResponse{}
+		convey.Convey("GetStatusCode success", func() {
+			code := i.GetStatusCode()
+			convey.So(code, convey.ShouldBeZeroValue)
+		})
+		convey.Convey("GetErrorMessage success", func() {
+			msg := i.GetErrorMessage()
+			convey.So(msg, convey.ShouldBeEmpty)
+		})
+	})
+}
+
+func TestGetFutureResponse(t *testing.T) {
+	convey.Convey("Test GetFutureResponse", t, func() {
+		f := &GetFutureResponse{}
+		convey.Convey("GetStatusCode success", func() {
+			code := f.GetStatusCode()
+			convey.So(code, convey.ShouldBeZeroValue)
+		})
+		convey.Convey("GetErrorMessage success", func() {
+			msg := f.GetErrorMessage()
+			convey.So(msg, convey.ShouldBeEmpty)
+		})
+	})
+}
+
+func TestStateResponse(t *testing.T) {
+	convey.Convey("Test StateResponse", t, func() {
+		s := &StateResponse{}
+		convey.Convey("GetStatusCode success", func() {
+			code := s.GetStatusCode()
+			convey.So(code, convey.ShouldBeZeroValue)
+		})
+		convey.Convey("GetErrorMessage success", func() {
+			msg := s.GetErrorMessage()
+			convey.So(msg, convey.ShouldBeEmpty)
+		})
+	})
+}
+
+func TestTerminateResponse(t *testing.T) {
+	convey.Convey("Test TerminateResponse", t, func() {
+		t := &TerminateResponse{}
+		convey.Convey("GetStatusCode success", func() {
+			code := t.GetStatusCode()
+			convey.So(code, convey.ShouldBeZeroValue)
+		})
+		convey.Convey("GetErrorMessage success", func() {
+			msg := t.GetErrorMessage()
+			convey.So(msg, convey.ShouldBeEmpty)
+		})
+	})
+}
+
+func TestExitResponse(t *testing.T) {
+	convey.Convey("Test ExitResponse", t, func() {
+		e := &ExitResponse{}
+		convey.Convey("GetStatusCode success", func() {
+			code := e.GetStatusCode()
+			convey.So(code, convey.ShouldBeZeroValue)
+		})
+		convey.Convey("GetErrorMessage success", func() {
+			msg := e.GetErrorMessage()
+			convey.So(msg, convey.ShouldBeEmpty)
+		})
+	})
+}

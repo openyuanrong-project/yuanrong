@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: faasmanager-function-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  faasmanager_config.json: |-
+    {
+      "0-system-faasmanager": {
+        "systemFunctionName":"0-system-faascontroller",
+        "signal":68,
+        "payload":{
+          "managerInstanceNum": {{ .Values.global.systemFunc.faasManager.instanceNum }},
+          "cpu": {{ .Values.global.systemFunc.faasManager.cpu }},
+          "memory": {{ .Values.global.systemFunc.faasManager.memory }},
+          "image": "",
+          "version":"",
+          "affinity": {{ quote .Values.global.systemFunc.faasManager.affinity | default "\"\"" }},
+          "alarmConfig": {
+            "enableAlarm": false,
+            "minInsStartInterval": 15,
+            "minInsCheckInterval": 15,
+            "alarmLogConfig": {
+              "filepath": "/opt/huawei/logs/alarms",
+              "level": "Info",
+              "tick": 0,
+              "first": 0,
+              "thereafter": 0,
+              "singlesize": 500,
+              "threshold": 3,
+              "disable": false
+            },
+            "xiangYunFourConfig": {
+              "site": "cn_dev_default",
+              "tenantID": "T014",
+              "applicationID": "com.huawei.cloud_enhance_device",
+              "serviceID": "com.huawei.hmscorecameracloudenhanceservice"
+            }
+          },
+          "authenticationEnable": false,
+          "functionCapability": 1,
+          "leaseRenewMinute": {{ .Values.global.systemFunc.actorLeaseRenewMinute }},
+          "httpsEnable": {{ .Values.global.systemFunc.httpsEnabled }},
+          "routerEtcd": {
+            "servers": ["{{ .Values.global.etcdManagement.detcd }}"],
+            {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+            "sslEnable": true,
+            {{- else }}
+            "sslEnable": false,
+            {{- end}}
+            "user":"",
+            "password":"",
+            "authType": {{ quote .Values.global.etcdManagement.authType }},
+            "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+            "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+          },
+          "metaEtcd": {
+            "servers": ["{{ .Values.global.etcdManagement.metcd }}"],
+            {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+            "sslEnable": true,
+            {{- else }}
+            "sslEnable": false,
+            {{- end}}
+            "user":"",
+            "password":"",
+            "authType": {{ quote .Values.global.etcdManagement.authType }},
+            "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+            "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+          },
+          "sccConfig": {
+            "enable": {{ .Values.global.scc.enable }},
+            "secretName": {{ quote .Values.global.scc.secretName }},
+            "algorithm": {{ quote .Values.global.scc.algorithm }}
+          }
+        }
+      }
+    }

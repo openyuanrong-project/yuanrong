@@ -1,0 +1,1024 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+import "common.proto";
+import "core_service.proto";
+import "resource.proto";
+
+package messages;
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/message;message";
+
+message ResourceView {}
+
+
+// common message
+message ScheduleTopology {
+  message Scheduler {
+    string name = 1;
+    string address = 2;
+  }
+  Scheduler leader = 1;
+  repeated Scheduler members = 2;
+}
+
+message Register {
+  string name = 1;
+  string address = 2;
+  resources.ResourceUnit resource = 3;
+  string message = 4;
+  // multiple resource view is add for primary and virtual
+  // 3 was reserve for former compatible
+  map<int32, resources.ResourceUnit> resources = 5;
+}
+
+message Registered {
+  int32 code = 1;
+  string message = 2;
+  ScheduleTopology topo = 3;
+}
+
+message AffinityContext {
+  map<string, int64> scheduledScore = 1;
+  map<string, int32> scheduledResult = 2;
+  int64 maxScore = 3;
+  bool isTopDownScheduling = 4;
+}
+
+message DefaultPluginContext {
+  map<string, int32> filterCtx = 1;
+}
+
+message GroupScheduleContext {
+  string reserved = 1;
+}
+
+message PluginContext {
+    oneof PluginContext {
+        AffinityContext affinityCtx = 1;
+        DefaultPluginContext defaultCtx = 2;
+        GroupScheduleContext groupSchedCtx = 3;
+    }
+}
+
+message ScheduleRequest {
+  resources.InstanceInfo        instance                = 1;
+  // initRequest should be deprecated
+  bytes                         initRequest             = 2;
+  string                        requestID               = 3;
+  string                        traceID                 = 4;
+  map<int32, resources.ResourceUnitChanges> updateResources = 5;
+  string                        sourceName              = 6;
+  uint32                        scheduleRound           = 7;
+  // context of scheduler result to avoid
+  // duplicate scheduling resource conflict or fragment.
+  // key is plugin name
+  map<string, PluginContext>    contexts                = 8;
+  // Indicates whether the current request is a range schedule.
+  bool                          isInsRangeScheduler     = 9;
+  // store the range schedule infos
+  RangeOptions                  rangeOpts               = 10;
+  // candidate result of Scheduler
+  CandidateResult               candidateResult         = 11;
+  // domain send current revision to local so that local use revision to update resourceUnitChange
+  PullResourceRequest           unitSnapshot            = 12;
+}
+
+message CandidateResult {
+  // store candidate resource unit id
+  string unitID = 1;
+}
+
+message RangeOptions {
+  core_service.InstanceRange      range                  = 1;
+  int32                           curRangeInstanceNum    = 2;
+}
+
+message ScheduleResult
+{
+  string nodeId = 1;
+  repeated common.HeteroDeviceInfo devices = 2;
+}
+
+message ScheduleResponse {
+  int32            code = 1;
+  string           message = 2;
+  string           requestID = 3;
+  string           instanceID = 4;
+  map<int32, resources.ResourceUnitChanges> updateResources = 5;
+  // context of scheduler result to avoid
+  // duplicate scheduling resource conflict or fragment.
+  // key is plugin name
+  map<string, PluginContext> contexts = 6;
+  ScheduleResult scheduleResult = 7;
+  string traceID   = 8;
+}
+
+message NotifySchedAbnormalRequest {
+  string schedName = 1;
+  string ip        = 2;
+}
+
+message NotifySchedAbnormalResponse {
+  string schedName = 1;
+  string ip        = 2;
+}
+
+message NotifyWorkerStatusRequest {
+  bool  healthy = 1;
+  string workerIP = 2;
+}
+
+message NotifyWorkerStatusResponse {
+  bool   healthy   = 1;
+  string workerIP  = 2;
+}
+
+message UpdateNodeTaintRequest {
+  string requestID  = 1;
+  bool   healthy    = 2;
+  string ip         = 3;
+  string key        = 4;
+}
+
+message UpdateNodeTaintResponse {
+  string requestID  = 1;
+  int32  code       = 2;
+  string message    = 3;
+}
+
+// common end
+
+// domain scheduler and scaler message begin
+message CreateAgentRequest {
+  resources.InstanceInfo instanceInfo = 1;
+  map<string, string> labels = 2;
+}
+
+message CreateAgentResponse {
+  string requestID = 1;
+  int32  code = 2;
+  string message = 3;
+  map<string, string> updatedCreateOptions = 4;
+}
+
+message DeletePodRequest {
+  string requestID = 1;
+  string functionAgentID = 2;
+  string message = 3;
+}
+
+message DeletePodResponse {
+  string requestID = 1;
+  int32  code = 2;
+  string message = 3;
+}
+
+// domain scheduler and scaler message end
+
+// local scheduler and function agent message
+
+message Layer {
+  string appID = 1;
+  string bucketID = 2;
+  string objectID = 3;
+  string bucketURL = 4;
+  string sha256 = 5;
+  string hostName = 6;
+  string securityToken = 7;
+  string temporaryAccessKey = 8;
+  string temporarySecretKey = 9;
+  string sha512 = 10;
+}
+
+// function meta information
+message FuncDeploySpec {
+  string bucketID = 1;
+  string objectID = 2;
+  repeated Layer layers = 3;
+  string deployDir = 4;
+  string storageType = 5;
+  string token = 6;
+  string accessKey = 7;
+  string secretAccessKey = 8;
+  string bucketURL = 9;
+}
+
+message FuncMountUser {
+    int32 userID = 1;
+    int32 groupID = 2;
+}
+
+message FuncMount {
+    string mountType = 1;
+    string mountResource = 2;
+    string mountSharePath = 3;
+    string localMountPath = 4;
+    string status = 5;
+}
+
+message FuncMountConfig {
+    FuncMountUser funcMountUser = 1;
+    repeated FuncMount funcMounts = 2;
+}
+
+message DeployInstanceRequest {
+  string instanceID = 1;
+  string traceID = 2;
+  string requestID = 3;
+  string entryFile = 4;
+  string envKey = 5;
+  string envInfo = 6;
+  string encryptedUserData = 7;
+  string language = 8;
+  string codeSha256 = 9;
+  resources.Resources resources = 10;
+  FuncDeploySpec funcDeploySpec = 11;
+  map<string, string> hookHandler = 12;
+  int32 instanceLevel = 13;
+  map<string, string> createOptions = 14;
+  FuncMountConfig funcMountConfig = 15;
+  resources.ScheduleOption scheduleOption = 16;
+  bool enableServerMode = 17;
+  bool enableAuthServerCert = 18;
+  string serverRootCertData = 19;
+  string serverAuthToken = 20; // Tenant's token used together with salt.
+  string serverNameOverride = 21;
+  int64 gracefulShutdownTime = 22;
+  string cryptoAlgorithm = 23;
+  bool runtimeDsAuthEnable = 24;
+  bool runtimeDsEncryptEnable = 25;
+  string runtimeDsClientPublicKey = 26;
+  string runtimeDsClientPrivateKey = 27;
+  string runtimeDsServerPublicKey = 28;
+  string posixPort = 29;
+  string salt = 30; // Tenant's salt used together with serverAuthToken.
+  string accessKey = 31; // component-level access key
+  string securityKey = 32; // component-level security key
+  string codeSha512 = 33;
+  TenantCredentials tenantCredentials = 34;
+  string tenantID = 35;
+}
+
+message TenantCredentials {
+  bytes accessKey = 1;
+  bytes secretKey = 2;
+  bytes dataKey = 3;
+  bool isCredential = 4; // is credential enabled
+}
+
+message DeployInstanceResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  string timeInfo = 4;
+  string instanceID = 5;
+  string runtimeID = 6;
+  string address = 7;
+  string cpuType = 8;
+  int64  pid = 9;
+}
+
+message KillInstanceRequest {
+  string instanceID = 1;
+  string runtimeID = 2;
+  string requestID = 3;
+  string traceID = 4;
+  string storageType = 5;
+  bool isMonopoly = 6;
+}
+
+message KillInstanceResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  string instanceID = 4;
+}
+
+message UpdateCredRequest {
+  string requestID = 1;
+  string instanceID = 2;
+  string runtimeID = 3;
+  string token = 4;
+  string salt = 5;
+  TenantCredentials tenantCredentials = 6;
+}
+
+message UpdateCredResponse {
+  string requestID = 1;
+  int32 code = 2;
+  string message = 3;
+}
+
+message UpdateResourcesRequest {
+  resources.ResourceUnit resourceUnit = 1;
+}
+
+message InstanceStatusInfo {
+  string instanceID = 1;
+  int32 status = 2;
+  string requestID = 3;
+  string instanceMsg = 4;
+  int32 type = 5;
+}
+
+message UpdateInstanceStatusRequest {
+  InstanceStatusInfo instanceStatusInfo = 1;
+  string requestID = 2;
+}
+
+message UpdateInstanceStatusResponse {
+  int32 status = 1;
+  string message = 2;
+  string requestID = 3;
+}
+
+message QueryInstanceStatusRequest {
+  string instanceID = 1;
+  string runtimeID = 2;
+  string requestID = 3;
+}
+
+message QueryInstanceStatusResponse {
+  InstanceStatusInfo instanceStatusInfo = 1;
+  string requestID = 2;
+}
+
+message UpdateAgentStatusRequest {
+  string requestID = 1;
+  int32 status = 2;
+  string message = 3;
+}
+
+message UpdateAgentStatusResponse {
+  string requestID = 1;
+  int32 status = 2;
+  string message = 3;
+}
+// local scheduler and function agent end
+
+message RuntimeConfig {
+  TLSConfig tlsConfig = 1;
+  string entryfile = 2;
+  string language = 3;
+  map<string, string> hookHandler = 4;
+  map<string, string> userEnvs = 5;
+  resources.Resources resources = 6;
+  FuncMountConfig funcMountConfig = 7;
+  map<string, string> posixEnvs = 8;
+  CreateSubDirectoryConfig subDirectoryConfig = 9;
+  string debugServerPort = 10;
+}
+
+message CreateSubDirectoryConfig {
+  bool isEnable = 1;
+  string parentDirectory = 2;
+  int64 quota = 3;
+}
+
+message TLSConfig {
+  bool dsAuthEnable = 1; // enable ds component auth
+  bool dsEncryptEnable = 2; // enable ds zmq encrypt
+  bytes dsClientPublicKey = 3;
+  bytes dsClientPrivateKey = 4;
+  bytes dsServerPublicKey = 5;
+  bool serverAuthEnable = 6;
+  bytes rootCertData = 7;
+  bytes moduleCertData = 8;
+  bytes moduleKeyData = 9;
+  string token = 10; // Tenant token used together with the salt.
+  bool enableServerMode = 11;
+  string serverNameOverride = 12;
+  string posixPort = 13;
+  string salt = 14; // Tenant salt used together with the token.
+  string accessKey = 15; // component-level access key
+  string securityKey = 16; // component-level security key
+  TenantCredentials tenantCredentials = 17;
+}
+
+message DeploymentConfig {
+  string bucketID = 1;
+  string objectID = 2;
+  repeated Layer layers = 3;
+  string deployDir = 4;
+  string storageType = 5;
+  string sha256 = 6;
+  string hostName = 7;
+  string securityToken = 8;
+  string temporaryAccessKey = 9;
+  string temporarySecretKey = 10;
+  string sha512 = 11;
+  string bucketURL = 12;
+  map<string, string> deployOptions = 13;
+}
+
+message CodePackageThresholds {
+  int32 fileCountsMax = 1;
+  int32 zipFileSizeMaxMB = 2;
+  int32 unzipFileSizeMaxMB = 3;
+  int32 dirDepthMax = 4;
+  int32 codeAgingTime = 5;
+}
+
+message DeployRequest {
+  RuntimeConfig runtimeConfig = 1;
+  DeploymentConfig deploymentConfig = 2;
+  string instanceID  = 3;
+  string schedPolicyName = 4;
+}
+
+message RuntimeInstanceInfo {
+  RuntimeConfig runtimeConfig = 1;
+  DeploymentConfig deploymentConfig = 2;
+  string instanceID = 3;
+  string runtimeID = 4;
+  string traceID = 5;
+  string requestID = 6;
+  string address = 7;
+  int64 gracefulShutdownTime = 8;
+}
+
+message DeployDuration {
+  double deployFuncTime = 1;
+  double deployLayerTime = 2;
+}
+
+message DeployResult {
+  int32 code = 1;
+  string message = 2;
+  DeployDuration deployDuration = 3;
+  string errorMessage = 4;
+  string runtimePkgDir = 5;
+  string entryFile = 6;
+}
+
+message RegisterRuntimeManagerRequest {
+  string name = 1;
+  string address = 2;
+  string id = 3;
+  resources.ResourceUnit resourceUnit = 4;
+  map<string, RuntimeInstanceInfo> runtimeInstanceInfos = 5;
+}
+
+message RegisterRuntimeManagerResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+message StartInstanceRequest {
+  RuntimeInstanceInfo runtimeInstanceInfo = 1;
+  int32 type = 2;
+  resources.ScheduleOption scheduleOption = 3;
+  string logPrefix = 4;
+}
+
+message StartRuntimeInstanceResponse {
+  string runtimeID = 1;
+  string address = 2;
+  string port = 3;
+  int64  pid = 4;
+  string cpuType = 5;
+}
+
+message StartInstanceResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  StartRuntimeInstanceResponse startRuntimeInstanceResponse = 4;
+}
+
+message StopInstanceRequest {
+  string runtimeID = 1;
+  string requestID = 2;
+  string traceID = 3;
+  int32 type = 4;
+}
+
+message StopInstanceResponse {
+  int32 code = 1;
+  string message = 2;
+  string runtimeID = 3;
+  string requestID = 4;
+  string traceID = 5;
+  string instanceID = 6;
+}
+
+message SchedulerNode {
+  string name = 1;
+  string address = 2;
+  int32 level = 3;
+  repeated SchedulerNode children = 4;
+}
+
+message UpdateRuntimeStatusRequest {
+  string requestID = 1;
+  int32 status = 2;
+  string message = 3;
+}
+
+message UpdateRuntimeStatusResponse {
+  string requestID = 1;
+  int32 status = 2;
+  string message = 3;
+}
+
+// used for function proxy to persistent function agent registration information
+message FuncAgentRegisInfo {
+  string agentAIDName = 1; // function-agent AID name
+  string agentAddress = 2; // function-agent address
+  string runtimeMgrAID = 3; // runtime-manager AID
+  string runtimeMgrID = 4; // runtime-manager RandomID
+  int32 statusCode = 5; // SUCCESS = 1, FAILED = 0, registration status of function-agent and runtime-manager
+  uint32 evictTimeoutSec = 6;
+  map<string, string> extensionInfo = 7;
+}
+
+message FuncAgentRegisInfoCollection {
+  map<string, FuncAgentRegisInfo> funcAgentRegisInfoMap = 1;
+  int32 localStatus = 2;
+}
+
+message CleanStatusRequest {
+    string name = 1; // RuntimeManagerID
+}
+
+message CleanStatusResponse {}
+
+message ForwardKillRequest {
+  string requestID = 1;
+  resources.InstanceInfo instance = 2;
+  core_service.KillRequest req = 3;
+}
+
+message ForwardKillResponse {
+  string requestID = 1;
+  int32 code = 2;
+  string message = 3;
+  string instanceID = 4;
+}
+
+message PullResourceRequest {
+  uint64 version = 1;
+  string localViewInitTime = 2;
+}
+
+message UpdateLocalStatusRequest {
+  uint32 status = 1;
+}
+
+message UpdateLocalStatusResponse {
+  uint32 status = 1;
+  bool healthy = 2;
+}
+
+message EvictAgentRequest {
+  string agentID = 1;
+  uint32 timeoutSec = 2;
+  string requestID = 3;
+  string localID = 4;
+  repeated string instances = 5;
+}
+
+message EvictAgentAck {
+  string agentID = 1;
+  int32 code = 2;
+  string message = 3;
+  string requestID = 4;
+}
+
+message EvictAgentResult {
+  string agentID = 1;
+  int32 code = 2;
+  string message = 3;
+  string requestID = 4;
+}
+
+message EvictAgentResultAck {
+  string agentID = 1;
+  string requestID = 4;
+}
+
+message QueryAgentInfoRequest {
+  string requestID = 1;
+}
+
+message QueryAgentInfoResponse {
+  string requestID = 1;
+  repeated resources.AgentInfo agentInfos = 2;
+}
+
+message QueryResourcesInfoRequest {
+  string requestID = 1;
+}
+
+message QueryResourcesInfoResponse {
+  string requestID = 1;
+  resources.ResourceUnit resource = 2;
+}
+
+message QueryInstancesInfoRequest {
+  string requestID = 1;
+}
+
+message QueryInstancesInfoResponse {
+  string requestID                              = 1;
+  common.ErrorCode code                         = 2;
+  repeated resources.InstanceInfo instanceInfos = 3;
+}
+
+message ExternalAgentInfo {
+    string id = 1;
+    string alias = 2;
+}
+
+message ExternalQueryAgentInfoResponse {
+  repeated ExternalAgentInfo data = 1;
+}
+
+message FunctionSystemStatus {
+  common.ErrorCode code   = 1;
+  string message          = 2;
+}
+
+enum NetworkIsolationRuleType {
+  IPSET_ADD          = 0;
+  IPSET_DELETE       = 1;
+  IPSET_FLUSH        = 2;
+  IPTABLES_COMMAND   = 3;
+}
+
+message SetNetworkIsolationRequest {
+  string requestID  = 1;
+  NetworkIsolationRuleType ruleType  = 2;
+  // IPs to add to podIp-whitelist when ruleType = IPSET_ADD
+  // IPs to delete from podIp-whitelist when ruleType = IPSET_DELETE
+  repeated string rules = 3;
+}
+
+message SetNetworkIsolationResponse {
+  string requestID  = 1;
+  int32  code       = 2;
+  string message    = 3;
+}
+
+message MetaStoreRequest {
+  string requestID = 1;
+  bytes requestMsg = 2;
+  bool asyncBackup = 3;
+}
+
+message MetaStoreResponse {
+  string responseID = 1;
+  bytes responseMsg = 2;
+  int32 status      = 3;
+  string errorMsg   = 4;
+}
+
+message ForwardWatchRequest {
+  string requestID = 1;
+  bytes requestMsg = 2;
+  string originAID = 3;
+}
+
+message GroupInfo {
+  string requestID = 1;
+  string traceID = 2;
+  string groupID = 3;
+  string parentID = 4;
+  string ownerProxy = 5;
+  core_service.GroupOptions groupOpts = 6;
+  repeated ScheduleRequest requests = 7;
+  int32 status = 8;
+  string message = 9;
+  bool insRangeScheduler = 10;
+  core_service.InstanceRange insRange = 11;
+  repeated ScheduleRequest rangeRequests = 12;
+  resources.CreateTarget target = 13;
+  string rGroupName = 14;
+}
+
+message GroupResponse {
+  string                   requestID       = 1;
+  string                   traceID         = 2;
+  int32                    code            = 4;
+  string                   message         = 5;
+  int32                    rangeSuccessNum = 6;
+  map<int32, resources.ResourceUnitChanges> updateResources = 7;
+  map<string, ScheduleResult> scheduleResults = 8;
+}
+
+message KillGroup {
+  string srcInstanceID = 1;
+  string groupID = 2;
+  // master send request to local, local clear groupCtx
+  string groupRequestID = 3;
+}
+
+message KillGroupResponse {
+  string groupID = 1;
+  int32  code       = 2;
+  string message    = 3;
+}
+
+message CommonStatus {
+  int32  code       = 1;
+  string message    = 2;
+}
+
+message BundleInfo {
+  string bundleID = 1;
+  string rGroupName = 2;
+  // upper resource group, empty if it belongs to top resource group
+  string parentRGroupName = 3;
+  string functionProxyID = 4;
+  string functionAgentID = 5;
+  string tenantID = 6;
+  // bundle resource capacity
+  resources.Resources resources = 7;
+  // bundle labels
+  repeated string labels = 8;
+  CommonStatus status = 9;
+  // indicate which resource unit this bundle belongs to
+  string parentId = 10;
+}
+
+message BundleCollection {
+  // bundleID: bundleInfo
+  map<string, BundleInfo> bundles = 1;
+}
+
+message RemoveBundleRequest {
+  string requestID = 1;
+  string srcInstanceID = 2;
+  string rGroupName = 3;
+  string tenantId = 4;
+}
+
+message RemoveBundleResponse {
+  string requestID = 1;
+  string rGroupName = 2;
+  CommonStatus status = 3;
+}
+
+message ResourceGroupInfo {
+  string name         = 1;
+  // indicated which rg is the resource group was created from, default is primary
+  string owner        = 2;
+  // indicated which app submitted(job/app)
+  string appID        = 3;
+  string tenantID     = 4;
+  // multiple units which is reserved defined in a resource group
+  repeated BundleInfo bundles = 5;
+  CommonStatus status = 6;
+  string parentID = 7;
+  string requestID = 8;
+  string traceID = 9;
+  message Option {
+    // resource group schedule priority
+    int64  priority                 = 1;
+    common.GroupPolicy   groupPolicy    = 2;
+    // etc:
+    // "lifetime" : "detached"
+    map<string, string>  extension  = 100;
+  }
+  Option opt = 10;
+}
+
+message PutRequest {
+  // Used to request deduplication.
+  string requestID = 1;
+
+  bytes key = 2;
+
+  bytes value = 3;
+
+  int64 lease = 4;
+
+  // if true, the response contains previous key-value.
+  bool prevKv = 5;
+
+  bool asyncBackup = 6;
+}
+
+message PutResponse {
+  // Used to request deduplication.
+  string requestID = 1;
+
+  int64 revision = 2;
+
+  bytes prevKv = 3;
+
+  int32 status = 4;
+
+  string errorMsg = 5;
+}
+
+message Lease {
+  int64 id = 1;
+
+  int64 ttl = 2;
+
+  int64 expiry = 3;
+
+  repeated string items = 4;
+}
+
+message GetAndWatchResponse {
+  bytes getResponseMsg = 1;
+  bytes watchResponseMsg = 2;
+}
+
+message ObserveCancelRequest {
+  int64 cancelObserveID = 1;
+}
+
+message ObserveResponse {
+  string name = 1;
+  int64 observeID = 2;
+  bytes responseMsg = 3;
+  bool isCreate = 4;
+  bool isCancel = 5;
+  string cancelMsg = 6;
+}
+
+message GetTokenRequest {
+  string requestID = 1;
+  string tenantID  = 2;
+  bool isCreate = 3;
+}
+
+message GetTokenResponse {
+  string requestID = 1;
+  string tenantID = 2;
+  string newToken = 3;
+  string oldToken = 4;
+  string salt     = 5;
+  int32  code     = 6;
+  string message  = 7;
+}
+
+message GetAKSKByTenantIDRequest {
+  string requestID = 1;
+  string tenantID = 2;
+  bool isCreate = 3;
+  bool isPermanentValid = 4;
+}
+
+message GetAKSKByAKRequest {
+  string requestID = 1;
+  string accessKey = 2;
+}
+
+message GetAKSKResponse {
+  string requestID = 1;
+  string tenantID = 2;
+  string newAccessKey = 3;
+  string newSecretKey = 4;
+  string newDataKey = 5;
+  string newExpiredTimeStamp = 6;
+  string oldAccessKey = 7;
+  string oldSecretKey = 8;
+  string oldDataKey = 9;
+  string oldExpiredTimeStamp = 10;
+  string role = 11;
+  int32 code = 12;
+  string message = 13;
+}
+
+// Indicates the cancel type
+enum CancelType {
+  REQUEST = 0;
+  JOB = 1;
+  PARENT = 2;
+  GROUP = 3;
+  FUNCTION = 4;
+}
+
+message CancelSchedule {
+  CancelType type = 1;
+  string id = 2;
+  string reason = 3;
+  string msgID = 4;
+}
+
+message CancelScheduleResponse {
+  string msgID = 1;
+  FunctionSystemStatus status = 2;
+}
+
+message ResourceInfo {
+  string requestID = 1;
+  resources.ResourceUnit resource = 2;
+}
+
+message DebugInstanceInfo {
+  string instanceID = 1;
+  int32 pid = 2;
+  string debugServer = 3;
+  string status = 4;
+  string language = 5;
+}
+
+message QueryDebugInstanceInfosRequest {
+  string requestID = 1;
+}
+
+message QueryDebugInstanceInfosResponse {
+  string requestID = 1;
+  int32 code = 2;
+  repeated DebugInstanceInfo debugInstanceInfos = 3;
+}
+
+message ReportAgentAbnormalRequest {
+  string requestID = 1;
+  repeated string bundleIDs   = 2;
+}
+
+message ReportAgentAbnormalResponse {
+  string requestID = 1;
+  int32 code     = 2;
+  string message = 3;
+}
+
+message CheckInstanceStateRequest {
+  string requestID   = 1;
+  string instanceID  = 2;
+}
+
+message CheckInstanceStateResponse {
+  string requestID   = 1;
+  int32  code        = 2;
+}
+
+message StaticFunctionChangeRequest {
+  string requestID = 1;
+  string instanceID = 2;
+  int32 status = 4;
+}
+
+message StaticFunctionChangeResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  string instanceID = 4;
+}
+
+// Snapshot metadata stored in etcd
+message SnapshotMetadata {
+  resources.InstanceInfo instanceInfo = 1; // 实例信息
+  resources.SnapshotInfo snapshotInfo = 2; // 快照信息
+}
+
+message SnapshotRuntimeRequest {
+  string requestID = 1;
+  string runtimeID = 2;
+  string instanceID = 3;
+  string containerID = 4;
+  int32 ttl = 5;
+}
+
+message SnapshotRuntimeResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  resources.SnapshotInfo snapshotInfo = 4;
+}
+
+message RestoreSnapshotRequest {
+  string requestID = 1;
+  string checkpointID = 2;
+  core_service.SnapStartOptions snapStartOptions = 3;
+}
+
+message RestoreSnapshotResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+  string instanceID = 4;
+}
+
+message RecordSnapshotRequest {
+  string requestID = 1;
+  resources.SnapshotInfo snapshotInfo = 2;
+  resources.InstanceInfo instanceInfo = 3;
+}
+
+message RecordSnapshotResponse {
+  int32 code = 1;
+  string message = 2;
+  string requestID = 3;
+}

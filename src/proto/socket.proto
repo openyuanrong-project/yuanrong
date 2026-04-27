@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package libruntime;
+
+option java_package = "org.yuanrong.libruntime.generated";
+option go_package = "libruntime/clibruntime/generated";
+
+// Used in domain socket between runtime and runtime manager
+enum MessageType {
+  LogProcess = 0;
+}
+
+// user function log, one kind of businessMessage payload
+message FunctionLog {
+  string level             = 1; // log level
+  string timestamp         = 2;
+  string content           = 3; // log content
+  string invokeID          = 4;
+  string traceID           = 5;
+  string stage             = 6; // log stage
+  bool isStart             = 7; // first log
+  bool isFinish            = 8; // last log
+  string logType           = 9; // "tail": return log when invoke finishes, "": do not return log
+  int32 errorCode          = 10;
+  string functionInfo      = 11; // user function version urn
+  string instanceId        = 12;
+  string logSource         = 13; // std or logger
+  string logGroupId        = 14; // used in FG
+  string logStreamId       = 15; // used in FG
+} 
+
+message BusinessMessage {
+  MessageType type  = 1;
+  oneof payload {
+    FunctionLog functionLog = 2;
+  }
+}
+
+// message used in unix domain socket
+message SocketMessage {
+  string          magicNumber = 1; // header info(magicNumber/version/packetType/packetID) used to check
+  string          version     = 2;
+  string          packetType  = 3;
+  string          packetID    = 4;
+  BusinessMessage businessMsg = 5;
+}

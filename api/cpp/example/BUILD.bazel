@@ -1,0 +1,75 @@
+
+examples = [
+    "affinity_example",
+    "function_example",
+    "instance_example",
+    "kv_example",
+    "object_example",
+    "cross_lang_example",
+    "stream_example",
+    "ssl_example",
+]
+
+cc_library(
+    name = "yr_api",
+    srcs = [
+        "3rd/lib/libyr-api.so",
+        "3rd/lib/libssl.so",
+        "3rd/lib/libcrypto.so",
+    ],
+    hdrs = glob([
+        "3rd/include/**/*.h",
+        "3rd/include/**/*.hpp",
+        "3rd/include/**/*.ipp",
+    ]),
+    strip_include_prefix = "3rd/include",
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "yr_faas",
+    srcs = [
+        "3rd/lib/libfunctionsdk.so",
+    ],
+    hdrs = glob([
+        "3rd/include/faas/*.h",
+    ]),
+    strip_include_prefix = "3rd/include/faas",
+    visibility = ["//visibility:public"],
+)
+
+[
+    cc_binary(
+        name = example,
+        srcs = [example + ".cpp"],
+        data = [example + ".so"],
+        linkstatic = True,
+        deps = [":yr_api"],
+    ) for example in examples
+]
+
+[
+    cc_binary(
+        name = example + ".so",
+        srcs = [example + ".cpp"],
+        linkopts = ["-shared"],
+        linkstatic = True,
+        deps = [":yr_api"],
+    ) for example in examples
+
+]
+
+cc_binary(
+    name = "faas_example",
+    srcs = ["faas_example.cpp"],
+    linkstatic = True,
+    deps = [":yr_faas"],
+)
+
+genrule(
+    name = "example_all",
+    srcs = [example for example in examples] + [example + ".so" for example in examples] + [ "faas_example" ],
+    outs = ["example_all.out"],
+    cmd = "echo ok > $@",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,57 @@
+build --action_env=BAZEL_CXXOPTS=-std=c++17
+build --action_env=GO111MODULE="on"
+build --action_env=GONOSUMDB="*"
+build --action_env=GOPROXY="https://mirrors.huaweicloud.com/repository/goproxy/"
+build --define=grpc_no_xds=true
+build --define=grpc_no_binder=true
+build --define=grpc_no_ares=true
+# Disable Gloo collective operations by default (enable with --define ENABLE_GLOO=true)
+build --define ENABLE_GLOO=false
+build --nojava_header_compilation
+build --per_file_copt=+com_google_protobuf@-fvisibility=hidden
+build --per_file_copt="\\.cc$@-w"
+build --platforms=@local_config_platform//:host
+build --@opentelemetry_cpp//api:with_abseil=true
+build --experimental_cc_shared_library=true
+build --verbose_failures
+build --strategy=CcStrip=standalone
+# asan build
+build:sanitize_address --define sanitize=address
+build:sanitize_address --copt=-fsanitize=address # Enable ASan in Compile Phase
+build:sanitize_address --copt=-fno-omit-frame-pointer # Frame pointers are preserved to help ASan generate better stack traces
+build:sanitize_address --copt=-g
+build:sanitize_address --linkopt=-fsanitize=address # Enable ASan in Link Phase
+build:sanitize_address --strip=never # Prevents stripping of debug symbols, which ASan needs to provide verbose error information.
+build:sanitize_address --copt '-fPIC'
+build --distdir=./thirdparty/runtime_deps
+# tsan build
+build:sanitize_thread --define sanitize=thread
+build:sanitize_thread --copt=-fsanitize=thread
+build:sanitize_thread --copt '-fPIC'
+build:sanitize_thread --linkopt=-fsanitize=thread
+build:sanitize_thread --copt=-fno-omit-frame-pointer
+build:sanitize_thread --copt=-g
+build:sanitize_thread --copt=-Wno-error=maybe-uninitialized
+build:sanitize_thread --strip=never
+#default build with optimization enabled
+build -c opt
+build:release --copt '-fPIC'
+build:release --copt "-U_FORTIFY_SOURCE"
+build:release --copt "-D_FORTIFY_SOURCE=2"
+build:release --action_env=SOURCE_DATE_EPOCH=1727366400
+build:release --action_env=BEP_TIMELIST="2024-09-27,00:00:00"
+build:release --action_env=BEP_WHITELIST="be cvs git git-merge gpg-agent ls make ntpdate python2.7.real rsync sed svn test"
+build:release --action_env=BEP_DIRLIST="find jar zip tar ar"
+
+# Debug build:
+build:debug -c dbg
+build:debug --copt="-g3"
+build:debug --copt -fno-omit-frame-pointer
+build:debug --strip="never"
+build:debug --copt "-U_FORTIFY_SOURCE"
+
+test --test_output=errors
+test --define mode=test
+test --test_env HOST_IP=127.0.0.1
+test --test_env YR_SERVER_ADDRESS=127.0.0.1:0
+coverage --test_env=PYTHON_COVERAGE=coverage

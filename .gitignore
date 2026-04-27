@@ -1,0 +1,72 @@
+bazel-*
+.vscode
+.clangd
+.cache
+.idea
+.clwb
+.ijwb
+.claude
+.specify
+specs/
+external
+api/cpp/example/3rd
+genhtml
+compile_commands.json
+pyrightconfig.json
+
+# cpp
+*.pb.*
+lib*_proto.*
+
+# java
+target/
+*.jar
+*.lst
+dependency-reduced-pom.xml
+
+# python
+__pycache__
+api/python/*.egg-info
+api/python/dist/*.whl
+api/python/yr/*.so*
+api/python/yr/libruntime_pb2.py
+test/st/python/**/*.log*
+test/st/python/pkg
+
+# test
+test/st/cpp/gtest
+test/st/yuanrong/
+test/st/cpp/build/
+test/st/**/output.txt
+test/st/functions/pkg
+test/st/functions/**/*.so
+test/st/functions/**/*.zip
+test/st/functions/**/*.xml
+
+# build
+cmake-build-debug
+api/python/build/
+/build/
+go/build/_output
+go/output/bin/client/dist/
+go/pkg/dashboard/client/dist/
+go/pkg/dashboard/client/node_modules/
+example/custom_runtime/openyuanrong
+example/custom_runtime/worker/yuanrong
+outputapi/python/build/
+api/python/dist/
+api/python/*.egg-info/
+go/output/
+go/pkg/dashboard/client/dist/
+go/pkg/dashboard/client/node_modules/
+/metrics/
+output/
+scripts/package/.build/
+thirdparty/runtime_deps/
+api/python/yr/inner//
+scripts/package/.build/
+metrics
+
+# thirdparty
+thirdparty/
+go/pkg/mod/

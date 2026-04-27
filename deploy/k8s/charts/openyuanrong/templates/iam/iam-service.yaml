@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: iam-adaptor
+  name: iam-adaptor
+  namespace: {{ .Values.global.namespace }}
+spec:
+  ports:
+    - port: {{ .Values.global.port.iamAdapterHttpPort }}
+      protocol: TCP
+      targetPort: {{ .Values.global.port.iamAdapterHttpPort }}
+  selector:
+    app: iam-adaptor
+  clusterIP: None
+  sessionAffinity: None
+  type: ClusterIP

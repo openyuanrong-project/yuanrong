@@ -1,0 +1,109 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package scheduler;
+
+import "common.proto";
+import "core_service.proto";
+import "worker_agent_service.proto";
+
+option go_package = "grpc/pb/scheduler;scheduler";
+
+message ForwardScheduleRequest {
+    core_service.CreateRequest CreateReq           = 1;
+    int32                      SourceLevel         = 2;
+    string                     InstanceID          = 3;
+    SchedulerMetrics           ConfirmedMetrics    = 4;
+    string                     SourceName          = 5;
+    bool                       WakeUp              = 6;
+    int32                      OriginalSourceLevel = 7;
+}
+
+message InstanceInfo {
+    string RuntimeID        = 1;
+    string RuntimeIP        = 2;
+    string RuntimePort      = 3;
+    string DeployNode       = 4;
+}
+
+message ForwardScheduleResponse {
+    common.ErrorCode       code             = 1;
+    string                 message          = 2;
+    string                 instanceID       = 3;
+    string                 deployID         = 4;
+    SchedulerMetrics       confirmedMetrics = 5;
+    DeployInstanceResponse response         = 6;
+}
+
+message ResourceCapacity {
+    double Total            = 1;
+    double RequestAvailable = 2;
+    double ActualUsed       = 3;
+    double PreAllocated     = 4;
+}
+
+message PullMetricsRequest {
+}
+
+message SchedulerMetrics {
+    map<string, ResourceCapacity> maxResources      = 1;
+    map<string, ResourceCapacity> resources         = 2;
+    map<string, int32>            labelMap          = 3;
+    int32                         managedNodeNumber = 4;
+    map<string, InstanceInfo>     instanceMap       = 5;
+}
+
+message PullMetricsResponse {
+    SchedulerMetrics metrics = 1;
+}
+
+message RegisterWorkerRequest {
+    string             IP                        = 1;
+    string             Port                      = 2;
+    string             NodeIP                    = 3;
+    string             P2pPort                   = 4;
+    string             NodeName                  = 5;
+    string             NodeID                    = 6;
+    string             WorkerAgentID             = 7;
+    int64              AllocatableCPU            = 8;
+    int64              AllocatableMemory         = 9;
+    map<string, int64> AllocatableCustomResource = 10;
+}
+
+message RegisterWorkerResponse {
+    common.ErrorCode   code      = 1;
+    string             message   = 2;
+}
+
+message UnregisterWorkerRequest {
+    string WorkerAgentID = 1;
+}
+
+message UnregisterWorkerResponse {
+}
+
+message ScheduleCacheInstanceReq {
+    int32            SourceLevel   	= 1;
+    string           FunctionUrn 	  = 2;
+    int32            CacheNum       = 3;
+}
+
+message ScheduleCacheInstanceResponse {
+    common.ErrorCode code             = 1;
+    string           message          = 2;
+}

@@ -1,0 +1,228 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package core_service;
+
+import "common.proto";
+import "affinity.proto";
+
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/core;core";
+
+enum AffinityType {
+  PreferredAffinity     = 0;
+  PreferredAntiAffinity = 1;
+  RequiredAffinity      = 2;
+  RequiredAntiAffinity  = 3;
+}
+
+message SchedulingOptions {
+  int32                     priority            = 1;
+  map<string, double>       resources           = 2;
+  map<string, string>       extension           = 3;
+  // will deprecate in future
+  map<string, AffinityType> affinity            = 4;
+  affinity.Affinity         scheduleAffinity    = 5;
+  InstanceRange             range               = 6;
+  int64                     scheduleTimeoutMs   = 7;
+  bool                      preemptedAllowed    = 8;
+  // indicated which rgroup submit to
+  string                    rGroupName          = 9;
+}
+
+message InstanceRange {
+    int32            min              = 1;
+    int32            max              = 2;
+    int32            step             = 3;
+}
+
+message CreateRequest {
+  string              function      = 1;
+  repeated common.Arg args          = 2;
+  SchedulingOptions   schedulingOps = 3;
+  string              requestID     = 4;
+  string              traceID       = 5;
+  repeated string     labels        = 6;  // "key:value" or "key2"
+  // optional. if designated instanceID is not empty, the created instance id will be assigned designatedInstanceID
+  string			 designatedInstanceID = 7;
+  map<string, string> createOptions = 8;
+}
+
+message CreateResourceGroupRequest {
+    common.ResourceGroupSpec rGroupSpec    = 1;
+    string requestID                       = 2;
+    string traceID                         = 3;
+}
+
+message CreateResourceGroupResponse {
+  common.ErrorCode code       = 1;
+  string           message    = 2;
+  string           requestID  = 3;
+}
+
+message CreateResponse {
+  common.ErrorCode code       = 1;
+  string           message    = 2;
+  string           instanceID = 3;
+}
+
+message BindOptions {
+  string resource = 1;
+  common.BindStrategy policy = 2;
+};
+
+message GroupOptions {
+  // group schedule timeout (sec)
+  int64         timeout               = 1;
+  // group alias name, this field cannot be used for life cycle management.
+  string        groupName             = 2;
+  bool          sameRunningLifecycle  = 3;
+  // indicated which rgroup submit to
+  string        rGroupName            = 4;
+  common.GroupPolicy   groupPolicy    = 5;
+  // group binding resource and binding strategy
+  BindOptions bind = 6;
+}
+
+// gang scheduling
+message CreateRequests {
+  repeated CreateRequest   requests = 1;
+  string                   tenantID = 2;
+  string                   requestID = 3;
+  string                   traceID = 4;
+  GroupOptions             groupOpt = 5;
+}
+
+// gang scheduling
+message CreateResponses {
+  common.ErrorCode code        = 1;
+  string           message     = 2;
+  repeated string  instanceIDs = 3;
+  // used for life cycle management and the unique ID of the corresponding group.
+  // when you want to recycle a group, use signal 4 to send a kill request for the ID.
+  string           groupID     = 4;
+}
+
+message InvokeOptions {
+  map<string, string>  customTag = 1;
+}
+
+message InvokeRequest {
+  string              function         = 1;
+  repeated common.Arg args             = 2;
+  string              instanceID       = 3;
+  string              requestID        = 4;
+  string              traceID          = 5;
+  repeated string     returnObjectIDs  = 6;
+  string              spanID           = 7;
+  InvokeOptions       invokeOptions    = 8;
+}
+
+message InvokeResponse {
+  common.ErrorCode code           = 1;
+  string           message        = 2;
+  string           returnObjectID = 3;
+}
+
+message CallResult {
+  common.ErrorCode               code            = 1;
+  string                         message         = 2;
+  string                         instanceID      = 3;
+  string                         requestID       = 4;
+  repeated common.SmallObject    smallObjects    = 5;
+  repeated common.StackTraceInfo stackTraceInfos = 6;
+  common.RuntimeInfo             runtimeInfo     = 7;
+}
+
+message CallResultAck {
+  common.ErrorCode code           = 1;
+  string           message        = 2;
+}
+
+message TerminateRequest {
+  string instanceID = 1;
+}
+
+message TerminateResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message ExitRequest {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message ExitResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message StateSaveRequest {
+  bytes state = 1;
+  string requestID  = 2;
+}
+
+message StateSaveResponse {
+  common.ErrorCode code         = 1;
+  string           message      = 2;
+  string           checkpointID = 3;
+}
+
+message StateLoadRequest {
+  string checkpointID = 1;
+  string requestID  = 2;
+}
+
+message StateLoadResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+  bytes            state   = 3;
+}
+
+message SnapOptions {
+  common.SnapType type = 1;
+  int32           ttl  = 2;  // seconds
+  bool            leaveRunning = 3;
+}
+
+message SnapStartOptions {
+  common.SnapType type = 1;
+  SchedulingOptions scheduleOpts = 2;
+}
+
+message SnapInfo {
+  string snapshotID = 1;
+  int64 size = 2;
+}
+
+message SnapStartedInfo {
+  string instanceID = 1;
+}
+
+message KillRequest {
+  string instanceID = 1;
+  int32  signal     = 2;
+  bytes  payload    = 3;
+  string requestID  = 4;
+}
+
+message KillResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+  bytes            payload = 3;
+}

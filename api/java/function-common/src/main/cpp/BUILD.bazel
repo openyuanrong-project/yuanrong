@@ -1,0 +1,14 @@
+load("//bazel:yr.bzl", "COPTS")
+
+cc_binary(
+    name = "libruntime_lib_jni.so",
+    srcs = glob([ "*.cpp", "*.h" ]),
+    deps = [
+        "//:runtime_lib",
+        "@bazel_tools//tools/jdk:jni",
+    ],
+    copts = COPTS,
+    linkstatic = True,
+    linkshared = True,
+    visibility = ["//visibility:public"]
+)

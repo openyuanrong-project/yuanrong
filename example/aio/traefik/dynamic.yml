@@ -1,0 +1,24 @@
+tls:
+  certificates:
+    - certFile: /openyuanrong/cert/module.crt
+      keyFile: /openyuanrong/cert/module.key
+
+http:
+  routers:
+    frontend-terminal:
+      entryPoints:
+        - websecure
+      rule: "PathPrefix(`/terminal`) || PathPrefix(`/api/instances`) || PathPrefix(`/api/jobs`) || PathPrefix(`/functions`) || PathPrefix(`/api-docs`) || PathPrefix(`/admin/v1/functions`) || PathPrefix(`/serverless/v1/functions`) || PathPrefix(`/serverless/v1/stream`) || PathPrefix(`/serverless/v1/componentshealth`) || PathPrefix(`/serverless/v1/posix`) || PathPrefix(`/frontend/v1/instance`) || PathPrefix(`/datasystem/v1`) || PathPrefix(`/serverless/v2`) || PathPrefix(`/app/v1`) || PathPrefix(`/client/v1/lease`) || PathPrefix(`/invocations`) || Path(`/healthz`)"
+      service: frontend
+      tls: {}
+
+  services:
+    frontend:
+      loadBalancer:
+        serversTransport: frontend-transport
+        servers:
+          - url: "https://127.0.0.1:8889"
+
+  serversTransports:
+    frontend-transport:
+      insecureSkipVerify: true

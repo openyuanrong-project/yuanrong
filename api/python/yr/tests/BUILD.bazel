@@ -1,0 +1,186 @@
+config_setting(
+    name = "asan",
+    values = {"define": "sanitize=address"},
+)
+
+config_setting(
+    name = "tsan",
+    values = {"define": "sanitize=thread"},
+)
+
+SAN_ENV = select({
+    ":asan": {
+      "LD_PRELOAD": "/usr/lib64/libasan.so.6",
+      "ASAN_OPTIONS": "detect_leaks=0"
+    },
+    ":tsan": {
+      "LD_PRELOAD": "/usr/local/gcc-10.3.0/lib64/libtsan.so",
+    },
+    "//conditions:default": {},
+})
+
+py_test(
+  name = "test_code_manager",
+  size = "small",
+  srcs = ["test_code_manager.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_serialization",
+  size = "small",
+  srcs = ["test_serialization.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_executor",
+  size = "small",
+  srcs = ["test_executor.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_apis",
+  size = "small",
+  srcs = ["test_apis.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_cluster_mode_runtime",
+  size = "small",
+  srcs = ["test_cluster_mode_runtime.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_local_mode",
+  size = "small",
+  srcs = ["test_local_mode.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+
+py_test(
+  name = "test_generator",
+  size = "small",
+  srcs = ["test_generator.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+
+py_test(
+  name = "test_instance_manager",
+  size = "small",
+  srcs = ["test_instance_manager.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+
+py_test(
+  name = "test_faas_handler",
+  size = "small",
+  srcs = ["test_faas_handler.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_function_handler",
+  size = "small",
+  srcs = ["test_function_handler.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_decorator",
+  size = "small",
+  srcs = ["test_decorator.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_common",
+  size = "small",
+  srcs = ["test_common.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+  name = "test_metrics",
+  size = "small",
+  srcs = ["test_metrics.py"],
+  tags = ["smoke"],
+  imports = ["../../"],
+  deps = ["//api/python:yr_lib"],
+  env = SAN_ENV,
+)
+py_test(
+    name="test_fcc",
+    size="small",
+    srcs=["test_fcc.py"],
+    tags = ["smoke"],
+    imports = ["../../"],
+    deps = ["//api/python:yr_lib"],
+    env = SAN_ENV,
+)
+py_test(
+    name="test_ds_tensor_client_manager",
+    size="small",
+    srcs=["test_ds_tensor_client_manager.py"],
+    tags = ["smoke"],
+    imports = ["../../"],
+    deps = ["//api/python:yr_lib"],
+    env = SAN_ENV,
+)
+py_test(
+    name="test_load_env_from_file",
+    size="small",
+    srcs=["test_load_env_from_file.py"],
+    tags = ["smoke"],
+    imports = ["../../"],
+    deps = ["//api/python:yr_lib"],
+    env = SAN_ENV,
+)
+py_test(
+    name="test_sandbox_gateway",
+    size="small",
+    srcs=["test_sandbox_gateway.py"],
+    tags = ["smoke"],
+    imports = ["../../"],
+    deps = ["//api/python:yr_lib"],
+    env = SAN_ENV,
+)
+py_test(
+    name="test_faas_component",
+    size="small",
+    srcs=["test_faas_component.py"],
+    tags = ["smoke"],
+    imports = ["../../"],
+    deps = ["//api/python:yr_lib"],
+    env = SAN_ENV,
+)

@@ -1,0 +1,21 @@
+{% extends "!layout.html" %}
+
+{% block htmltitle %}
+    {% if pagename == "index" %}
+    <title>openYuanrong | 官方文档</title>
+    {% else %}
+    <title>openYuanrong | {{ title|striptags|e }}</title>
+    {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var end = document.querySelector('.navbar-header-items__end');
+    if (end) {
+        end.style.marginLeft = 'auto';
+        end.style.marginRight = '0';
+    }
+});
+</script>
+{% endblock %}

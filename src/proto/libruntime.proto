@@ -1,0 +1,174 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package libruntime;
+
+option java_package = "org.yuanrong.libruntime.generated";
+option go_package = "libruntime/clibruntime/generated";
+
+enum InvokeType {
+    CreateInstance = 0;
+    InvokeFunction = 1;
+    CreateInstanceStateless = 2;
+    InvokeFunctionStateless = 3;
+    GetNamedInstanceMeta = 4;
+    DeleteRemoteTensor = 5;
+}
+
+enum LanguageType {
+    Cpp = 0;
+    Python =1;
+    Java = 2;
+    Golang = 3;
+    NodeJS = 4;
+    CSharp = 5;
+    Php = 6;
+}
+
+enum ApiType {
+    Function = 0;
+    Faas = 1;
+    Posix = 2;
+    Serve = 3;
+}
+
+enum Signal {
+    DefaultSignal = 0;
+    KillInstance = 1;
+    KillAllInstances = 2;
+    killInstanceSync = 3;
+    KillGroupInstance = 4;
+    RemoveResourceGroup = 8;
+    Subsribe = 9;
+    Update = 10;
+    Unsubsribe = 11;
+    GroupSuspend = 16;
+    GroupResume = 17;
+    UpdateAlias = 64;
+    UpdateFrontend = 65;
+    UpdateScheduler = 66;
+    Cancel = 67;
+    UpdateManager = 68;
+    QueryDsAddress = 70;
+    Accelerate = 71;
+    UpdateSchedulerHash = 72;
+    ErasePendingThread = 73;
+    GetInstance = 74;
+    UpdateEventInfo = 75;
+}
+
+enum SubscriptionType {
+    STREAM = 0;
+    ROUND_ROBIN = 1;
+    KEY_PARTITIONS = 2;
+    UNKNOWN = 3;
+}
+
+message FunctionMeta {
+    string applicationName = 1;
+    string moduleName = 2;
+    string functionName = 3;
+    string className = 4;
+    LanguageType language = 5;
+    string codeID = 6;
+    string signature = 7;
+    ApiType apiType = 8;
+    string name = 9; // The designated actor name
+    string ns = 10; // The designated actor namespace
+    string functionID = 11;
+    string initializerCodeID = 12;
+    bool isAsync = 13;
+    bool isGenerator = 14;
+    bool needOrder = 15;
+    string tensorTransportTarget = 16;
+    bool enableTensorTransport = 17;
+    bytes code = 18;
+    bytes payload = 19; // Recovered instance buffer data
+}
+
+message FunctionID {
+    LanguageType language = 1;
+    string functionID = 2;
+}
+
+message MetaConfig {
+    string jobID = 1;
+    repeated string codePaths = 2;
+    int64 recycleTime = 3;
+    int64 maxTaskInstanceNum = 4;
+    int64 maxConcurrencyCreateNum = 5;
+    bool enableMetrics = 6;
+    int64 threadPoolSize = 7;
+    repeated FunctionID functionIDs = 8;
+    string ns = 9;
+    repeated string schedulerInstanceIds = 10;
+    map<string, string> customEnvs = 11;
+    string tenantID = 12;
+    int64 localThreadPoolSize = 13;
+    repeated string functionMasters = 14;
+    bool isLowReliabilityTask = 15;
+    FunctionMeta funcMeta = 16;
+}
+
+message InvocationMeta {
+    string invokerRuntimeId = 1;
+    int64 invocationSequenceNo = 2;
+    int64 minUnfinishedSequenceNo = 3;
+}
+
+message MetaData {
+    InvokeType invokeType = 1;
+    FunctionMeta functionMeta = 2;
+    MetaConfig config = 3;
+    InvocationMeta invocationMeta = 4;
+}
+
+message InstanceAllocation {
+    string functionId = 1;
+    string funcSig = 2;
+    string instanceId = 3;
+    string leaseId = 4;
+    int64 tLeaseInterval = 5;
+}
+
+message InstanceResponse {
+    InstanceAllocation info = 1;
+    int64 errorCode = 2;
+    string errorMessage = 3;
+    float schedulerTime = 4;
+}
+
+message ResourceData {
+    map<string, int64> resourceData = 1;
+}
+
+message ExtraData {
+    map<string, bytes> extraDataMap = 1;
+}
+
+message NotifyGeneratorResult {
+    string genId = 1;
+    int64 index = 2;
+    string objectId =3;
+    bytes data = 4;
+    int64 errorCode = 5;
+    string errorMessage = 6;
+    bool finished = 7;
+    int64 numResults = 8;
+    bool isHeartbeat = 9;
+}

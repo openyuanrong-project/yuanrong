@@ -1,0 +1,758 @@
+{% extends "page.html" %}
+
+{% block extrahead %}
+<meta charset="UTF-8">
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "openYuanrong 核心指南",
+        "description": "快速浏览 openYuanrong 系统的核心操作和案例。",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "快速入门",
+                "description": "按需选择入门指南，开始使用 openYuanrong。",
+                "url": "https://docs.openyuanrong.org/zh-cn/latest/getting_started.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "安装部署",
+                "description": "安装 openYuanrong，包括 openYuanrong SDK 和命令行工具 yr 的安装。",
+                "url": "https://docs.openyuanrong.org/zh-cn/latest/deploy/index.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "使用案例",
+                "description": "微服务、AI 推理方面的使用案例。",
+                "url": "https://docs.openyuanrong.org/zh-cn/latest/use_cases/index.html"
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": "多语言函数编程接口",
+                "description": "提供函数分布式编程接口，支持Python/Java/C++语言。",
+                "url": "https://docs.openyuanrong.org/zh-cn/latest/multi_language_function_programming_interface/index.html"
+            }
+        ]
+    }
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        darkMode: ['selector', '[data-theme="dark"]'],
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#3b82f6',
+                    secondary: '#1e40af',
+                    accent: '#60a5fa',
+                    neutral: '#f3f4f6',
+                    'neutral-dark': '#1f2937'
+                },
+                fontFamily: {
+                    sans: ['Inter', 'system-ui', 'sans-serif'],
+                },
+            }
+        }
+    }
+</script>
+<style type="text/tailwindcss">
+    @layer utilities {
+        .content-auto {
+            content-visibility: auto;
+        }
+
+        .text-shadow {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .transition-all-300 {
+            transition: all 300ms ease-in-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        .slide-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .slide-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .home-page {
+            margin-left: -1rem !important;
+            margin-right: -1.5rem !important;
+        }
+    }
+
+    .dot-matrix-bg {
+        background-image: radial-gradient(#bbb 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    [data-theme="dark"] .dot-matrix-bg {
+        background-image: radial-gradient(#444 1px, transparent 1px);
+    }
+
+    .dot-matrix-bg::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to top, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 100%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    [data-theme="dark"] .dot-matrix-bg::after {
+        background: linear-gradient(to top, rgba(18, 18, 18, 0) 0%, rgba(18, 18, 18, 1) 100%);
+    }
+
+    /* 自定义滚动条整体样式 */
+    ::-webkit-scrollbar {
+        width: 8px !important; /* 纵向滚动条宽度 */
+        height: 8px !important; /* 横向滚动条高度 */
+        display: block !important;
+    }
+
+    /* 滚动条轨道（背景） */
+    ::-webkit-scrollbar-track {
+        background: transparent !important; /* 保持透明，融合背景 */
+    }
+
+    /* 滚动滑块（滑动的那个条） */
+    ::-webkit-scrollbar-thumb {
+        background-color: #8b8b8b !important; /* 使用 slate-300 的透明色 */
+        border-radius: 10px !important; /* 圆角 */
+        border: 1px solid transparent !important; /* 技巧：增加透明边距让它看起来更细 */
+        background-clip: padding-box !important; /* 确保背景色不蔓延到边框下 */
+    }
+
+    /* 鼠标悬停时变深 */
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: #636363 !important; /* slate-500 */
+    }
+
+    ::-webkit-scrollbar-corner {
+        /*占位 !* 填充滚动条右下角 *!*/
+    }
+
+    /*s0-8表示代码框中代码颜色*/
+    .s0 {
+        @apply text-blue-600 !important;
+    }
+
+    .s2 {
+        color: #871094;
+        font-style: italic;
+    }
+
+    .s3 {
+        @apply text-blue-600 !important;
+        font-style: italic;
+    }
+
+    .s4 {
+        color: #8c8c8c;
+        font-style: italic;
+    }
+
+    .s5 {
+        color: #00627a;
+    }
+
+    .s7 {
+        font-style: italic;
+    }
+
+    .s8 {
+        color: #067d17;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="home-page font-sans text-neutral-dark bg-white fade-in dark:!bg-[#121212]">
+    <!-- 英雄区域 -->
+    <section class="dot-matrix-bg text-white py-8 md:py-12 relative">
+        <div class="container mx-auto px-4 max-w-4xl text-center relative z-10">
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-shadow text-slate-950 dark:!text-slate-100">openYuanrong</h1>
+            <p class="text-lg md:text-xl lg:text-2xl mb-8 font-light text-slate-600 dark:!text-slate-300">openYuanrong 是一个 Serverless
+                分布式计算引擎，致力于以一套统一 Serverless 架构支持 AI、大数据、微服务等各类分布式应用。</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-6 mb-4">
+                <a href="{{ pathto('getting_started') }}"
+                   class="flex items-center h-10 dark:!bg-slate-700/80 dark:hover:!bg-slate-600 dark:!text-slate-300 bg-white hover:!bg-gray-100 font-medium px-2 rounded-lg shadow-lg transition-all-300 !text-slate-600 tracking-widest">快速入门</a>
+                <a href="{{ pathto('deploy/index') }}"
+                   class="flex items-center h-10 dark:!bg-slate-700/80 dark:hover:!bg-slate-600 dark:!text-slate-300 bg-white hover:!bg-gray-100 font-medium px-2 rounded-lg shadow-lg transition-all-300 !text-slate-600 tracking-widest">安装部署</a>
+                <a href="{{ pathto('use_cases/index') }}"
+                   class="flex items-center h-10 dark:!bg-slate-700/80 dark:hover:!bg-slate-600 dark:!text-slate-300 bg-white hover:!bg-gray-100 font-medium px-2 rounded-lg shadow-lg transition-all-300 !text-slate-600 tracking-widest">示例库</a>
+                <div class="relative group" id="dropdown-container">
+                    <button id="dropdown-button"
+                            class="flex items-center dark:!bg-blue-500/70 dark:!text-slate-300 h-10 bg-slate-950 shadow-lg text-white font-medium px-2 rounded-lg transition-all-300 flex items-center space-x-1 tracking-widest">
+                        <img src="_static/gitcode-logo.png" alt="gitcode-logo"
+                             class="mt-0.5 h-4 w-auto object-contain !bg-transparent !brightness-0 !invert dark:!opacity-75">
+                        <span>源码仓 </span>
+                        <i class="w-2 h-2 border-b-2 border-r-2 border-current rotate-45 transform"></i>
+                    </button>
+                    <!-- 下拉菜单 -->
+                    <div class="absolute top-full -translate-x-1/2 left-1/2 p-2 dark:!bg-slate-700/80 bg-white backdrop-blur-xl border border-white dark:!border-slate-700/80 shadow-xl rounded-2xl invisible opacity-0 scale-95 -translate-y-2 group-hover:!visible group-hover:!opacity-100 group-hover:!scale-100 group-hover:!translate-y-0 transition-all duration-200 ease-out origin-top-left">
+                        <div class="p-2 divide-y divide-slate-100 dark:!divide-slate-600/50">
+                            <a href="https://atomgit.com/openeuler/yuanrong" target="_blank" rel="noopener noreferrer"
+                               class="text-sm block py-2 dark:!text-slate-300 dark:hover:!bg-slate-600 !text-slate-500 hover:!bg-slate-50 rounded">
+                                <div class="font-medium hover:!underline whitespace-nowrap">
+                                    多语言函数运行时
+                                    {{ icon_external_link_gray }}
+                                </div>
+                                <div class="whitespace-nowrap">yuanrong</div>
+                            </a>
+                            <a href="https://atomgit.com/openeuler/yuanrong-datasystem" target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-sm block py-2 dark:!text-slate-300 dark:hover:!bg-slate-600 !text-slate-500 hover:!bg-slate-50 rounded">
+                                <div class="font-medium hover:!underline whitespace-nowrap">
+                                    数据系统
+                                    {{ icon_external_link_gray }}
+                                </div>
+                                <div class="whitespace-nowrap">yuanrong-datasystem</div>
+                            </a>
+                            <a href="https://atomgit.com/openeuler/yuanrong-functionsystem" target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-sm block px-2 py-2 dark:!text-slate-300 dark:hover:!bg-slate-600 !text-slate-500 hover:!bg-slate-50 rounded">
+                                <div class="font-medium hover:!underline whitespace-nowrap">
+                                    函数系统
+                                    {{ icon_external_link_gray }}
+                                </div>
+                                <div class="whitespace-nowrap">yuanrong-functionsystem</div>
+                            </a>
+                            <a href="https://www.openeuler.openatom.cn/zh/sig/sig-YuanRong#repositories" target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-sm block px-2 py-2 dark:!text-slate-300 dark:hover:!bg-slate-600 !text-slate-500 hover:!bg-slate-50 rounded">
+                                <div class="font-medium hover:!underline whitespace-nowrap">
+                                    更多
+                                    {{ icon_external_link_gray }}
+                                </div>
+                                <div class="whitespace-nowrap">查看所有代码仓</div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 应用场景 -->
+    <section id="scene"
+             class="py-16 md:py-20 dark:!bg-[#121212]  bg-slate-50/50 shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.05)]">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-4 text-slate-900 dark:!text-slate-200 tracking-wide">
+                应用场景</h2>
+            <p class="text-base md:text-lg lg:text-xl mb-8 font-light text-slate-600 text-center dark:!text-slate-300">适用于 AI
+                智算和通算工作负载</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-16">
+                <div class="dark:!bg-slate-700/40 bg-white border border-gray-200 dark:!border-blue-500 rounded-xl p-8 hover:!border-primary hover:!shadow-lg transition-all-300 dark:hover:!border-blue-300 dark:hover:!shadow-[0_10px_30px_-10px_rgba(59,130,246,0.5)]">
+                    <h3 class="text-lg font-bold !text-blue-500 leading-relaxed">并行化单机程序</h3>
+                    <p class="text-slate-500 dark:!text-slate-400 text-sm leading-relaxed">使用 Python、C++、Java 多语言
+                        SDK，只需几行代码即可将单机程序分布式并行化运行，简化分布式应用开发。</p>
+                </div>
+                <div class="dark:!bg-slate-700/40 bg-white border border-gray-200 dark:!border-blue-500 rounded-xl p-8 hover:!border-primary hover:!shadow-lg transition-all-300 dark:hover:!border-blue-300 dark:hover:!shadow-[0_10px_30px_-10px_rgba(59,130,246,0.5)]">
+                    <h3 class="text-lg font-bold !text-blue-500 leading-relaxed">AI Agent</h3>
+                    <p class="text-slate-500 dark:!text-slate-400 text-sm leading-relaxed">提供轻量灵活、沙箱式安全隔离、极致弹性的 Agent 运行时，原生支持分布式
+                        wait/notify API，Agent 吞吐提升。</p>
+                </div>
+                <div class="dark:!bg-slate-700/40 bg-white border border-gray-200 dark:!border-blue-500 rounded-xl p-8 hover:!border-primary hover:!shadow-lg transition-all-300 dark:hover:!border-blue-300 dark:hover:!shadow-[0_10px_30px_-10px_rgba(59,130,246,0.5)]">
+                    <h3 class="text-lg font-bold !text-blue-500 leading-relaxed">强化学习</h3>
+                    <p class="text-slate-500 dark:!text-slate-400 text-sm" leading-relaxed>与 Verl 集成，是昇腾集群上异步训练最佳分布式后端。与 TransferQueue
+                        集成实现后训练系统中数据的高效流转。</p>
+                </div>
+                <div class="dark:!bg-slate-700/40 bg-white border border-gray-200 dark:!border-blue-500 rounded-xl p-8 hover:!border-primary hover:!shadow-lg transition-all-300 dark:hover:!border-blue-300 dark:hover:!shadow-[0_10px_30px_-10px_rgba(59,130,246,0.5)]">
+                    <h3 class="text-lg font-bold !text-blue-500 leading-relaxed">推理</h3>
+                    <p class="text-slate-500 dark:!text-slate-400 text-sm leading-relaxed">与 vLLM-Omni
+                        集成支持全模态模型推理，分布式多级缓存支持昇腾/GPU硬件D2H/H2D/D2D/RH2D传输，推理性能提升。</p>
+                </div>
+                <div class="dark:!bg-slate-700/40 bg-white border border-gray-200 dark:!border-blue-500 rounded-xl p-8 hover:!border-primary hover:!shadow-lg transition-all-300 dark:hover:!border-blue-300 dark:hover:!shadow-[0_10px_30px_-10px_rgba(59,130,246,0.5)]">
+                    <h3 class="text-lg font-bold !text-blue-500 leading-relaxed">超节点</h3>
+                    <p class="text-slate-500 dark:!text-slate-400 text-sm leading-relaxed">原生支持灵衢超节点，硬件亲和，充分释放硬件性能。</p>
+                </div>
+                <div class="dark:!bg-slate-700/40 bg-white border border-gray-200 dark:!border-blue-500 rounded-xl p-8 hover:!border-primary hover:!shadow-lg transition-all-300 dark:hover:!border-blue-300 dark:hover:!shadow-[0_10px_30px_-10px_rgba(59,130,246,0.5)]">
+                    <h3 class="text-lg font-bold !text-blue-500 leading-relaxed">微服务</h3>
+                    <p class="text-slate-500 dark:!text-slate-400 text-sm leading-relaxed">兼容 Spring Boot 微服务框架，支持微服务以Serverless 服务方式在
+                        openYuanrong 集群部署，享受弹性、免运维等优势。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 关键概念 -->
+    <section id="concept" class="py-4 md:py-6 slide-up shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.05)]">
+        <div class="container mx-auto px-6 py-16">
+            <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-4 text-slate-900 dark:!text-slate-200 tracking-wide">
+                关键概念</h2>
+            <p class="text-base md:text-lg lg:text-xl mb-8 font-light text-slate-600 dark:!text-slate-300 text-center">openYuanrong
+                旨在为您的AI平台提供强大支持，并优化任何规模下的任何工作负载。</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-10">
+                <div class="group relative flex items-start gap-6 p-6 rounded-3xl transition-all duration-300 dark:!bg-slate-700/40 dark:hover:!bg-slate-600/80 hover:!bg-white/40 hover:!shadow-lg transition-all-300">
+                    <div class="relative flex-shrink-0">
+                        <div class="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:!opacity-100 transition-opacity"></div>
+                        <div class="relative z-10 w-14 h-14 flex items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-200 text-blue-500 dark:!bg-blue-500 dark:!border-blue-500 dark:!text-slate-100 dark:group-hover:!border-blue-500 text-2xl group-hover:!border-blue-300 group-hover:!scale-110 transition-all duration-300">
+                            {{ icon_runtime }}
+                        </div>
+                        <div class="absolute top-16 left-1/2 -translate-x-1/2 w-px h-12 bg-gradient-to-b from-slate-200 dark:!from-blue-500 to-transparent hidden lg:block"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-slate-800 dark:!text-blue-500 mb-1 flex items-center gap-3">多语言函数运行时</h3>
+                        <p class="mb-1.5 text-sm leading-relaxed text-slate-500 dark:!text-slate-400 max-w-md">
+                            提供函数分布式编程，支持Python/Java/C++语言，实现类单机编程高性能分布式运行。
+                        </p>
+                        <a href="https://atomgit.com/openeuler/yuanrong" target="_blank" rel="noopener noreferrer"
+                           class="text-[12px] tracking-widest bg-blue-50 dark:!bg-blue-200 !text-blue-500 hover:!text-blue-400 px-3 py-1.5 rounded-full font-bold whitespace-nowrap">
+                            yuanrong
+                            {{ icon_external_link_light }}
+                        </a>
+                    </div>
+                </div>
+                <div class="group relative flex items-start gap-6 p-6 rounded-3xl transition-all duration-300 dark:!bg-slate-700/40 dark:hover:!bg-slate-600/80 hover:!bg-white/40 hover:!shadow-lg transition-all-300">
+                    <div class="relative flex-shrink-0">
+                        <div class="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:!opacity-100 transition-opacity"></div>
+                        <div class="relative z-10 w-14 h-14 flex items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-200 text-blue-500 dark:!bg-blue-500 dark:!border-blue-500 dark:!text-slate-100 dark:group-hover:!border-blue-500 text-xl group-hover:!border-blue-300 group-hover:!scale-110 transition-all duration-300">
+                            {{ icon_function_system }}
+                        </div>
+                        <div class="absolute top-16 left-1/2 -translate-x-1/2 w-px h-12 bg-gradient-to-b from-slate-200 dark:!from-blue-500 to-transparent hidden lg:block"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-slate-800 dark:!text-blue-500 mb-1 flex items-center gap-3">函数系统</h3>
+                        <p class="mb-1.5 text-sm leading-relaxed text-slate-500 dark:!text-slate-400 max-w-md">
+                            提供大规模分布式动态调度，支持函数实例极速弹性扩缩和跨节点迁移，实现集群资源高效利用。
+                        </p>
+                        <a href="https://atomgit.com/openeuler/yuanrong-functionsystem" target="_blank"
+                           rel="noopener noreferrer"
+                           class="text-[12px] tracking-widest bg-blue-50 dark:!bg-blue-200 !text-blue-500 hover:!text-blue-400 px-3 py-1.5 rounded-full font-bold whitespace-nowrap">
+                            yuanrong-functionsystem {{ icon_external_link_light }}
+                        </a>
+                    </div>
+                </div>
+                <div class="group relative flex items-start gap-6 p-6 rounded-3xl transition-all duration-300 dark:!bg-slate-700/40 dark:hover:!bg-slate-600/80 hover:!bg-white/40 hover:!shadow-lg transition-all-300">
+                    <div class="relative flex-shrink-0">
+                        <div class="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:!opacity-100 transition-opacity"></div>
+                        <div class="relative z-10 w-14 h-14 flex items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-200 text-blue-500 dark:!bg-blue-500 dark:!border-blue-500 dark:!text-slate-100 dark:group-hover:!border-blue-500 text-xl group-hover:!border-blue-300 group-hover:!scale-110 transition-all duration-300">
+                            {{ icon_data_system }}
+                        </div>
+                        <div class="absolute top-16 left-1/2 -translate-x-1/2 w-px h-12 bg-gradient-to-b from-slate-200 dark:!from-blue-500 to-transparent hidden lg:block"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-slate-800 dark:!text-blue-500 mb-1 flex items-center gap-3">数据系统</h3>
+                        <p class="mb-1.5 text-sm leading-relaxed text-slate-500 dark:!text-slate-400 max-w-md">
+                            提供异构分布式多级缓存，支持Object/Stream语义，实现函数实例间高性能数据共享及传递。
+                        </p>
+                        <div>
+                            <a href="https://atomgit.com/openeuler/yuanrong-datasystem" target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-[12px] tracking-widest bg-blue-50 dark:!bg-blue-200 !text-blue-500 hover:!text-blue-400 px-3 py-1.5 rounded-full font-bold whitespace-nowrap">
+                                yuanrong-datasystem
+                                {{ icon_external_link_light }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="group relative flex items-start gap-6 p-6 rounded-3xl transition-all duration-300 dark:!bg-slate-700/40 dark:hover:!bg-slate-600/80 hover:!bg-white/40 hover:!shadow-lg transition-all-300">
+                    <div class="relative flex-shrink-0">
+                        <div class="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:!opacity-100 transition-opacity"></div>
+                        <div class="relative z-10 w-14 h-14 flex items-center justify-center rounded-2xl bg-white shadow-sm border border-slate-200 text-blue-500 dark:!bg-blue-500 dark:!border-blue-500 dark:!text-slate-100 dark:group-hover:!border-blue-500 text-xl group-hover:!border-blue-300 group-hover:!scale-110 transition-all duration-300">
+                            {{ icon_toolbox }}
+                        </div>
+                        <div class="absolute top-16 left-1/2 -translate-x-1/2 w-px h-12 bg-gradient-to-b from-slate-200 dark:!from-blue-500 to-transparent hidden lg:block"></div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg mb-0.5 font-bold text-slate-800 dark:!text-blue-500 flex items-center gap-3">生态系统和工具</h3>
+                        <p class="text-sm mb-1 leading-relaxed text-slate-500 dark:!text-slate-400 max-w-md">
+                            Spring adaptor/ray adaptor以及其他生态兼容。
+<!--                            占位字符-->
+                            <span class="invisible">*******************************</span>
+                        </p>
+                        <div>
+                            <a href="https://gitcode.com/openeuler/spring-adapter" target="_blank" rel="noopener noreferrer"
+                               class="mt-0.5 inline-block whitespace-nowrap text-[12px] tracking-widest bg-blue-50 dark:!bg-blue-200 !text-blue-500 hover:!text-blue-400 px-3 py-1.5 mr-1.5 rounded-full font-bold">
+                                spring-adapter
+                                {{ icon_external_link_light }}
+                            </a>
+                            <a href="https://gitcode.com/openeuler/ray-adapter" target="_blank" rel="noopener noreferrer"
+                               class="mt-0.5 inline-block whitespace-nowrap text-[12px] tracking-widest bg-blue-50 dark:!bg-blue-200 !text-blue-500 hover:!text-blue-400 px-3 py-1.5 rounded-full font-bold">
+                                ray-adapter
+                                {{ icon_external_link_light }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 示例代码 -->
+    <section id="code" class="py-4 md:py-6 slide-up shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.05)] bg-slate-50/50 dark:!bg-[#121212]">
+        <div class="max-w-7xl mx-auto px-4 py-16">
+            <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-10 text-slate-900 dark:!text-slate-200 tracking-wide">使用 openYuanrong 扩展应用</h2>
+            <div class="flex flex-col items-center justify-center md:flex-row gap-8 p-8 rounded-3xl bg-white/40 dark:!bg-slate-700/40 backdrop-blur-xl border !border-white/20 shadow-2xl items-stretch h-[430px]">
+                <!-- 左侧边tab栏 -->
+                <div class="w-full md:w-1/3 flex-shrink-0">
+                    <ul class="space-y-3" role="tablist">
+                        <li role="presentation">
+                            <button class="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all duration-150 group
+                         bg-blue-50 border border-blue-100 hover:!bg-slate-100 dark:!bg-slate-600/80  dark:!border-slate-600/80 dark:hover:!bg-slate-600/80 shadow-sm"
+                                    id="tab-1" role="tab" aria-selected="true" aria-controls="panel-1">
+                                <div class="w-2 h-8 rounded-full bg-blue-600 group-hover:!bg-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.5)]"></div>
+                                <div>
+                                    <h4 class="font-bold text-lg !text-blue-600">
+                                        推理
+                                    </h4>
+                                    <p class="text-sm text-blue-500 mt-1">使用数据系统实现推理实例快速弹性</p>
+                                </div>
+                            </button>
+                        </li>
+                        <li role="presentation">
+                            <button class="w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all duration-150 group
+                            hover:!bg-slate-100 dark:hover:!bg-slate-600/80" id="tab-2" role="tab" aria-selected="false" aria-controls="panel-2">
+                                <div class="w-2 h-2 rounded-full bg-slate-300 group-hover:!bg-blue-400 ml-1 transition-colors"></div>
+
+                                <div class="ml-1">
+                                    <h4 class="font-bold text-lg !text-slate-800 dark:!text-slate-300">
+                                        微服务
+                                    </h4>
+                                    <p class="text-sm text-slate-500 dark:!text-slate-400 mt-1">使用 Spring adapter 迁移传统微服务</p>
+                                </div>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <!-- 代码框 -->
+                <div class="relative flex flex-shrink-0 flex-col items-start justify-start w-full md:w-2/3 rounded-2xl shadow-inner border border-slate-800 dark:!border-white/20 font-mono text-sm h-[351px]">
+                    <!-- 代码内容 -->
+                    <div class="!text-slate-800 leading-relaxed w-full rounded-2xl">
+                        <pre class="h-[351px] rounded-2xl !border-none" id="panel-1" role="tabpanel" aria-labelledby="tab-1">{% include "inferring.html" %}</pre>
+                        <pre class="hidden h-[351px] rounded-2xl !border-none" id="panel-2" role="tabpanel" aria-labelledby="tab-2">{% include "microservices.html" %}</pre>
+                    </div>
+                    <!-- 完整案例跳转 -->
+                    <div class="w-full" id="panel-header-1" role="tabpanel" aria-labelledby="tab-1">
+                        <a href="{{ pathto('use_cases/accelerate_llm_instance_scaling') }}"
+                           class="absolute underline underline-offset-4 decoration-blue-500 hover:!decoration-1 hover:!decoration-blue-400 -bottom-8 right-2 text-blue-500 hover:!text-blue-400 mr-3 text-sm tracking-wide">完整案例</a>
+                    </div>
+                    <div class="w-full hidden" id="panel-header-2" role="tabpanel" aria-labelledby="tab-2">
+                        <a href="{{ pathto('use_cases/microservice-serverless') }}"
+                           class="absolute underline underline-offset-4 decoration-blue-500 hover:!decoration-1 hover:!decoration-blue-400 -bottom-8 right-2 text-blue-500 hover:!text-blue-400 mr-3 text-sm tracking-wide">完整案例</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 深入了解 -->
+    <section id="insight" class="py-16 md:py-20 slide-up shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.05)]">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="mb-12 w-fit">
+                <h2 class="w-fit text-xl md:text-2xl lg:text-3xl font-bold text-slate-800 dark:!text-slate-200 tracking-wide
+                    after:content-[''] after:block after:h-1.5 after:w-full after:bg-blue-500 after:mt-2 after:rounded-full">
+                    深入了解
+                </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="dark:!bg-slate-700/40 dark:!border-white/20 dark:hover:!border-blue-400 flex flex-col group bg-white p-10 !pb-6 rounded-3xl border border-slate-200 shadow-sm hover:!shadow-md hover:!border-blue-400 transition-all duration-300">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-500 dark:!bg-blue-200 dark:!text-blue-500 dark:group-hover:!text-slate-100 mb-4 group-hover:!bg-blue-500 group-hover:!text-white transition-colors">
+                            {{ icon_plug }}
+                        </div>
+                        <h3 class="h-10 text-xl font-bold text-slate-800 dark:!text-blue-500 mb-2">多语言函数编程接口</h3>
+                    </div>
+                    <p class="flex-1 text-slate-500 dark:!text-slate-400 leading-relaxed text-sm">
+                        使用简单、统一的原语扩展通用 Python、C++、Java 代码，实现对构建分布式应用的精细控制。
+                    </p>
+                    <div class="mt-6 pt-3 border-t border-slate-100 dark:!border-white/20">
+                        <a href="{{ pathto('multi_language_function_programming_interface/index') }}"
+                           class="group font-bold !text-blue-500 hover:!text-blue-400 text-sm flex items-center tracking-wide">
+                            了解更多&thinsp;{{ icon_blue_circle_right }}
+                        </a>
+                    </div>
+                </div>
+
+                <div class="dark:!bg-slate-700/40 dark:!border-white/20 dark:hover:!border-blue-400 flex flex-col group bg-white p-10 !pb-6 rounded-3xl border border-slate-200 shadow-sm hover:!shadow-md hover:!border-blue-400 transition-all duration-300">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-500 dark:!bg-blue-200 dark:!text-blue-500 dark:group-hover:!text-slate-100 mb-4 group-hover:!bg-blue-500 group-hover:!text-white transition-colors">
+                            {{ icon_nodes }}
+                        </div>
+                        <h3 class="h-10 text-xl font-bold text-slate-800 dark:!text-blue-500 mb-2">openYuanrong 集群</h3>
+                    </div>
+                    <p class="flex-1 text-slate-500 dark:!text-slate-400 leading-relaxed text-sm">
+                        在主机或 Kubernetes 上部署 openYuanrong 集群，即可无缝扩展生产工作负载。
+                    </p>
+                    <div class="mt-6 pt-3 border-t border-slate-100 dark:!border-white/20">
+                        <a href="{{ pathto('deploy/index') }}"
+                           class="group font-bold !text-blue-500 hover:!text-blue-400 text-sm flex items-center tracking-wide">
+                            了解更多&thinsp;{{ icon_blue_circle_right }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 最新博文 -->
+    <section id="blog" class="py-16 md:py-20 slide-up shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.05)] bg-slate-50/50 dark:!bg-[#121212]">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="mb-3 w-full">
+                <h2 class="w-fit text-xl md:text-2xl lg:text-3xl font-bold text-slate-800 dark:!text-slate-200 tracking-wide
+                    after:content-[''] after:block after:h-1.5 after:w-full after:bg-blue-500 after:mt-2 after:rounded-full">
+                    最新博文
+                </h2>
+            </div>
+            <div class=" flex justify-end">
+                <a href="{{ pathto('getting_started') }}#quickstart-learn-more"
+                   class="group !text-blue-500 hover:!text-blue-400 text-base flex items-center tracking-wide">
+                    查看全部&thinsp;{{ icon_blue_circle_right }}
+                </a>
+            </div>
+
+            <div class="flex gap-x-4 overflow-x-auto pt-3 snap-x snap-mandatory scrollbar-hide">
+                {% for blog in blog_data %}
+                <div class="flex flex-col flex-shrink-0 w-[25rem] bg-white rounded-2xl p-6 snap-start
+            border border-slate-100 shadow-sm
+            hover:shadow-2xl hover:shadow-blue-200/40 hover:-translate-y-1.5 hover:border-blue-100
+            transition-all duration-300 group dark:!bg-slate-700/40 dark:!border-white/20 dark:hover:!bg-slate-600/80">
+                    <h3 class="text-xl font-bold text-slate-800 dark:!text-blue-500 mb-3">{{ blog.title }}</h3>
+
+                    <p class="flex-1 text-slate-500 dark:!text-slate-400 leading-relaxed text-sm mb-4">
+                        {{ blog.description }}
+                    </p>
+
+                    <div class="flex items-center justify-between !pt-5 border-t border-slate-100 dark:!border-white/20">
+                        <div class="flex items-center gap-4 text-[0.75rem] font-medium">
+                            <div class="flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full bg-blue-50 dark:!bg-blue-200 !text-blue-500  border border-blue-100/50">
+                                {{ icon_calendar }}
+                                <span>{{ blog.date }}</span>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 text-slate-500 group-hover:text-blue-500 transition-colors">
+                                {{ icon_clock }}
+                                <span>阅读需 {{ blog.read_time }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ blog.link }}" target="_blank"
+                           class="group !text-blue-500 hover:!text-blue-400 text-sm flex items-center tracking-wide">
+                            阅读更多&thinsp;{{ icon_external_link }}
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- 参与其中 -->
+    <section id="home-footer" class="py-14 md:py-16 slide-up shadow-[inset_0_20px_20px_-20px_rgba(0,0,0,0.05)] bg-slate-50/50 dark:!bg-[#121212]">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="mb-10 w-fit">
+                <h2 class="w-fit text-xl md:text-2xl lg:text-3xl font-bold text-slate-800 dark:!text-slate-200 tracking-wide">
+                    参与其中
+                </h2>
+                <p class="mt-4 text-slate-500 dark:!text-slate-400 leading-relaxed">加入我们的全球开发者社区，共同构建开放、透明的 openYuanrong 生态。</p>
+            </div>
+            <div class="flex flex-col md:flex-row justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:!text-slate-300 mb-6 flex items-center gap-2">
+                        {{ icon_message }}
+                        加入我们
+                    </h3>
+                    <ul class="space-y-4">
+                        <li><a href="https://mailweb.openeuler.org/postorius/lists/yuanrong@openeuler.org"
+                               target="_blank" class="text-sm flex items-center !text-slate-500 dark:!text-slate-400 hover:!text-blue-500">
+                            订阅简报&thinsp;{{ icon_external_link_gray }}
+                        </a></li>
+                        <li><a href="https://www.zhihu.com/people/vvxgakv3/posts"
+                               target="_blank" class="text-sm flex items-center !text-slate-500 dark:!text-slate-400 hover:!text-blue-500">
+                            在知乎上关注我们&thinsp;{{ icon_external_link_gray }}
+                        </a></li>
+                        <li><a href="https://www.openeuler.openatom.cn/zh/sig/sig-YuanRong#recent-meeting"
+                               target="_blank" class="text-sm flex items-center !text-slate-500 dark:!text-slate-400 hover:!text-blue-500">
+                            参加 SIG 组会议&thinsp;{{ icon_external_link_gray }}
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:!text-slate-300 mb-6 flex items-center gap-2">
+                        {{ icon_headset }}
+                        获取支持
+                    </h3>
+                    <ul class="space-y-4">
+                        <li>
+                            <div class="relative group inline-block">
+                                <a href="#" target="_blank"
+                                   class="text-sm flex items-center !text-slate-500 dark:!text-slate-400 hover:!text-blue-500">
+                                    官方微信群&thinsp;{{ icon_rotate_circle_right }}
+                                </a>
+                                <div class="absolute bottom-full left-1/2 -translate-x-1/2 w-80 p-6
+                                bg-white dark:!bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:!border-slate-800
+                                invisible opacity-0 translate-y-2 scale-95
+                                group-hover:!visible group-hover:!opacity-100 group-hover:!translate-y-0 group-hover:!scale-100
+                                transition-all duration-300 ease-out origin-bottom z-50">
+                                    <h3 class="text-lg font-bold text-slate-800 dark:!text-slate-300 mb-1 text-left">
+                                        {{ icon_wechat }}
+                                        官方交流群
+                                    </h3>
+
+                                    <p class="text-sm text-slate-500 dark:!text-slate-400 mb-4 text-left leading-relaxed">
+                                        加入官方微信群，获取 openYuanrong 的最新资讯和技术分享。
+                                    </p>
+                                    <img src="_static/qrcode.png" alt="wx-qr-code" class="dark:!brightness-50 rounded-lg">
+                                    <p class="text-sm text-slate-500 text-center dark:!text-slate-400 mb-4 text-left leading-relaxed">
+                                        扫描二维码添加 openYuanrong 小助手
+                                    </p>
+                                    <!-- 边框下方三角形 -->
+                                    <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-white dark:!border-t-slate-800">
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <li><a href="https://atomgit.com/openeuler/yuanrong/issues/create/choose" target="_blank"
+                               class="text-sm flex items-center !text-slate-500 dark:!text-slate-400 hover:!text-blue-500">
+                            提交 Issue&thinsp;{{ icon_external_link_gray }}
+                        </a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 dark:!text-slate-400 mb-6 flex items-center gap-2">
+                        {{ icon_handshake }}
+                        为 openYuanrong 做贡献
+                    </h3>
+                    <ul class="space-y-4">
+                        <li><a href="{{ pathto('contributor_guide/index') }}"
+                               class="text-sm group flex items-center !text-slate-500 dark:!text-slate-400 hover:!text-blue-500">
+                            贡献者指南&thinsp;{{ icon_circle_right }}
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- JavaScript -->
+    <script>
+        // 切换框
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('[role="tab"]');
+            const panels = document.querySelectorAll('[role="tabpanel"]');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // 1. 重置所有标签状态
+                    tabs.forEach(t => {
+                        t.setAttribute('aria-selected', 'false');
+                        // 移除激活样式
+                        t.classList.remove('bg-blue-50', 'border', 'border-blue-100', 'dark:!bg-slate-600/80',  'dark:!border-slate-600/80', 'shadow-sm');
+                        t.querySelector('h4').classList.replace('!text-blue-600', '!text-slate-800');
+                        t.querySelector('h4').classList.add('dark:!text-slate-300');
+                        t.querySelector('p').classList.replace('text-blue-500', 'text-slate-500');
+                        t.querySelector('p').classList.add('dark:!text-slate-400');
+                        // 隐藏激活光晕，显示灰色小点
+                        const halo = t.querySelector('.w-2');
+                        halo.classList.replace('bg-blue-600', 'bg-slate-300');
+                        halo.classList.remove('h-8');
+                        halo.classList.add('h-2');
+                    });
+
+                    // 2. 激活当前标签
+                    tab.setAttribute('aria-selected', 'true');
+                    tab.classList.add('bg-blue-50', 'border', 'border-blue-100', 'dark:!bg-slate-600/80',  'dark:!border-slate-600/80', 'shadow-sm');
+                    tab.querySelector('h4').classList.replace('!text-slate-800', '!text-blue-600');
+                    tab.querySelector('h4').classList.remove('dark:!text-slate-300');
+                    tab.querySelector('p').classList.replace('text-slate-500', 'text-blue-500');
+                    tab.querySelector('p').classList.remove('dark:!text-slate-400');
+                    // 显示激活光晕
+                    const halo = tab.querySelector('.w-2');
+                    halo.classList.replace('bg-slate-300', 'bg-blue-600');
+                    halo.classList.replace('h-2', 'h-8');
+
+                    // 3. 切换代码面板
+                    panels.forEach(panel => {
+                        // 检查这个面板是否由当前点击的按钮控制
+                        if (panel.getAttribute('aria-labelledby') === tab.id) {
+                            panel.classList.remove('hidden');
+                        } else {
+                            panel.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+        });
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // 滚动到视图的元素进入动画
+        function handleScrollAnimation() {
+            const elements = document.querySelectorAll('.slide-up');
+            const windowHeight = window.innerHeight;
+
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+
+                if (elementTop < windowHeight - elementVisible) {
+                    element.classList.add('visible');
+                }
+            });
+        }
+
+        // 初始检查
+        window.addEventListener('DOMContentLoaded', handleScrollAnimation);
+
+        // 滚动时检查 - 使用节流函数优化性能
+        function throttle(func, wait) {
+            let timeout;
+            return function () {
+                const context = this;
+                const args = arguments;
+                if (!timeout) {
+                    timeout = setTimeout(() => {
+                        timeout = null;
+                        func.apply(context, args);
+                    }, wait);
+                }
+            };
+        }
+
+        // 使用节流函数优化滚动事件
+        window.addEventListener('scroll', throttle(handleScrollAnimation, 16));
+    </script>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package runtime_service;
+
+import "common.proto";
+
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/runtime;runtime";
+
+message CallRequest {
+  string              function             = 1;
+  repeated common.Arg args                 = 2;
+  string              traceID              = 3;
+  string              returnObjectID       = 4;
+  // isCreate specify the request whether initialization or runtime invoke
+  bool                isCreate             = 5;
+  // senderID specify the caller identity
+  // while process done, it should be send back to core by CallResult.instanceID
+  string              senderID             = 6;
+  // while process done, it should be send back to core by CallResult.requestID
+  string              requestID            = 7;
+  repeated string     returnObjectIDs      = 8;
+  map<string, string> createOptions        = 9;
+  string              spanID               = 10;
+}
+
+message CallResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+
+}
+
+message CheckpointRequest {
+  string checkpointID = 1;
+}
+
+message CheckpointResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+  bytes            state   = 3;
+}
+
+message RecoverRequest {
+  bytes state = 1;
+  map<string, string> createOptions  = 2;
+}
+
+message RecoverResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message GracefulExitRequest {
+  uint64 gracePeriodSecond = 1;
+}
+
+message GracefulExitResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message ShutdownRequest {
+  uint64 gracePeriodSecond = 1;
+}
+
+message ShutdownResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message NotifyRequest {
+  string                         requestID       = 1;
+  common.ErrorCode               code            = 2;
+  string                         message         = 3;
+  repeated common.SmallObject    smallObjects    = 4;
+  repeated common.StackTraceInfo stackTraceInfos = 5;
+  common.RuntimeInfo             runtimeInfo     = 7;
+}
+
+message NotifyResponse {}
+
+message HeartbeatRequest {}
+
+message HeartbeatResponse {
+  common.HealthCheckCode code = 1;
+}
+
+message SignalRequest {
+  int32 signal  = 1;
+  bytes payload = 2;
+}
+
+message SignalResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+  bytes            payload = 3;
+}
+
+// called before sandbox checkpoint
+message PrepareSnapRequest {}
+
+message PrepareSnapResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+// called after sandbox restored
+message SnapStartedRequest {}
+
+message SnapStartedResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}

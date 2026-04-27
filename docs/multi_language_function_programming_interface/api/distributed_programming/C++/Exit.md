@@ -1,0 +1,4 @@
+# Exit
+
+```{doxygenfunction} YR::Exit()
+```

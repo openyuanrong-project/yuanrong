@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package scheduler;
+
+import "scheduler_common.proto";
+
+option go_package = "grpc/pb/scheduler;scheduler";
+
+service DomainSchedulerService {
+    // domain scheduler forwards scheduler request to local scheduler
+    rpc ForwardSchedule (scheduler.ForwardScheduleRequest) returns (scheduler.ForwardScheduleResponse);
+    // PullMetrics
+    rpc PullMetrics (scheduler.PullMetricsRequest) returns (scheduler.PullMetricsResponse);
+    // QuerySchedulersMetrics
+    rpc QuerySchedulersMetrics (QuerySchedulersMetricsRequest) returns (QuerySchedulersMetricsResponse);
+    // NotifySchedulerLineage
+    rpc NotifySchedulerLineage (NotifySchedulerLineageRequest) returns (NotifySchedulerLineageResponse);
+    // GetNodesResource
+    rpc GetNodesResource (GetNodesResourceRequest) returns (GetNodesResourceResponse);
+    // ReBalance
+    rpc ReBalance (ReBalanceRequest) returns (ReBalanceResponse);
+}
+
+message QuerySchedulersMetricsRequest {
+}
+
+message QuerySchedulersMetricsResponse {
+    scheduler.SchedulerMetrics self                             = 1;
+    map<string, scheduler.SchedulerMetrics> subdomainSchedulers = 2;
+}
+
+
+message GetNodesResourceRequest {
+}
+
+message GetNodesResourceResponse {
+}
+
+message NotifySchedulerLineageRequest {
+    enum type {
+        ADD = 0;
+        DELETE = 1;
+        UPDATE = 2;
+        UPDATE_MEMBER = 3;
+    }
+    type operationType = 1;
+    string Address = 2;
+    string Name = 3;
+}
+
+message NotifySchedulerLineageResponse {
+}
+
+message ReBalanceRequest {
+    string dstNode = 1;
+    map<string, float> resource = 2;
+    string requestID = 3;
+}
+
+message ReBalanceResponse {
+}
+

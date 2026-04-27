@@ -1,0 +1,72 @@
+<span class="s0">// </span><span class="s1">原SpringBoot项目代码无需修改
+</span><span class="s0">// </span><span class="s1">例如：Application.java</span>
+<span class="s1">package com.example.microservicedemo</span><span class="s1">;</span>
+
+<span class="s0">import </span><span class="s1">org.springframework.boot.SpringApplication;
+</span><span class="s0">import </span><span class="s1">org.springframework.boot.autoconfigure.SpringBootApplication;
+</span>
+<span class="s5">@SpringBootApplication</span>
+<span class="s1">public </span><span class="s0">class </span><span class="s1">Application {</span>
+
+    <span class="s1">public static void main(String[] args) {</span>
+        <span class="s1">SpringApplication.run(Application.</span><span class="s0">class</span><span class="s1">, args);
+    }</span>
+
+<span class="s1">}</span>
+
+<span class="s0">// </span><span class="s1">例如：MyController.java</span>
+<span class="s1">package com.example.microservicedemo</span><span class="s1">;</span>
+
+<span class="s0">import </span><span class="s1">org.springframework.web.bind.annotation.GetMapping;
+</span><span class="s0">import </span><span class="s1">org.springframework.web.bind.annotation.RequestMapping;
+</span><span class="s0">import </span><span class="s1">org.springframework.web.bind.annotation.RestController;
+</span>
+<span class="s5">@RequestMapping</span><span class="s1">(</span><span class="s8">&quot;/rest&quot;</span><span class="s1">)</span>
+<span class="s5">@RestController</span>
+<span class="s1">public </span><span class="s0">class </span><span class="s1">MyController {</span>
+    <span class="s0">@</span><span class="s1">GetMapping(</span>value <span class="s0">= </span><span class="s8">&quot;/hello&quot;</span><span class="s1">)</span>
+    <span class="s1">public String helloWorld(String name) {</span>
+        <span class="s0">return </span><span class="s8">&quot;Hello World, &quot; </span><span class="s0">+ </span><span class="s1">name;
+    }</span>
+<span class="s1">}</span>
+
+<span class="s1">第一步：在pom.xml文件中加入对openYuanrong SpringBoot Adapter SDK的依赖
+</span><span class="s0">&lt;</span><span class="s1">dependency</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;</span><span class="s1">groupId</span><span class="s0">&gt;</span><span class="s1">org.yuanrong.m2s</span><span class="s0">&lt;/</span><span class="s1">groupId</span><span class="s0">&gt;</span>
+    <span class="s0">&lt;</span><span class="s1">artifactId</span><span class="s0">&gt;</span><span class="s1">microservice</span><span class="s0">-</span><span class="s1">function</span><span class="s0">-</span><span class="s1">yuanrong</span><span class="s0">&lt;/</span><span class="s1">artifactId</span><span class="s0">&gt;</span>
+<span class="s0">&lt;/</span><span class="s1">dependency</span><span class="s0">&gt;</span>
+
+<span class="s1">第二步：编译打包后调用REST API在openYuanrong集群上部署应用
+curl </span><span class="s0">-</span><span class="s1">X </span><span class="s2">POST </span><span class="s0">-</span><span class="s1">i </span><span class="s0">/</span><span class="s1">serverless</span><span class="s0">/</span><span class="s1">v1</span><span class="s0">/</span><span class="s1">functions </span><span class="s0">-</span><span class="s1">d </span><span class="s0">@</span><span class="s1">create_func.json</span>
+<span class="s0">// </span><span class="s1">create_func.json</span>
+<span class="s1">{</span>
+    <span class="s8">&quot;name&quot;</span><span class="s1">: </span><span class="s8">&quot;0@microservice@demo&quot;</span><span class="s1">,</span>
+    <span class="s8">&quot;handler&quot;</span><span class="s1">: </span><span class="s8">&quot;org.yuanrong.m2s.function.Handler.handleRestRequest&quot;</span><span class="s1">,</span>
+    <span class="s8">&quot;runtime&quot;</span><span class="s1">: </span><span class="s8">&quot;java8&quot;</span><span class="s1">,</span>
+    <span class="s8">&quot;cpu&quot;</span><span class="s1">: </span><span class="s3">600</span><span class="s1">,</span>
+    <span class="s8">&quot;memory&quot;</span><span class="s1">: </span><span class="s3">512</span><span class="s1">,</span>
+    <span class="s8">&quot;timeout&quot;</span><span class="s1">: </span><span class="s3">30</span><span class="s1">,</span>
+    <span class="s8">&quot;environment&quot;</span><span class="s1">: {</span>
+        <span class="s8">&quot;spring_start_class&quot;</span><span class="s1">: </span><span class="s8">&quot;com.example.microservicedemo.Application&quot;</span>
+    <span class="s1">},</span>
+    <span class="s8">&quot;kind&quot;</span><span class="s1">: </span><span class="s8">&quot;faas&quot;</span><span class="s1">,</span>
+    <span class="s8">&quot;extendedHandler&quot;</span><span class="s1">: {</span>
+         <span class="s8">&quot;initializer&quot;</span><span class="s1">: </span><span class="s8">&quot;org.yuanrong.m2s.function.Handler.initializer&quot;</span>
+    <span class="s1">},</span>
+    <span class="s8">&quot;extendedTimeout&quot;</span><span class="s1">: {</span>
+        <span class="s8">&quot;initializer&quot;</span><span class="s1">: </span><span class="s3">600</span>
+    <span class="s1">},</span>
+<span class="s1">}</span>
+
+<span class="s1">第三步：使用REST API调用服务
+curl </span><span class="s0">-</span><span class="s1">X </span><span class="s2">POST </span><span class="s0">-</span><span class="s1">i </span><span class="s0">/</span><span class="s1">serverless</span><span class="s0">/</span><span class="s1">v1</span><span class="s0">/</span><span class="s1">functions</span><span class="s0">/</span><span class="s1">$</span><span class="s1">{</span><span class="s2">FUNCTION_VERSION_URN</span><span class="s1">}</span><span class="s0">/</span><span class="s1">invocations </span><span class="s0">-</span><span class="s1">d </span><span class="s0">@</span><span class="s1">invoke_func.json</span>
+<span class="s0">// </span><span class="s1">invoke_func.json</span>
+<span class="s1">{</span>
+  <span class="s8">&quot;httpMethod&quot;</span><span class="s1">: </span><span class="s8">&quot;GET&quot;</span><span class="s1">,</span>
+  <span class="s8">&quot;body&quot;</span><span class="s1">: </span><span class="s8">&quot;&quot;</span><span class="s1">,</span>
+  <span class="s8">&quot;path&quot;</span><span class="s1">:</span><span class="s8">&quot;/rest/hello&quot;</span><span class="s1">,</span>
+  <span class="s8">&quot;pathParameters&quot;</span><span class="s1">:{},</span>
+  <span class="s8">&quot;queryStringParameters&quot;</span><span class="s1">: {</span>
+    <span class="s8">&quot;name&quot;</span><span class="s1">: </span><span class="s8">&quot;yuanrong&quot;</span>
+  <span class="s1">}</span>
+<span class="s1">}</span>

@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: faasmanager-function-meta
+  namespace: {{ .Values.global.namespace }}
+data:
+  faasmanager_meta.json: |-
+    {
+      "funcMetaData": {
+        "layers": [],
+        "name": "0-system-faasmanager",
+        "description": "",
+        "functionUrn": "sn:cn:yrk:0:function:0-system-faasmanager",
+        "reversedConcurrency": 0,
+        "tags": null,
+        "functionUpdateTime": "",
+        "functionVersionUrn": "sn:cn:yrk:0:function:0-system-faasmanager:$latest",
+        "codeSize": 14391796,
+        "codeSha256": "0",
+        "handler": "",
+        "runtime": "go1.13",
+        "timeout": 900,
+        "version": "$latest",
+        "versionDescription": "$latest",
+        "deadLetterConfig": "",
+        "latestVersionUpdateTime": "",
+        "publishTime": "",
+        "businessId": "yrk",
+        "tenantId": "0",
+        "domain_id": "",
+        "project_name": "",
+        "revisionId": "20230116102015135",
+        "created": "2023-01-16 10:20:15.135 UTC",
+        "statefulFlag": false,
+        "hookHandler": {
+          "call": "faasmanager.CallHandler",
+          "init": "faasmanager.InitHandler",
+          "checkpoint": "faasmanager.CheckpointHandler",
+          "recover": "faasmanager.RecoverHandler",
+          "shutdown": "faasmanager.ShutdownHandler",
+          "signal": "faasmanager.SignalHandler"
+        }
+      },
+      "codeMetaData": {
+        "storage_type": "local",
+        "code_path": "/home/sn/system-function-packages/faasmanager"
+      },
+      "envMetaData": {
+        "envKey": "",
+        "environment": "",
+        "encrypted_user_data": ""
+      },
+      "resourceMetaData": {
+        "cpu": {{ .Values.global.systemFunc.faasManager.cpu }},
+        "memory": {{ .Values.global.systemFunc.faasManager.memory }},
+        "customResources": ""
+      },
+      "extendedMetaData": {
+        "image_name": "",
+        "role": {
+          "xrole": "",
+          "app_xrole": ""
+        },
+        "mount_config": {
+          "mount_user": {
+            "user_id": 0,
+            "user_group_id": 0
+          },
+          "func_mounts": null
+        },
+        "strategy_config": {
+          "concurrency": 0
+        },
+        "extend_config": "",
+        "initializer": {
+          "initializer_handler": "",
+          "initializer_timeout": 0
+        },
+        "enterprise_project_id": "",
+        "log_tank_service": {
+          "logGroupId": "",
+          "logStreamId": ""
+        },
+        "tracing_config": {
+          "tracing_ak": "",
+          "tracing_sk": "",
+          "project_name": ""
+        },
+        "user_type": "",
+        "instance_meta_data": {
+          "maxInstance": 100,
+          "minInstance": 0,
+          "concurrentNum": 100,
+          "cacheInstance": 0
+        },
+        "extended_handler": null,
+        "extended_timeout": null
+      }
+    }
+

@@ -1,0 +1,94 @@
+{
+  "scenario": "faas",
+  "schedulerNum": 1,
+  "clusterID": "cluster001",
+  "clusterName": "dsweb_cceturbo_bj4_auto_az1",
+  "regionName": "beijing4",
+  "affinity": "",
+  "alarmConfig": {
+    "enableAlarm": false,
+    "minInsStartInterval": 15,
+    "minInsCheckInterval": 15,
+    "alarmLogConfig": {
+      "filepath": "/opt/huawei/logs/alarms",
+      "level": "Info",
+      "tick": 0,
+      "first": 0,
+      "thereafter": 0,
+      "singlesize": 500,
+      "threshold": 3,
+      "disable": false
+    },
+    "xiangYunFourConfig": {
+      "site": "cn_dev_default",
+      "tenantID": "T014",
+      "applicationID": "com.huawei.cloud_enhance_device",
+      "serviceID": "com.huawei.hmscorecameracloudenhanceservice"
+    }
+  },
+  "cpu": 500,
+  "memory": 500,
+  "image": "",
+  "version": "",
+  "nameSpace": "default",
+  "leaseSpan": 5000,
+  "autoScaleConfig": {
+    "slaQuota": 1000,
+    "scaleDownTime": 60000,
+    "burstScaleNum": 1000
+  },
+  "functionLimitRate": 5000,
+  "ephemeralStorage": 512,
+  "dockerRootPath": "/var/lib/docker",
+  "rawStsConfig": {
+    "stsEnable": false,
+    "serverConfig": {
+      "domain": "",
+      "path": "/opt/huawei/certs/HMSClientCloudAccelerateService/HMSCaaSYuanRongWorker/HMSCaasYuanRongWorker.ini"
+    }
+  },
+  "routerEtcd": {
+    "servers": [
+      "{etcdAddr}"
+    ],
+    "sslEnable": {sslEnable},
+    "user": "",
+    "password": "",
+    "useSecret": false,
+    "secretName": "etcd-client-secret",
+    "authType": "{etcdAuthType}",
+    "cafile": "{etcdCAFile}",
+    "certfile": "{etcdCertFile}",
+    "keyfile": "{etcdKeyFile}",
+    "passphraseFile": "{passphraseFile}",
+    "azPrefix": "{azPrefix}"
+  },
+  "metaEtcd": {
+    "servers": [
+      "{etcdAddr}"
+    ],
+    "sslEnable": {sslEnable},
+    "user": "",
+    "password": "",
+    "useSecret": false,
+    "secretName": "etcd-client-secret",
+    "authType": "{etcdAuthType}",
+    "cafile": "{etcdCAFile}",
+    "certfile": "{etcdCertFile}",
+    "keyfile": "{etcdKeyFile}",
+    "passphraseFile": "{passphraseFile}",
+    "azPrefix": "{azPrefix}"
+  },
+  "tlsConfig": {
+    "caContent": "",
+    "keyContent": "",
+    "certContent": ""
+  },
+  "enableHealthCheck": true,
+  "rawStsConfig": {
+    "serverConfig": {
+      "path": "123456/abcdegf"
+    }
+  },
+  "deployMode": "Processes"
+}

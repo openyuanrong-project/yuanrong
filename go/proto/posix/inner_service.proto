@@ -1,0 +1,118 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package inner_service;
+
+import "common.proto";
+import "core_service.proto";
+import "bus_service.proto";
+import "runtime_service.proto";
+import "resource.proto";
+import "runtime_rpc.proto";
+
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/inner;inner";
+
+// Inner service provides APIs for bus to bus interaction
+service InnerService {
+  // forward a recovery request to rebuild instance owned by other bus-proxy
+  rpc ForwardRecover (ForwardRecoverRequest) returns (ForwardRecoverResponse) {}
+  // notify the result of forward by other proxy request
+  rpc NotifyResult (NotifyRequest) returns (NotifyResponse) {}
+  // forward a killing request to signal instance owned by other bus-proxy
+  rpc ForwardKill (ForwardKillRequest) returns (ForwardKillResponse) {}
+  // forward a calling result request to other bus-proxy
+  rpc ForwardCallResult (ForwardCallResultRequest) returns (ForwardCallResultResponse) {}
+  // forward a call request to other bus-proxy
+  rpc ForwardCall (ForwardCallRequest) returns (ForwardCallResponse) {}
+  // forward a queryInstance request to other bus-proxy
+  rpc QueryInstance (bus_service.QueryInstanceRequest) returns (bus_service.QueryInstanceResponse) {}
+}
+
+message NotifyRequest {
+  string           requestID = 1;
+  common.ErrorCode code      = 2;
+  string           message   = 3;
+}
+
+message NotifyResponse {}
+
+message ForwardRecoverRequest {
+  string instanceID  = 1;
+  string runtimeIP   = 2;
+  string runtimePort = 3;
+  string runtimeID   = 4;
+  string function    = 5;
+}
+
+message ForwardRecoverResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message ForwardKillRequest {
+  string                   requestID     = 1;
+  string                   srcInstanceID = 2;
+  core_service.KillRequest req           = 3;
+  string                   instanceID    = 4;
+  string                   runtimeIP     = 5;
+  string                   runtimePort   = 6;
+  string                   runtimeID     = 7;
+  string                   instanceRequestID = 8;
+  string                   srcTenantID   = 9;
+}
+
+message ForwardKillResponse {
+  string           requestID = 1;
+  common.ErrorCode code      = 2;
+  string           message   = 3;
+}
+
+// Used to forward the result of an initcall across nodes
+message ForwardCallResultRequest {
+  core_service.CallResult           req               = 1;
+  string                            instanceID        = 2;
+  string                            runtimeID         = 3;
+  string                            functionProxyID   = 4;
+  // Fast channel for the caller node to obtain the status update of the created instance.
+  resources.InstanceInfo            readyInstance     = 5;
+}
+
+message ForwardCallResultResponse {
+  common.ErrorCode code           = 1;
+  string           message        = 2;
+  string           requestID      = 3;
+  string           instanceID     = 4;
+}
+
+message ForwardCallRequest {
+  runtime_service.CallRequest     req            = 1;
+  string                          instanceID     = 2;
+  string                          srcIP          = 3;
+  string                          srcNode        = 4;
+}
+
+message ForwardCallResponse {
+  common.ErrorCode code           = 1;
+  string           message        = 2;
+  string           requestID      = 3;
+}
+
+message RouteCallRequest {
+  runtime_rpc.StreamingMessage     req            = 1;
+  string                           instanceID     = 2;
+}

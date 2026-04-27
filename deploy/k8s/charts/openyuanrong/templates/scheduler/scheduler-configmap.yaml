@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scheduler-config
+  namespace: default
+data:
+  config.json: |-
+    {
+      "schedulerNum": 1,
+      "clusterID":"cluster001",
+      "scenario": "faas",
+      "clusterName": "cn-dev-gy",
+      "regionName": "guiyang",
+      "alarmConfig": {
+        "enableAlarm": false,
+        "minInsStartInterval": 15,
+        "minInsCheckInterval": 15,
+        "alarmLogConfig": {
+          "enableAlarm": true,
+          "filepath": "",
+          "level": "Info",
+          "tick": 0,
+          "first": 0,
+          "thereafter": 0,
+          "singlesize": 500,
+          "threshold": 3,
+          "disable": false
+        },
+        "xiangYunFourConfig": {
+          "site": "aaa.bbb",
+          "tenantID": "T014",
+          "applicationID": "aaa.bbb",
+          "serviceID": "aaa.bbb"
+        }
+      },
+      "nodeSelector": {},
+      "enableNPUDriverMount": false,
+      "cpu": 2000,
+      "memory": 2048,
+      "image": ":",
+      "version":"",
+      "metricsAddr": ":9099",
+      "metricsHttpsEnable": false,
+      "predictGroupWindow": 900000,
+      "autoScaleConfig": {
+        "slaQuota": 1000,
+        "scaleDownTime": 60000,
+        "burstScaleNum": 1000
+      },
+      "enableRollout": false,
+      "enableHealthCheck": true,
+      "stateDisable": true,
+      "reliabilityType": "low",
+      "leaseSpan": 5000,
+      "functionLimitRate": 20000,
+      "npuEphemeralStorage": 512000,
+      "ephemeralStorage": 6144,
+      "hostaliaseshostname": [],
+      "systemAuth": "",
+      "dockerRootPath":"/var/lib/docker",
+      "functionConfig": [],
+      "localAuth": {
+        "aKey": "",
+        "sKey": ""
+      },
+      "xpuNodeLabels": [
+        {"xpuType": "huawei.com/ascend-1980","instanceType": "280T","nodeLabelKey": "node.kubernetes.io/npu.chip.name","NodeLabelValues": ["910B4"]},
+        {"xpuType": "huawei.com/ascend-1980","instanceType": "376T","nodeLabelKey": "node.kubernetes.io/npu.chip.name","NodeLabelValues": ["910B1","910B2"]},
+        {"xpuType": "huawei.com/ascend-1980","instanceType": "313T","nodeLabelKey": "node.kubernetes.io/npu.chip.name","NodeLabelValues": ["910B3"]},
+        {"xpuType": "huawei.com/ascend-1980","nodeLabelKey": "node.kubernetes.io/npu.chip.name","NodeLabelValues": ["910B1","910B2"]}
+      ],
+      "serviceAccountJwt": {
+        "nuwaRuntimeAddr": "",
+        "nuwaGatewayAddr": "",
+        "oauthTokenUrl": "",
+        "serviceAccountKey": "",
+        "tlsConfig": {
+          "tlsCipherSuites": ["TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256","TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"],
+          "httpsInsecureSkipVerify": true
+        },
+        "TLSConfig": {
+          "tlsCipherSuites": ["TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256","TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384","TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256","TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"],
+          "httpsInsecureSkipVerify": true
+        }
+      },
+      "routerEtcd": {
+        "servers": ["{{ .Values.global.etcdManagement.detcd }}"],
+        {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+        "sslEnable": true,
+        {{- else }}
+        "sslEnable": false,
+        {{- end}}
+        "user":"",
+        "password":"",
+        "authType": {{ quote .Values.global.etcdManagement.authType }},
+        "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+        "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+      },
+      "metaEtcd": {
+        "servers": ["{{ .Values.global.etcdManagement.detcd }}"],
+        {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+        "sslEnable": true,
+        {{- else }}
+        "sslEnable": false,
+        {{- end}}
+        "user":"",
+        "password":"",
+        "authType": {{ quote .Values.global.etcdManagement.authType }},
+        "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+        "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+      },
+      "tlsConfig": {
+        "caContent": "${CA_CONTENT}",
+        "keyContent": "${KEY_CONTENT}",
+        "certContent": "${CERT_CONTENT}"
+      }
+    }

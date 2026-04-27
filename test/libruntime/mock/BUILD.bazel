@@ -1,0 +1,11 @@
+cc_library(
+    name = "mock_datasystem",
+    hdrs = ["mock_datasystem.h", "mock_datasystem_client.h", "mock_fs_intf.h", "mock_fs_intf_with_callback.h", "mock_datasystem_client_wrapper.h", "fake_function_proxy_server.h", "mock_security.h", "mock_fs_client_and_server.h", "mock_task_submitter.h", "mock_invoke_adaptor.h", "mock_fs_intf_rw.h", "mock_fs_intf_manager.h"],
+    srcs = ["mock_datasystem_client.cpp", "mock_fs_client_and_server.cpp"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@msgpack",
+        "//:runtime_lib",
+        "@gtest//:gtest_main",
+    ]
+)

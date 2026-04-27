@@ -1,0 +1,57 @@
+apiVersion: v1
+metadata:
+  name: iam-policy-config
+  namespace: {{ .Values.global.namespace }}
+kind: ConfigMap
+data:
+  iam-policy-config.json: |-
+    {
+      "tenant_group": {
+        "system": {
+          "0": ["0/0-system-faasfrontend/$latest","0/0-system-faasscheduler/$latest",
+              "0/0-system-faascontroller/$latest","0/0-system-faasmanager/$latest"]
+        },
+        "external": {
+        }
+      },
+
+      "white_list": {
+      },
+
+      "policy": {
+        "allow": {
+          "create": {
+            "system": {
+              "external": [ "*" ],
+              "system": [ "*" ]
+            },
+            "external": {
+              "external": [ "*" ]
+            }
+          },
+          "invoke": {
+            "system": {
+              "system": [ "*" ],
+              "external": [ "*" ]
+            },
+            "external": {
+              "external": [ "=" ],
+              "system": [ "*" ]
+            }
+          },
+          "kill": {
+            "system": {
+              "system": [ "*" ],
+              "external": [ "*" ]
+            },
+            "external": {
+              "external": [ "=" ]
+            }
+          }
+        },
+        "deny": {
+          "tenant_list": [],
+          "user_list": []
+        }
+      }
+    }

@@ -1,0 +1,15 @@
+apiVersion: v1
+metadata:
+  name: function-proxy-config
+  namespace: {{ .Values.global.namespace }}
+kind: ConfigMap
+data:
+  redisConfig.json: |-
+    {
+      "serverAddr": "{{ .Values.global.redisManagement.serverAddr }}",
+      "password": "{{ .Values.global.redisManagement.password }}",
+      "port": {{ .Values.global.redisManagement.port }},
+      "connectTimeout": {{ .Values.global.redisManagement.connectTimeout }},
+      "commandTimeout": {{ .Values.global.redisManagement.commandTimeout }},
+      "needAuth": {{ .Values.global.redisManagement.needAuth }}
+    }

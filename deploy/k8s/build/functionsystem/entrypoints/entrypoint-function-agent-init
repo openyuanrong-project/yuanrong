@@ -1,0 +1,255 @@
+#!/bin/bash
+# Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -e
+
+chown ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/log
+chmod 750 /home/${USER_NAME}/log
+chown ${USER_NAME}:${USER_NAME} /dcache
+chmod 750 /dcache
+mkdir -p -m 750 /home/${SNUSER_NAME}/log/instances
+mkdir -p -m 750 /home/${SNUSER_NAME}/log/exception
+chmod 750 /home/${SNUSER_NAME}/log
+chmod 750 /home/${SNUSER_NAME}/log/instances
+chown ${SNUSER_NAME}:${SNUSER_NAME} /home/${SNUSER_NAME}/log
+chown ${SNUSER_NAME}:${SNUSER_NAME} /home/${SNUSER_NAME}/log/exception
+chown ${USER_NAME}:${USER_NAME} /home/${SNUSER_NAME}/log/instances
+chown ${USER_NAME}:${USER_NAME} /opt/function/code
+chmod 750 /opt/function/code
+mkdir -p /home/${SNUSER_NAME}/alarms
+chmod 750 -R /home/${SNUSER_NAME}/alarms
+chown ${SNUSER_NAME}:${USER_NAME} -R /home/${SNUSER_NAME}/alarms
+mkdir -p /home/${USER_NAME}/metrics
+chmod 750 -R /home/${USER_NAME}/metrics
+chown ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/metrics
+mkdir -p /home/${SNUSER_NAME}/metrics
+chmod 750 /home/${SNUSER_NAME}/metrics
+chmod 750 -R /home/${SNUSER_NAME}/metrics
+chown ${SNUSER_NAME}:${USER_NAME} /home/${SNUSER_NAME}/metrics
+mkdir -p -m 770 /home/${SNUSER_NAME}/var/log/
+mkdir -p -m 770 /home/${SNUSER_NAME}/var/log/ascend-dmi
+if [ -d "/home/${SNUSER_NAME}/resource/scc" ]; then
+    mkdir -p -m 750 /home/${SNUSER_NAME}/secret
+    cp -r /home/${SNUSER_NAME}/resource/scc /home/${SNUSER_NAME}/secret/
+    chown ${SNUSER_NAME}:${SNUSER_NAME} /home/${SNUSER_NAME}/secret
+    chown -R ${SNUSER_NAME}:${SNUSER_NAME} /home/${SNUSER_NAME}/secret
+fi
+
+function get_pod_ip() {
+    # Note that "eth0" may not be the interface name used in all environments,
+    # so it may need to be adjusted based on different actual situation.
+    local pod_ip=$(ip addr show eth0 | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+    echo "${pod_ip}"
+}
+
+function parse_whitelist_and_set_ipset_rule() {
+    echo "$1" | awk -F'[;]' '
+    function process_port_protocol(parts, ip, j)
+    {
+        if (parts[j] != "") {
+            split(parts[j], port_proto, "/")
+            port = port_proto[1]
+            proto = port_proto[2]
+            printf " Port: %s, Protocol: %s\n", port, proto
+            # Network isolation configuration
+            if (proto == "TCP") {
+                printf "ipset -exist add thirdparty-whitelist-tcp %s,%s\n", ip, port
+                system("ipset -exist add thirdparty-whitelist-tcp " ip "," port)
+            } else if (proto == "UDP") {
+                printf "ipset -exist add thirdparty-whitelist-udp %s,%s\n", ip, port
+                system("ipset -exist add thirdparty-whitelist-udp " ip "," port)
+            }
+        }
+    }
+    function resolve_domain(domain, max_attempts)
+    {
+        printf "Lookup domain: %s\n", domain
+
+        attempt = 0
+        timeout = 1
+        resolve_result = ""
+        while (attempt < max_attempts) {
+            command = sprintf("nslookup %s | grep Address | grep -v \"#53\" | awk \"{print $2}\" ", domain)
+            printf "command: %s\n", command
+            command | getline resolve_result
+            close(command)
+
+            if (resolve_result != "") {
+                break
+            }
+
+            print "failure! retrying in after " timeout "s..." > "/dev/stderr"
+            system("sleep " timeout)
+            timeout *= 2
+            attempt++
+        }
+        if (resolve_result != "") {
+            split(resolve_result, resolve_result_parts, ":")
+            ip = resolve_result_parts[2]
+            printf "after dns resolve, ip: %s\n", ip
+            return ip
+        }
+        return ""
+    }
+    {
+        max_attempts = 1
+        for (i=1; i<=NF; i++) {
+            if ($i != "") {
+                split($i, parts, ",")
+                domain = parts[1]
+                printf "Domain: %s, IP: ", domain
+                ip = (parts[2] == "None") ? "None" : parts[2]
+                printf "%s\n", ip
+                if (ip != "None") {
+                    # Process port/protocol pairs starting from the third element
+                    for (j=3; j<=length(parts); j++) {
+                        process_port_protocol(parts, ip, j)
+                    }
+                } else {
+                    # Resolve the domain name to an IP address
+                    ip = resolve_domain(domain, max_attempts)
+                    if (ip != "") {
+                        for (j=3; j<=length(parts); j++) {
+                            process_port_protocol(parts, ip, j)
+                        }
+                        continue
+                    }
+                    printf "Domain resolved failed: %s", domain
+                }
+                print ""
+            }
+        }
+    }'
+}
+
+# iptables rules
+if [ "${ENABLE_IPV4_TENANT_ISOLATION}" == "true" ]; then
+    if ! command -v ipset >/dev/null 2>&1; then
+        echo "Error: ipset command not found." 1>&2
+        exit 1
+    fi
+
+    if ! command -v nslookup >/dev/null 2>&1; then
+        echo "Error: nslookup command not found." 1>&2
+        exit 1
+    fi
+
+    # Flush all chains
+    iptables -F
+    # Delete all non-default chains
+    iptables -X
+    # Set default policies for each of the built-in chains
+    iptables -P INPUT ACCEPT
+    iptables -P FORWARD ACCEPT
+    iptables -P OUTPUT ACCEPT
+
+    if ! ipset list | grep -q "thirdparty-whitelist-tcp"; then
+        ipset create thirdparty-whitelist-tcp hash:ip,port
+    fi
+    if ! ipset list | grep -q "thirdparty-whitelist-udp"; then
+        ipset create thirdparty-whitelist-udp hash:ip,port
+    fi
+    if ! ipset list | grep -q "tenant-podip-whitelist"; then
+        ipset create tenant-podip-whitelist hash:ip
+    fi
+
+    # 0. Infrastructure
+    DEFAULT_ROUTE_IP=$(ip route | awk '/default/ {print $3}')
+
+    # Container communication within POD
+    POD_IP=$(get_pod_ip)
+    echo "Debug: POD_IP: ${POD_IP}." 1>&2
+    ip route replace "${POD_IP}" via "${DEFAULT_ROUTE_IP}" dev eth0 onlink
+    iptables -A OUTPUT -d "${POD_IP}" -j ACCEPT
+
+    # 1. Communication with host
+    if [ -n "${HOST_IP}" ]; then
+        iptables -A OUTPUT -d "${HOST_IP}" -j ACCEPT
+    else
+        echo "Warn: HOST_IP environment variable is not set." 1>&2
+    fi
+
+    # 2. dns_servers
+    dns_servers=$(grep nameserver /etc/resolv.conf | awk '{print $2}')
+    for dns_server in $dns_servers; do
+        iptables -A OUTPUT -d "$dns_server" -p udp --dport 53 -j ACCEPT
+        iptables -A OUTPUT -d "$dns_server" -p tcp --dport 53 -j ACCEPT
+    done
+
+    dns_server=$(grep nameserver /etc/resolv.conf | awk 'NR==1{print $2}')
+
+    # 3. thirdparty-whitelist-tcp
+    iptables -I OUTPUT -m set --match-set thirdparty-whitelist-tcp dst,dst -p tcp -j ACCEPT
+    iptables -I OUTPUT -m set --match-set thirdparty-whitelist-udp dst,dst -p udp -j ACCEPT
+
+    # tenant-podip-whitelist
+    iptables -I OUTPUT -m set --match-set tenant-podip-whitelist dst -p tcp -j ACCEPT
+    iptables -I OUTPUT -m set --match-set tenant-podip-whitelist dst -p udp -j ACCEPT
+
+
+    # 4. Parse and set the third-party whitelist
+    if [ -n "${THIRD_PARTY_WHITELIST}" ]; then
+        parse_whitelist_and_set_ipset_rule "${THIRD_PARTY_WHITELIST}"
+    fi
+
+    # 5. tcp port Whitelist and udp port Whitelist
+    if [ -n "${TCP_PORT_WHITELIST}" ]; then
+        arr=$(echo "${TCP_PORT_WHITELIST}" | tr "," "\n")
+        for port in $arr; do
+            iptables -A OUTPUT -p tcp --dport $port -j ACCEPT
+        done
+    fi
+    if [ -n "${UDP_PORT_WHITELIST}" ]; then
+        arr=$(echo "${UDP_PORT_WHITELIST}" | tr "," "\n")
+        for port in $arr; do
+            iptables -A OUTPUT -p udp --dport $port  -j ACCEPT
+        done
+    fi
+
+    # 6. Outbound traffic from the current POD to other K8S container network services is prohibited.
+    if [ -n "${SVC_CIDR}" ]; then
+        iptables -A OUTPUT -d "${SVC_CIDR}" -p icmp --icmp-type 8 -j DROP
+        iptables -A OUTPUT -d "${SVC_CIDR}" -p udp -j DROP
+        iptables -A OUTPUT -d "${SVC_CIDR}" -p tcp -m tcp --tcp-flags SYN SYN -m state --state NEW -j DROP
+        iptables -A OUTPUT -d "${SVC_CIDR}" -j ACCEPT
+    fi
+
+    # 7. Outbound traffic from the current POD to the POD network is prohibited.
+    if [ -n "${POD_CIDR}" ]; then
+        arr=$(echo "${POD_CIDR}" | tr "," "\n")
+        for value in $arr; do
+            iptables -A OUTPUT -d "${value}" -p icmp --icmp-type 8 -j DROP
+            iptables -A OUTPUT -d "${value}" -p udp -j DROP
+            iptables -A OUTPUT -d "${value}" -p tcp -m tcp --tcp-flags SYN SYN -m state --state NEW -j DROP
+            iptables -A OUTPUT -d "${value}" -j ACCEPT
+        done
+    fi
+
+    # 8. Outbound traffic from the current POD to other host networks is prohibited.
+    if [ -n "${HOST_CIDR}" ]; then
+        arr=$(echo "${HOST_CIDR}" | tr "," "\n")
+        for value in $arr; do
+            iptables -A OUTPUT -d "${value}" -p icmp --icmp-type 8 -j DROP
+            iptables -A OUTPUT -d "${value}" -p udp -j DROP
+            iptables -A OUTPUT -d "${value}" -p tcp -m tcp --tcp-flags SYN SYN -m state --state NEW -j DROP
+            iptables -A OUTPUT -d "${value}" -j ACCEPT
+        done
+    fi
+
+    # show rules in log
+    ip route
+    iptables -L -v -n
+    ipset list
+fi

@@ -1,0 +1,40 @@
+diff -ruN gloo/math.h gloo/math.h
+--- gloo/math.h	2025-01-01 00:00:00.000000000 +0800
++++ gloo/math.h	2025-01-01 00:00:00.000000000 +0800
+@@ -17,7 +17,7 @@
+   T* c = static_cast<T*>(c_);
+   const T* a = static_cast<const T*>(a_);
+   const T* b = static_cast<const T*>(b_);
+-  for (auto i = 0; i < n; i++) {
++  for (size_t i = 0; i < n; i++) {
+     c[i] = a[i] + b[i];
+   }
+ }
+@@ -32,7 +32,7 @@
+   T* c = static_cast<T*>(c_);
+   const T* a = static_cast<const T*>(a_);
+   const T* b = static_cast<const T*>(b_);
+-  for (auto i = 0; i < n; i++) {
++  for (size_t i = 0; i < n; i++) {
+     c[i] = a[i] * b[i];
+   }
+ }
+@@ -47,7 +47,7 @@
+   T* c = static_cast<T*>(c_);
+   const T* a = static_cast<const T*>(a_);
+   const T* b = static_cast<const T*>(b_);
+-  for (auto i = 0; i < n; i++) {
++  for (size_t i = 0; i < n; i++) {
+     c[i] = std::max(a[i], b[i]);
+   }
+ }
+@@ -62,7 +62,7 @@
+   T* c = static_cast<T*>(c_);
+   const T* a = static_cast<const T*>(a_);
+   const T* b = static_cast<const T*>(b_);
+-  for (auto i = 0; i < n; i++) {
++  for (size_t i = 0; i < n; i++) {
+     c[i] = std::min(a[i], b[i]);
+   }
+ }
+

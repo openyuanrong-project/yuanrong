@@ -1,0 +1,132 @@
+--- absl/debugging/failure_signal_handler.cc	2025-02-14 19:36:11.564485131 +0800
++++ absl/debugging/failure_signal_handler.cc	2025-02-14 19:36:02.737219484 +0800
+@@ -65,6 +65,7 @@
+ #endif
+ #endif
+
++#pragma GCC diagnostic ignored "-Wtype-limits"
+ namespace absl {
+ ABSL_NAMESPACE_BEGIN
+
+@@ -236,23 +237,62 @@
+
+ #endif
+
+-static void WriteSignalMessage(int signo, int cpu,
++static void WriteSignalMessage(int signo, siginfo_t* siginfo, int cpu,
+                                void (*writerfn)(const char*)) {
+-  char buf[96];
++  char buf[512];
+   char on_cpu[32] = {0};
+   if (cpu != -1) {
+     snprintf(on_cpu, sizeof(on_cpu), " on cpu %d", cpu);
+   }
++  char pid_cmd[128] = {0};
++  if (siginfo != nullptr) {
++    FILE* fp;
++    char cmd_file[20];
++    snprintf(cmd_file, sizeof(cmd_file), "/proc/%d/cmdline", siginfo->si_pid);
++    if ((fp = fopen(cmd_file, "r")) != NULL) {
++      int pos = 0;
++      while (!feof(fp)) {
++        int ret = 0;
++        int c = fgetc(fp);
++        if (c == '\0') {
++          ret = snprintf(pid_cmd + pos, sizeof(pid_cmd) - pos, " ");
++        } else if (c != EOF) {
++          ret = snprintf(pid_cmd + pos, sizeof(pid_cmd) - pos, "%c", c);
++        }
++        if (ret < 0) {
++          pid_cmd[pos] = '\0';
++          break;
++        }
++        if (pos + ret >= (int)sizeof(pid_cmd) - 1) {
++          pid_cmd[sizeof(pid_cmd) - 1] = '\0';
++          break;
++        }
++        pos += ret;
++      }
++      fclose(fp);
++    }
++  }
++  char by_pid[256] = {0};
++  if (siginfo != nullptr) {
++    if (strlen(pid_cmd) != 0) {
++      snprintf(by_pid, sizeof(by_pid),
++               " by PID %d (TID 0x%x) from PID %d cmd:[ %s]",
++               getpid(), absl::base_internal::GetTID(), siginfo->si_pid, pid_cmd);
++    } else {
++      snprintf(by_pid, sizeof(by_pid), " by PID %d (TID 0x%x) from PID %d",
++               getpid(), absl::base_internal::GetTID(), siginfo->si_pid);
++    }
++  }
+   const char* const signal_string =
+       debugging_internal::FailureSignalToString(signo);
+   if (signal_string != nullptr && signal_string[0] != '\0') {
+-    snprintf(buf, sizeof(buf), "*** %s received at time=%ld%s ***\n",
+-             signal_string,
++    snprintf(buf, sizeof(buf), "**** %s received%s at time=%ld%s ****\n",
++             signal_string, by_pid,
+              static_cast<long>(time(nullptr)),  // NOLINT(runtime/int)
+              on_cpu);
+   } else {
+-    snprintf(buf, sizeof(buf), "*** Signal %d received at time=%ld%s ***\n",
+-             signo, static_cast<long>(time(nullptr)),  // NOLINT(runtime/int)
++    snprintf(buf, sizeof(buf), "**** Signal %d received%s at time=%ld%s ****\n",
++             signo, by_pid, static_cast<long>(time(nullptr)),  // NOLINT(runtime/int)
+              on_cpu);
+   }
+   writerfn(buf);
+@@ -293,10 +333,10 @@
+ // Called by AbslFailureSignalHandler() to write the failure info. It is
+ // called once with writerfn set to WriteToStderr() and then possibly
+ // with writerfn set to the user provided function.
+-static void WriteFailureInfo(int signo, void* ucontext, int cpu,
++static void WriteFailureInfo(int signo, void* ucontext, siginfo_t* siginfo, int cpu,
+                              void (*writerfn)(const char*)) {
+   WriterFnStruct writerfn_struct{writerfn};
+-  WriteSignalMessage(signo, cpu, writerfn);
++  WriteSignalMessage(signo, siginfo, cpu, writerfn);
+   WriteStackTrace(ucontext, fsh_options.symbolize_stacktrace, WriterFnWrapper,
+                   &writerfn_struct);
+ }
+@@ -333,8 +373,9 @@
+ #ifndef ABSL_HAVE_SIGACTION
+ static void AbslFailureSignalHandler(int signo) {
+   void* ucontext = nullptr;
++  siginfo_t* siginfo = nullptr;
+ #else
+-static void AbslFailureSignalHandler(int signo, siginfo_t*, void* ucontext) {
++static void AbslFailureSignalHandler(int signo, siginfo_t* siginfo, void* ucontext) {
+ #endif
+
+   const GetTidType this_tid = absl::base_internal::GetTID();
+@@ -355,6 +396,11 @@
+       // The recursively raised signal may be blocked until we return.
+       return;
+     }
++    static int reentrance_times = 0;
++    if (reentrance_times++ > 10) {
++      RaiseToDefaultHandler(signo);
++      return;
++    }
+   }
+
+   // Increase the chance that the CPU we report was the same CPU on which the
+@@ -376,14 +422,14 @@
+
+   // First write to stderr.
+   WriteFailureInfo(
+-      signo, ucontext, my_cpu, +[](const char* data) {
++      signo, ucontext, siginfo, my_cpu, +[](const char* data) {
+         absl::raw_log_internal::AsyncSignalSafeWriteError(data, strlen(data));
+       });
+
+   // Riskier code (because it is less likely to be async-signal-safe)
+   // goes after this point.
+   if (fsh_options.writerfn != nullptr) {
+-    WriteFailureInfo(signo, ucontext, my_cpu, fsh_options.writerfn);
++    WriteFailureInfo(signo, ucontext, siginfo, my_cpu, fsh_options.writerfn);
+     fsh_options.writerfn(nullptr);
+   }
+

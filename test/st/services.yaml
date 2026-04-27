@@ -1,0 +1,26 @@
+- service: yr
+  kind: yrlib
+  description: this is a hello world service
+  functions:
+    stpython:
+      runtime: python3.9
+      memory: 1000
+      cpu: 1000
+      storageType: local
+      codePath: /python
+      environment:
+        FIRST_PYTHON_ENV: FIRST
+    stcpp:
+      cpu: 1000
+      memory: 1000
+      runtime: cpp11
+      storageType: local
+      codePath: /cpp
+    stjava:
+      cpu: 1000
+      memory: 1000
+      runtime: java1.8
+      storageType: local
+      codePath: /java
+      environment:
+        FIRST_JAVA_ENV: FIRST

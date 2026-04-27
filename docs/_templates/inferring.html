@@ -1,0 +1,66 @@
+<span class="s0">import </span><span class="s1">torch
+</span>
+<span class="s0">from </span><span class="s1">datasystem.ds_tensor_client </span><span class="s0">import </span><span class="s1">DsTensorClient
+</span><span class="s0">from </span><span class="s1">torch_npu.npu </span><span class="s0">import </span><span class="s1">current_device
+</span><span class="s0">from </span><span class="s1">vllm.distributed.parallel_state </span><span class="s0">import </span><span class="s1">(</span>
+    <span class="s1">get_tp_group, get_ep_group, get_pp_group
+)</span>
+
+<span class="s0">from </span><span class="s1">vllm.logger </span><span class="s0">import </span><span class="s1">logger
+</span><span class="s0">from </span><span class="s1">collections </span><span class="s0">import </span><span class="s1">OrderedDict
+</span>
+<span class="s1">_global_tensor_client </span><span class="s0">= </span><span class="s2">None</span>
+<span class="s2">_DEV_MGET_TIMEOUT_MS </span><span class="s0">= </span><span class="s3">10 </span><span class="s0">* </span><span class="s3">1000</span>
+
+<span class="s4"># 创建 openYuanrong 数据系统客户端</span>
+<span class="s0">def </span><span class="s5">get_tensor_client</span><span class="s1">():</span>
+    <span class="s0">global </span><span class="s1">_global_tensor_client
+</span>
+    <span class="s0">if </span><span class="s1">_global_tensor_client:</span>
+        <span class="s0">return </span><span class="s1">_global_tensor_client
+</span>
+    <span class="s1">_global_tensor_client </span><span class="s0">= </span><span class="s1">DsTensorClient(host, port, current_device())</span>
+    <span class="s1">_global_tensor_client.init()</span>
+
+    <span class="s0">return </span><span class="s1">_global_tensor_client
+</span>
+
+<span class="s4"># 将模型参数元数据发布到 openYuanrong 数据系统</span>
+<span class="s0">def </span><span class="s5">_publish_to_ds</span><span class="s1">(</span>model<span class="s1">, </span>key<span class="s1">: </span><span class="s7">str</span><span class="s1">):</span>
+    <span class="s1">tensor_client </span><span class="s0">= </span><span class="s1">get_tensor_client()</span>
+    <span class="s1">tensor_list </span><span class="s0">= </span><span class="s1">[]</span>
+    <span class="s1">named_tensors </span><span class="s0">= </span><span class="s1">OrderedDict()</span>
+    <span class="s0">for </span><span class="s1">name, param </span><span class="s0">in </span><span class="s1">model.named_parameters():</span>
+        <span class="s1">named_tensors[name] </span><span class="s0">= </span><span class="s1">param.data</span>
+    <span class="s0">for </span><span class="s1">name, param </span><span class="s0">in </span><span class="s1">named_tensors.items():</span>
+        <span class="s1">tensor_list.append(param)</span>
+    <span class="s1">key_list </span><span class="s0">= </span><span class="s1">[key </span><span class="s0">+ f</span><span class="s8">&quot;index_</span><span class="s2">{</span><span class="s1">index</span><span class="s2">}</span><span class="s8">&quot; </span><span class="s0">for </span><span class="s1">index </span><span class="s0">in </span><span class="s1">range(len(tensor_list))]</span>
+
+    <span class="s1">tensor_client.dev_mset(key_list, tensor_list)</span>
+
+
+<span class="s4"># 从 openYuanrong 数据系统中加载指定的模型参数</span>
+<span class="s0">def </span><span class="s5">_load_from_ds</span><span class="s1">(</span>model<span class="s1">, </span>key<span class="s1">: </span><span class="s7">str</span><span class="s1">):</span>
+    <span class="s1">tensor_client </span><span class="s0">= </span><span class="s1">get_tensor_client()</span>
+    <span class="s1">tensor_list </span><span class="s0">= </span><span class="s1">[]</span>
+    <span class="s1">num_load_success_param </span><span class="s0">= </span><span class="s3">0</span>
+    <span class="s1">named_tensors </span><span class="s0">= </span><span class="s1">OrderedDict()</span>
+    <span class="s0">for </span><span class="s1">name, param </span><span class="s0">in </span><span class="s1">model.named_parameters():</span>
+        <span class="s1">named_tensors[name] </span><span class="s0">= </span><span class="s1">param.data</span>
+    <span class="s0">for </span><span class="s1">name, param </span><span class="s0">in </span><span class="s1">named_tensors.items():</span>
+        <span class="s1">tensor_list.append(param)</span>
+    <span class="s1">key_list </span><span class="s0">= </span><span class="s1">[key </span><span class="s0">+ f</span><span class="s8">&quot;index_</span><span class="s2">{</span><span class="s1">index</span><span class="s2">}</span><span class="s8">&quot; </span><span class="s0">for </span><span class="s1">index </span><span class="s0">in </span><span class="s1">range(len(tensor_list))]</span>
+
+    <span class="s1">tensor_client.dev_mget(key_list, tensor_list, </span><span class="s2">_DEV_MGET_TIMEOUT_MS</span><span class="s1">)</span>
+    <span class="s1">num_load_success_param </span><span class="s0">+= </span><span class="s1">len(tensor_list)</span>
+    <span class="s0">return </span><span class="s1">num_load_success_param
+</span>
+<span class="s4"># 关键步骤</span>
+<span class="s4"># 使用 openYuanrong 数据系统加速模型加载</span>
+<span class="s0">try</span><span class="s1">:</span>
+    <span class="s1">_load_from_ds(model, key)</span>
+<span class="s0">except </span><span class="s7">Exception </span><span class="s0">as </span><span class="s1">e:</span>
+    <span class="s1">logger.info(</span><span class="s0">f</span><span class="s8">&quot;Fallback to load user_callback. error:</span><span class="s2">{</span><span class="s1">e</span><span class="s2">}</span><span class="s8">&quot;</span><span class="s1">)</span>
+    <span class="s4"># 使用默认方法加载模型</span>
+    <span class="s1">load_callback(model, model_config)</span>
+    <span class="s1">_publish_to_ds(model, key)</span>

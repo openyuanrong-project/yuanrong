@@ -1,0 +1,21 @@
+entryPoints:
+  websecure:
+    address: ":8888"
+  tcp:
+    address: ":4443"
+
+providers:
+  # File provider for static configuration
+  file:
+    filename: /openyuanrong/traefik/dynamic.yml
+    watch: true
+  etcd:
+    endpoints:
+      - "{etcd_address}:2379"
+    rootKey: "traefik"
+
+log:
+  level: INFO
+
+api:
+  dashboard: false

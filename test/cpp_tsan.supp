@@ -1,0 +1,7 @@
+race:YR::Parallel::*
+race:grpc::*
+race:YR::test::HttpClientTest*
+race:YR::test::ClientsManagerTest*
+race:boost::asio::basic_deadline_timer*
+thread:YR::test::HttpClientTest*
+thread:YR::test::ClientsManagerTest*

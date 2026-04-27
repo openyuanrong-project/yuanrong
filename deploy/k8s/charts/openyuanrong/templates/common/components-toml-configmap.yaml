@@ -1,0 +1,937 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: components-toml-config
+  namespace: default
+data:
+  config.toml: |-
+    [function_master]
+    bin_path = "/home/sn/function-master/bin/function_master"
+
+    [function_master.env]
+    LD_LIBRARY_PATH = "/home/sn/lib"
+    # previous ENV in chart
+    RUNTIME_MICROSERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_CLUSTER="cn-dev-master"
+    LANG="en_US.UTF-8"
+    RUNTIME_MICROSERVICE_ENVIRONMENT="aaa.bbb"
+    RUNTIME_MICROSERVICE_SERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_BUSINESS="aaa.bbb"
+    RUNTIME_MICROSERVICE_REGION="cn-north-4"
+    RUNTIME_MICROSERVICE_AZ="cn-north-4g"
+    TZ="Asia/Shanghai"
+    STS_ENABLE="false"
+    MAX_STORAGE_OPERATE_RETRY_TIMES="60"
+    DS_HEALTH_CHECK_PATH="/home/sn/datasystem/health"
+    DS_HEALTH_CHECK_INTERVAL="1000"
+    MAX_DS_HEALTH_CHECK_TIMES="12"
+    CLUSTER_NAME="cn-dev"
+    SCC_ENABLE={{ quote .Values.global.scc.enable }}
+    RESOURCE_PATH="/home/sn/resource"
+    STS_CONFIG="{}"
+
+    [function_master.args]
+    ip="{RUNTIME_POD_IP}:{{ .Values.global.port.functionMasterPort }}"
+    {{ if and (.Values.global.metaStore.enable) (ne .Values.global.metaStore.mode "passthrough") }}
+    meta_store_address={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    meta_store_address={{ quote .Values.global.etcdManagement.detcd }}
+    {{ end }}
+    log_config={{ include "yr.fs_log_config.json" . | fromYaml | toJson | squote }}
+    node_id="{RUNTIME_POD_NAME}"
+    sys_func_retry_period={{ quote .Values.global.common.functionBootstrapRetryPeriod }}
+    k8s_base_path={{ quote .Values.global.kubernetes.kubeApiBaseUrl }}
+    runtime_recover_enable="false"
+    decrypt_algorithm={{ quote .Values.global.common.decryptAlgorithm }}
+    election_mode={{ quote .Values.global.common.electionMode }}
+    k8s_namespace="default"
+    system_timeout={{ quote .Values.global.common.systemTimeout }}
+    ssl_enable={{ quote .Values.global.mutualSSLConfig.sslEnable }}
+    metrics_ssl_enable=""
+    ssl_base_path=""
+    ssl_root_file=""
+    ssl_cert_file=""
+    ssl_key_file=""
+    enable_print_resource_view={{ quote .Values.global.common.enablePrintResourceView }}
+    enable_horizontal_scale={{ quote .Values.global.common.enableHorizontalScale }}
+    enable_metrics={{ quote .Values.global.observer.metrics.enable }}
+    metrics_config={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    metrics_config_file={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    migrate_prefix={{ quote .Values.global.runtime.migratePrefix }}
+    taint_tolerance_list={{ quote .Values.global.runtime.taintToleranceList }}
+    worker_taint_exclude_labels={{ quote .Values.global.common.workerTaintExcludes }}
+    migrate_enable={{ quote .Values.global.runtime.migrateEnable }}
+    system_upgrade_watch_enable={{ quote .Values.global.systemUpgradeConfig.enable }}
+    az_id={{ quote .Values.global.systemUpgradeConfig.azID }}
+    system_upgrade_key={{ quote .Values.global.systemUpgradeConfig.systemUpgradeKey }}
+    system_upgrade_address={{ quote .Values.global.systemUpgradeConfig.systemUpgradeWatchAddress }}
+    grace_period_seconds={{ quote .Values.global.common.deletePodGracePeriodSeconds }}
+    etcd_auth_type={{ quote .Values.global.etcdManagement.authType }}
+    etcd_root_ca_file=""
+    etcd_cert_file=""
+    etcd_key_file=""
+    etcd_decrypt_tool=""
+    etcd_secret_name=""
+    etcd_target_name_override="aaa.bbb"
+    schedule_plugins=""
+    cluster_id={{ quote .Values.global.clusterId }}
+    max_tolerate_metastore_healthcheck_failed_times={{ quote .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}
+    metastore_healthcheck_interval={{ quote .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}
+    metastore_healthcheck_timeout={{ quote .Values.global.etcdManagement.metaStoreTimeoutMs }}
+    function_meta_path="/home/sn/function-metas"
+    etcd_ssl_base_path=""
+    pool_config_path="/home/sn/pools.json"
+    agent_template_path="/home/sn/scaler/template/function-agent.json"
+    kube_client_retry_times={{ quote .Values.global.kubernetes.kubeClientRetryTime }}
+    kube_api_retry_cycle={{ quote .Values.global.kubernetes.kubeClientRetryCycMs }}
+    health_monitor_max_failure={{ quote .Values.global.kubernetes.healthMonitorMaxFailure }}
+    health_Monitor_retry_interval={{ quote .Values.global.kubernetes.healthMonitorRetryInterval }}
+    evicted_taint_key=""
+    local_scheduler_port=""
+    self_taint_prefix=""
+    max_priority=""
+    enable_preemption=""
+    enable_fake_suspend_resume=""
+    schedule_relaxed=""
+    lib_path="/home/sn/lib"
+    services_path="/home/sn/service-config/services.yaml"
+    system_auth_mode={{ quote .Values.global.common.systemAuthMode }}
+    enable_meta_store="false"
+    meta_store_mode="local"
+    etcd_address={{ quote .Values.global.etcdManagement.detcd }}
+
+
+
+    [function_proxy]
+    bin_path = "/home/sn/bin/function_proxy"
+
+    [function_proxy.env]
+    LD_LIBRARY_PATH = "/home/sn/lib:/home/sn/datasystem/lib"
+    # previous ENV in chart
+    RUNTIME_INSTANCE_DEBUG_ENABLE="false"
+    TRACE_CONFIG={{ quote .Values.global.observer.trace.traceConfig }}
+    MEM_THRESHOLD_PERCENTAGE="90"
+    HOME="/home/sn"
+    ResourcePath="/home/sn/resource"
+    SSL_PWD_FILE="cert_pwd"
+    SCC_ENABLE={{ quote .Values.global.scc.enable }}
+    SCC_ALGORITHM={{ quote .Values.global.scc.algorithm }}
+    SCC_PRIMARY_FILE="primary.ks"
+    SCC_STANDBY_FILE="standby.ks"
+    ETCD_PWD_FILE="passphrase"
+    STS_CONFIG="{}"
+    ENABLE_PRINT_PERF="false"
+    SCC_BASE_PATH="/home/sn/resource/scc"
+    SCC_LOG_PATH="/home/sn/log"
+    RESOURCE_PATH="/home/sn/resource"
+    ENABLE_META_STORE={{ quote .Values.global.metaStore.enable }}
+    META_STORE_MODE={{ quote .Values.global.metaStore.mode }}
+    ETCD_CLUSTER_ADDRESS={{ quote .Values.global.etcdManagement.detcd }}
+
+    [function_proxy.args]
+    address="{HOST_IP}:{{ .Values.global.port.functionProxyPort }}"
+    {{ if .Values.global.metaStore.enable }}
+    meta_store_address={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    meta_store_address={{ quote .Values.global.etcdManagement.detcd }}
+    {{ end }}
+    node_id="{NODE_ID}"
+    unregister_while_stop="true"
+    log_config={{ include "yr.fs_log_config.json" . | fromYaml | toJson | squote }}
+    runtime_heartbeat_enable="true"
+    runtime_max_heartbeat_timeout_times={{ quote .Values.global.runtime.runtimeMaxHeartbeatTimeoutTimes }}
+    runtime_heartbeat_timeout_ms={{ quote .Values.global.runtime.runtimeHeartbeatTimeoutMS }}
+    cache_storage_host="{HOST_IP}"
+    cache_storage_port={{ quote .Values.global.port.worker }}
+    ip="{HOST_IP}"
+    grpc_listen_port={{ quote .Values.global.port.functionProxyGrpcPort }}
+    enable_driver={{ quote .Values.global.common.driverEnable }}
+    max_grpc_size={{ quote .Values.global.common.maxGrpcSize }}
+    runtime_recover_enable=""
+    observability_agent_grpc_port="4317"
+    enable_trace={{ quote .Values.global.observer.trace.enable }}
+    state_storage_type={{ quote .Values.global.common.stateStorageType }}
+    decrypt_algorithm={{ quote .Values.global.common.decryptAlgorithm }}
+    cache_storage_auth_enable={{ quote .Values.global.dataSystem.authEnabled }}
+    cache_storage_auth_type={{ quote .Values.global.dataSystem.authType}}
+    cache_storage_auth_ak={{ quote .Values.global.dataSystem.ak}}
+    cache_storage_auth_sk={{ quote .Values.global.dataSystem.sk}}
+    cache_storage_info_prefix={{ .Values.global.dataSystem.cacheStorageInfoPrefix | default "" | quote}}
+    lib_path="/home/sn/lib"
+    services_path="/home/sn/service-config/services.yaml"
+    observability_prometheus_port="9392"
+    prometheus_pushgateway_port={{ quote .Values.global.observer.gatewayPort }}
+    ds_health_check_path=""
+    ds_health_check_interval=""
+    max_ds_health_check_times=""
+    election_mode={{ quote .Values.global.common.electionMode }}
+    system_timeout={{ quote .Values.global.common.systemTimeout }}
+    runtime_shutdown_timeout_seconds={{ quote .Values.global.runtime.runtimeShutdownTimeoutSeconds }}
+    ssl_enable=""
+    metrics_ssl_enable=""
+    ssl_base_path=""
+    ssl_root_file="ca.crt"
+    ssl_cert_file="module.crt"
+    ssl_key_file="module.key"
+    enable_iam={{ quote .Values.global.iam.enable }}
+    iam_base_path="http://iam-adaptor.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.global.port.iamAdapterHttpPort }}"
+    iam_policy_file="/home/sn/iam-config/iam-policy-config.json"
+    iam_credential_type={{ quote .Values.global.iam.credentialType }}
+    min_instance_memory_size={{ quote .Values.global.runtime.minInstanceMemorySize }}
+    min_instance_cpu_size={{ quote .Values.global.runtime.minInstanceCpuSize }}
+    max_instance_memory_size={{ quote .Values.global.runtime.maxInstanceMemorySize }}
+    max_instance_cpu_size={{ quote .Values.global.runtime.maxInstanceCpuSize }}
+    enable_server_mode={{ quote .Values.global.runtime.serverModeEnable }}
+    enable_print_resource_view={{ quote .Values.global.common.enablePrintResourceView }}
+    enable_metrics={{ quote .Values.global.observer.metrics.enable }}
+    metrics_config={{ quote .Values.global.observer.metrics.metricsConfig }}
+    metrics_config_file={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    service_ttl=""
+    prometheus_pushgateway_ip={{ quote .Values.global.observer.proGatewayIP }}
+    invoke_limitation_enable={{ quote .Values.global.rateLimit.invokeRateLimit.enable }}
+    low_memory_threshold={{ quote .Values.global.rateLimit.invokeRateLimit.lowThreshold }}
+    high_memory_threshold={{ quote .Values.global.rateLimit.invokeRateLimit.highThreshold }}
+    message_size_threshold={{ quote .Values.global.rateLimit.invokeRateLimit.msgSize }}
+    create_limitation_enable=""
+    token_bucket_capacity=""
+    etcd_auth_type={{ quote .Values.global.etcdManagement.authType }}
+    etcd_root_ca_file="ca.crt"
+    etcd_cert_file="client.crt"
+    etcd_key_file="client.key"
+    etcd_target_name_override={{ quote .Values.global.etcdManagement.targetNameOverride }}
+    schedule_plugins={{ quote .Values.global.common.schedulePlugins.local }}
+    cluster_id={{ quote .Values.global.clusterId }}
+    enable_tenant_affinity={{ quote .Values.global.tenantIsolation.affinity.enable }}
+    tenant_pod_reuse_time_window={{ quote .Values.global.tenantIsolation.affinity.tenantPodReuseTimeWindow }}
+    enable_ipv4_tenant_isolation=""
+    runtime_ds_encrypt_enable={{ quote .Values.global.runtime.dataSystem.encryptEnable }}
+    runtime_ds_auth_enable={{ quote .Values.global.runtime.dataSystem.authEnable }}
+    {{ if .Values.global.metaStore.enable }}
+    iam_meta_store_address={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    iam_meta_store_address={{ quote .Values.global.etcdManagement.metcd }}
+    {{ end }}
+    k8s_base_path={{ quote .Values.global.kubernetes.kubeApiBaseUrl }}
+    k8s_namespace={{ quote .Values.global.namespace }}
+    fc_agent_mgr_retry_times=""
+    fc_agent_mgr_retry_cycle=""
+    max_tolerate_metastore_healthcheck_failed_times={{ quote .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}
+    metastore_healthcheck_interval={{ quote .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}
+    metastore_healthcheck_timeout={{ quote .Values.global.etcdManagement.metaStoreTimeoutMs }}
+    s3_credential_type=""
+    oidc_workload_identity=""
+    oidc_audience=""
+    oidc_project_id=""
+    oidc_project_name=""
+    external_iam_endpoint=""
+    temporary_accessKey_expiration_seconds=""
+    redis_conf_path="/home/sn/conf/conf.json"
+    forward_compatibility=""
+    etcd_ssl_base_path="/home/sn/resource/etcd"
+    function_meta_path="/home/sn/function-metas"
+    curve_key_path="/home/sn/curve"
+    is_partial_watch_instances=""
+    max_priority={{ quote .Values.global.common.prioritySchedule.maxPriority }}
+    enable_preemption={{ quote .Values.global.common.prioritySchedule.enablePreemption }}
+    enable_fake_suspend_resume={{ quote .Values.global.common.enableFakeSuspendResume }}
+    system_auth_mode={{ quote .Values.global.common.systemAuthMode }}
+    enable_meta_store="false"
+    meta_store_mode="local"
+
+
+
+    [function_agent]
+    bin_path = "/home/sn/bin/function_agent"
+
+    [function_agent.env]
+    LD_LIBRARY_PATH = "/home/sn/lib"
+    # previous ENV in chart
+    STS_CONFIG="{}"
+    ENABLE_IPV4_TENANT_ISOLATION={{ quote .Values.global.tenantIsolation.ipv4.enable }}
+    DEPLOY_DIR={{ quote .Values.global.common.deployDir }}
+    DELEGATE_ENV_VAR='{"DISABLE_APIG_FORMAT":"true"}'
+
+    [function_agent.args]
+    ip="{POD_IP}"
+    node_id="{NODE_ID}"
+    local_node_id="{NODE_ID}"
+    log_config={{ include "yr.fs_log_config.json" . | fromYaml | toJson | squote }}
+    local_scheduler_address="{HOST_IP}:{{ .Values.global.port.functionProxyPort }}"
+    agent_listen_port={{ quote .Values.global.port.functionAgentPort }}
+    resource_path="/home/sn/resource"
+    access_key="{S3_ACCESS_KEY}"
+    secret_key="{S3_SECRET_KEY}"
+    s3_protocol={{ quote .Values.global.obsManagement.protocol }}
+    credential_type={{ quote .Values.global.obsManagement.credentialType }}
+    s3_endpoint={{ quote .Values.global.obsManagement.s3Endpoint | default "{HOST_IP}:30110" }}
+    decrypt_algorithm={{ quote .Values.global.common.decryptAlgorithm }}
+    system_timeout={{ quote .Values.global.common.systemTimeout }}
+    ssl_enable={{ quote .Values.global.mutualSSLConfig.sslEnable }}
+    metrics_ssl_enable=""
+    ssl_base_path={{ quote .Values.global.mutualSSLConfig.sslBasePath }}
+    ssl_root_file="ca.crt"
+    ssl_cert_file="module.crt"
+    ssl_key_file="module.key"
+    ssl_pwd_file="cert_pwd"
+    ssl_decrypt_tool={{ quote .Values.global.mutualSSLConfig.sslDecryptTool }}
+    agent_uid="{POD_NAME}"
+    scc_base_path="/home/sn/resource/scc"
+    scc_log_path="/home/sn/log"
+    etcd_ssl_base_path=""
+    enable_metrics={{ quote .Values.global.observer.metrics.enable }}
+    metrics_config={{ quote .Values.global.observer.metrics.metricsConfig }}
+    metrics_config_file={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    prometheus_pushgateway_port={{ quote .Values.global.observer.gatewayPort }}
+    prometheus_pushgateway_ip={{ quote .Values.global.observer.proGatewayIP }}
+    enable_trace={{ quote .Values.global.observer.trace.enable }}
+    trace_config={{ quote .Values.global.observer.trace.traceConfig }}
+    file_count_max={{ quote .Values.global.common.zipFile.fileCountsMax }}
+    zip_file_size_max_MB={{ quote .Values.global.common.zipFile.zipFileSizeMax }}
+    unzip_file_size_max_MB={{ quote .Values.global.common.zipFile.unzipFileSizeMax }}
+    dir_depth_max={{ quote .Values.global.common.zipFile.dirDepthMax }}
+    scc_enable={{ quote .Values.global.scc.enable }}
+    scc_algorithm={{ quote .Values.global.scc.algorithm }}
+    scc_primary_file="primary.ks"
+    scc_standby_file="standby.ks"
+    signature_validation={{ quote .Values.global.common.zipFile.signatureValidationEnable }}
+    code_aging_time={{ quote .Values.global.common.codeAgingTime }}
+    system_auth_mode={{ quote .Values.global.common.systemAuthMode }}
+    custom_resources=""
+
+
+    [runtime_manager]
+    bin_path = "/home/sn/bin/runtime_manager"
+
+    [runtime_manager.env]
+    LD_LIBRARY_PATH="/opt/buildtools/python3.11/lib::/usr/lib:/usr/lib64:/home/snuser/snlib"
+    # previous ENV in chart
+    REQUEST_ACK_ACC_MAX_SEC={{ quote .Values.global.runtime.requestAckAccMaxSec}}
+    INIT_LABELS=""
+    ENABLE_METRICS={{ quote .Values.global.observer.metrics.enable }}
+    RUNTIME_METRICS_CONFIG={{ quote .Values.global.observer.metrics.runtimeMetricsConfig }}
+    RUNTIME_METRICS_CONFIG_FILE={{ quote .Values.global.observer.metrics.runtimeMetricsConfigFile }}
+    ENABLE_TRACE={{ quote .Values.global.observer.trace.enable }}
+    TRACE_CONFIG={{ quote .Values.global.observer.trace.traceConfig }}
+    RUNTIME_TRACE_CONFIG={{ quote .Values.global.observer.trace.runtimeTraceConfig }}
+    ENABLE_DS_CLIENT="0"
+    RESOURCE_PATH="/home/sn/resource"
+
+    [runtime_manager.args]
+    runtime_dir="/home/snuser/runtime"
+    runtime_logs_dir={{ quote .Values.global.log.runtime.path }}
+    runtime_ld_library_path="/opt/buildtools/python3.11/lib::/usr/lib:/usr/lib64"
+    snuser_lib_dir={{ quote .Values.global.runtime.snuserLibPath }}
+    virtual_env_idle_time_limit={{ quote .Values.global.runtime.virtualEnvIdleTimeLimit }}
+    runtime_log_level={{ quote .Values.global.log.runtime.level }}
+    setCmdCred="true"
+    python_dependency_path=":/home/snuser/runtime/python" # 未找到PYTHONPATH的定义
+    java_system_property="/home/snuser/runtime/java/log4j2.xml"
+    log_config={{ include "yr.fs_log_config.json" . | fromYaml | toJson | squote }}
+    node_id="{NODE_ID}"
+    ip="{POD_IP}"
+    host_ip="{HOST_IP}"
+    proxy_ip=""
+    port={{ quote .Values.global.port.runtimeMgrPort }}
+    agent_address="{POD_IP}:{{ .Values.global.port.functionAgentPort }}"
+    data_system_port={{ quote .Values.global.port.worker }}
+    driver_server_port={{ quote .Values.global.port.functionProxyGrpcPort }}
+    runtime_initial_port={{ quote .Values.global.port.runtimeInitPort }}
+    port_num={{ quote .Values.global.port.runtimePortNum }}
+    metrics_collector_type={{ quote .Values.global.runtime.metricsCollectorType }}
+    proc_metrics_cpu="{CPU4COMP}"
+    proc_metrics_memory="{MEM4COMP}"
+    runtime_prestart_config={{ include "yr.runtime_prestart_config.json" . | fromYaml | toJson | squote }}
+    runtime_default_config={{ include "yr.runtime_default_config.json" . | fromYaml | toJson | squote }}
+    disk_usage_monitor_notify_failure_enable={{ quote .Values.global.runtime.diskUsageMonitor.notifyFailureEnable }}
+    disk_usage_monitor_path={{ quote .Values.global.runtime.diskUsageMonitor.path }}
+    disk_usage_limit={{ quote .Values.global.runtime.diskUsageMonitor.limit }}
+    disk_usage_monitor_duration={{ quote .Values.global.runtime.diskUsageMonitor.duration }}
+    system_timeout={{ quote .Values.global.common.systemTimeout }}
+    runtime_std_log_dir="instances"
+    npu_collection_mode={{ quote .Values.global.runtime.npuCollectionMode }}
+    gpu_collection_enable={{ quote .Values.global.runtime.gpuCollectionEnable }}
+    proxy_grpc_server_port={{ quote .Values.global.port.functionProxyGrpcPort }}
+    cluster_id={{ quote .Values.global.clusterId }}
+    enable_metrics={{ quote .Values.global.observer.metrics.enable }}
+    metrics_config={{ quote .Values.global.observer.metrics.metricsConfig }}
+    metrics_config_file={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    prometheus_pushgateway_port={{ quote .Values.global.observer.gatewayPort }}
+    prometheus_pushgateway_ip={{ quote .Values.global.observer.proGatewayIP }}
+    runtime_uid="1003"
+    runtime_gid="1003"
+    enable_trace={{ quote .Values.global.observer.trace.enable }}
+    trace_config={{ quote .Values.global.observer.trace.traceConfig }}
+    java_system_library_path=""
+    is_protomsg_to_runtime={{ quote .Values.global.runtime.isProtoMsgToRuntime }}
+    massif_enable={{ quote .Values.global.runtime.massifEnable }}
+    snuser_disk_usage_limit={{ quote .Values.global.runtime.diskUsageMonitor.snuserDirSizeLimit }}
+    tmp_disk_usage_limit={{ quote .Values.global.runtime.diskUsageMonitor.tmpDirSizeLimit }}
+    {{ if .Values.global.log.runtime.expiration.enable }} # 待优化
+    log_expiration_enable={{ quote .Values.global.log.runtime.expiration.enable }}
+    log_expiration_cleanup_interval={{ quote .Values.global.log.runtime.expiration.cleanupInterval }}
+    log_expiration_time_threshold={{ quote .Values.global.log.runtime.expiration.timeThreshold }}
+    log_expiration_max_file_count={{ quote .Values.global.log.runtime.expiration.maxFileCount }}
+    log_reuse_enable={{ quote .Values.global.log.runtime.expiration.logReuseEnable }}
+    {{ else }}
+    log_expiration_enable=""
+    log_expiration_cleanup_interval=""
+    log_expiration_time_threshold=""
+    log_expiration_max_file_count=""
+    log_reuse_enable=""
+    {{ end }}
+    runtime_direct_connection_enable="false"
+    enable_inherit_env="false"
+    {{ if .Values.global.runtime.oomKill.enable }}
+    memory_detection_interval={{ quote .Values.global.runtime.oomKill.memoryDetectionInterval }}
+    oom_kill_enable={{ quote .Values.global.runtime.oomKill.enable }}
+    oom_kill_control_limit={{ quote .Values.global.runtime.oomKill.controlLimit }}
+    oom_consecutive_detection_count={{ quote .Values.global.runtime.oomKill.consecutiveDetectionCount }}
+    {{ else }}
+    memory_detection_interval=""
+    oom_kill_enable="false"
+    oom_kill_control_limit=""
+    oom_consecutive_detection_count=""
+    {{ end }}
+    runtime_home_dir="/home/snuser"
+    nodejs_entry=""
+    resource_label_path="/home/sn/podInfo/labels"
+    npu_device_info_path="/home/sn/config/topology-info.json"
+    runtime_ds_connect_timeout={{ quote .Values.global.runtime.runtimeDsConnectTimeout }}
+    kill_process_timeout_seconds={{ quote .Values.global.runtime.killProcessTimeoutSeconds }}
+    enable_clean_stream_producer={{ quote .Values.global.runtime.cleanStreamProducerEnable }}
+    runtime_instance_debug_enable= "false"
+    user_log_export_mode={{ quote .Values.global.log.runtime.userLogExportMode }}
+
+
+    [iam_server]
+    bin_path = "/home/sn/iam-adaptor/bin/iam_server"
+
+    [iam_server.env]
+    LD_LIBRARY_PATH = "/home/sn/lib"
+    # previous ENV in chart
+    RUNTIME_MICROSERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_CLUSTER="cn-dev-iam-adaptor"
+    LANG="en_US.UTF-8"
+    RUNTIME_MICROSERVICE_ENVIRONMENT="aaa.bbb"
+    RUNTIME_MICROSERVICE_SERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_BUSINESS="aaa.bbb"
+    RUNTIME_MICROSERVICE_REGION="cn-north-4"
+    RUNTIME_MICROSERVICE_AZ="cn-north-4g"
+    TZ="Asia/Shanghai"
+    MAX_STORAGE_OPERATE_RETRY_TIMES="60"
+    SCC_ENABLE={{ quote .Values.global.scc.enable }}
+    SCC_ALGORITHM="AES256_GCM"
+    STS_CONFIG="{}"
+
+    [iam_server.args]
+    ip="{RUNTIME_POD_IP}"
+    http_listen_port={{ quote .Values.global.port.iamAdapterHttpPort }}
+    {{ if .Values.global.metaStore.enable }}
+    meta_store_address={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    meta_store_address={{ quote .Values.global.etcdManagement.detcd }}
+    {{ end }}
+    log_config={{ include "yr.fs_log_config.json" . | fromYaml | toJson | squote }}
+    enable_iam={{ quote .Values.global.iam.enable }}
+    node_id="{RUNTIME_POD_NAME}"
+    token_expired_time_span={{ quote .Values.global.iam.tokenExpiredTimeSpan }}
+    resource_path="/home/sn/resource"
+    decrypt_algorithm={{ quote .Values.global.common.decryptAlgorithm }}
+    ssl_enable={{ quote .Values.global.mutualSSLConfig.sslEnable }}
+    ssl_base_path=""
+    ssl_root_file=""
+    ssl_cert_file=""
+    ssl_key_file=""
+    cluster_id={{ quote .Values.global.clusterId }}
+    etcd_auth_type="{{ .Values.global.etcdManagement.authType }}"
+    etcd_root_ca_file=""
+    etcd_cert_file=""
+    etcd_key_file=""
+    etcd_target_name_override="aaa.bbb"
+    max_tolerate_metastore_healthcheck_failed_times={{ quote .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}
+    metastore_healthcheck_interval={{ quote .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}
+    metastore_healthcheck_timeout={{ quote .Values.global.etcdManagement.metaStoreTimeoutMs }}
+    election_mode={{ quote .Values.global.common.electionMode }}
+    credential_host_address=""
+    k8s_namespace="default"
+    k8s_base_path={{ quote .Values.global.kubernetes.kubeApiBaseUrl }}
+    system_auth_mode={{ quote .Values.global.common.systemAuthMode }}
+    iam_credential_type={{ quote .Values.global.iam.credentialType }}
+    permanent_cred_conf_path="/home/sn/permanent-credential-config.json"
+
+
+    [meta_service]
+    bin_path = "/home/sn/meta-service/bin/meta_service"
+
+    [meta_service.env]
+    LD_LIBRARY_PATH = "/home/sn/lib"
+    # previous ENV in chart
+    GIN_MODE="release"
+    SCC_ENABLE={{ quote .Values.global.scc.enable }}
+    SCC_ALGORITHM={{ quote .Values.global.scc.algorithm }}
+    ETCD_AUTH_TYPE={{ quote .Values.global.etcdManagement.authType }}
+
+    [meta_service.args]
+
+
+    [frontend]
+    bin_path = "/home/sn/frontend/bin/goruntime"
+
+    [frontend.env]
+    POD_IP="{RUNTIME_POD_IP}"
+    NODE_IP="{RUNTIME_HOST_IP}"
+    HOST_IP="{RUNTIME_HOST_IP}"
+    POD_NAME="{RUNTIME_POD_NAME}"
+    DATASYSTEM_ADDR="{RUNTIME_HOST_IP}:31501"
+    ENABLE_SERVER_MODE={{ quote .Values.global.runtime.serverModeEnable }} # ${ENABLE_SERVER_MODE:-"true"} 原取值逻辑
+    YR_FUNCTION_LIB_PATH="/home/sn/frontend/bin" # ${YR_FUNCTION_LIB_PATH:-"./"} 原取值逻辑
+    LD_LIBRARY_PATH = "/home/sn/bin:/home/sn/lib:/home/sn/snlib:/home/sn/frontend/bin"
+    INSTANCE_ID="frontend-{RUNTIME_POD_NAME}"
+    FS_ADDRESS="{RUNTIME_POD_IP}:32568"
+    # previous ENV in chart
+    RUNTIME_MICROSERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_CLUSTER="cn-dev-scheduler-green"
+    LANG="en_US.UTF-8"
+    RUNTIME_MICROSERVICE_ENVIRONMENT="aaa.bbb"
+    RUNTIME_MICROSERVICE_SERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_BUSINESS="aaa.bbb"
+    RUNTIME_MICROSERVICE_REGION="cn-north-4"
+    RUNTIME_MICROSERVICE_AZ="cn-north-4g"
+    TZ="Asia/Shanghai"
+    CURRENT_VERSION="green"
+    YR_LOG_LEVEL="DEBUG"
+    RUNTIME_MGR_PORT={{ quote .Values.global.port.runtimeMgrPort }}
+    RUNTIME_INIT_PORT={{ quote .Values.global.port.runtimeInitPort }}
+    RUNTIME_PORT_NUM={{ quote .Values.global.port.runtimePortNum }}
+    FUNCTION_AGENT_PORT={{ quote .Values.global.port.functionAgentPort }}
+    METRICS_COLLECTOR_TYPE={{ quote .Values.global.runtime.metricsCollectorType }}
+    DISK_USAGE_MONITOR_PATH={{ quote .Values.global.runtime.diskUsageMonitor.path }}
+    DISK_USAGE_LIMIT={{ quote .Values.global.runtime.diskUsageMonitor.limit }}
+    DISK_USAGE_MONITOR_DURATION={{ quote .Values.global.runtime.diskUsageMonitor.duration }}
+    CPU4COMP="5000"
+    MEM4COMP="10240"
+    INIT_LABELS='{"resource.owner":"30450000-0000-4000-8069-949f37caf04c"}'
+    RUNTIME_LOG_DIR={{ quote .Values.global.log.functionSystem.path}}
+    RUNTIME_LOG_LEVEL="INFO"
+    IS_NEW_RUNTIME_PATH="true"
+    JAVA_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.java8 }}
+    JAVA11_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.java11 }}
+    PYTHON36_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.python36 }}
+    PYTHON38_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.python38 }}
+    PYTHON39_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.python39 }}
+    CPP_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.cpp }}
+    JVM_CUSTOM_ARGS={{ quote .Values.global.runtime.jvmCustomArgs }}
+    RUNTIME_GID="1002"
+    RUNTIME_UID="1002"
+    INIT_HANDLER="faasfrontend.InitHandler"
+    CALL_HANDLER="faasfrontend.CallHandler"
+    CHECKPOINT_HANDLER="faasfrontend.CheckpointHandler"
+    SHUTDOWN_HANDLER="faasfrontend.ShutdownHandler"
+    SIGNAL_HANDLER="faasfrontend.SignalHandler"
+    INIT_ARGS_FILE_PATH="/home/sn/config/config.json"
+    GLOG_log_dir={{ quote .Values.global.log.functionSystem.path}}
+    LOG_PATTERN='{"separator": " | ","placeholders": [{"flags": "%Y-%m-%dT%H:%M:%S.%f"},{"flags": "%l"},{"flags": "%s:%#"},{"env": "POD_NAME"},{"env": "CLUSTER_ID"},{"flags": ""}]}'
+    IS_PROTOMSG_TO_RUNTIME={{ quote .Values.global.runtime.isProtoMsgToRuntime }}
+    MAX_PRIORITY={{ quote .Values.global.common.prioritySchedule.maxPriority }}
+    CLUSTER_NAME="cn-dev"
+    FUNCTION_PROXY_PORT={{ quote .Values.global.port.functionProxyPort }}
+    FUNCTION_PROXY_GRPC_PORT={{ quote .Values.global.port.functionProxyGrpcPort }}
+    {{ if .Values.global.metaStore.enable }}
+    META_STORE_ADDRESS={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    META_STORE_ADDRESS={{ quote .Values.global.etcdManagement.detcd }}
+    {{ end }}
+    {{ if .Values.global.metaStore.enable }}
+    IAM_META_STORE_ADDRESS={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    IAM_META_STORE_ADDRESS={{ quote .Values.global.etcdManagement.metcd }}
+    {{ end }}
+    SslTargetName="aaa.bbb"
+    DS_WORKER_PORT={{ quote .Values.global.port.worker }}
+    ENABLE_TRACE={{ quote .Values.global.observer.enableTrace }}
+    LOG_PATH={{ quote .Values.global.log.functionSystem.path}}
+    LOG_LEVEL="DEBUG"
+    LOG_ROLLING_MAXSIZE="1000"
+    LOG_ROLLING_MAXFILES="3"
+    LOG_ASYNC_LOGBUFSECS="30"
+    LOG_ASYNC_MAXQUEUESIZE="51200"
+    LOG_ASYNC_THREADCOUNT="1"
+    LOG_ALSOLOGTOSTDERR="false"
+    ENABLE_METRICS={{ quote .Values.global.observer.metrics.enable }}
+    STS_CONFIG="{}"
+    METRICS_CONFIG_FILE={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    MEM_THRESHOLD_PERCENTAGE="90"
+    ResourcePath="/home/wisfunction/resource"
+    RUNTIME_HEARTBEAT_ENABLE="true"
+    RUNTIME_MAX_HEARTBEAT_TIMEOUT_TIMES={{ quote .Values.global.runtime.runtimeMaxHeartbeatTimeoutTimes }}
+    MAX_STORAGE_OPERATE_RETRY_TIMES="60"
+    RUNTIME_HEARTBEAT_TIMEOUT_MS={{ quote .Values.global.runtime.runtimeHeartbeatTimeoutMS }}
+    RUNTIME_RECOVER_ENABLE="false"
+    DRIVER_ENABLE={{ quote .Values.global.common.driverEnable }}
+    STATE_STORAGE_TYPE={{ quote .Values.global.common.stateStorageType }}
+    ELECTION_MODE={{ quote .Values.global.common.electionMode }}
+    MAX_GRPC_SIZE={{ quote .Values.global.common.maxGrpcSize }}
+    DS_HEALTH_CHECK_INTERVAL="1000"
+    MAX_DS_HEALTH_CHECK_TIMES="12"
+    DS_HEALTH_CHECK_PATH="/home/sn/datasystem/health"
+    SERVICES_PATH="/home/sn/service-config/services.yaml"
+    SYSTEM_TIMEOUT={{ quote .Values.global.common.systemTimeout }}
+    SERVICE_TTL="60000"
+    RUNTIME_SHUTDOWN_TIMEOUT_SECONDS={{ quote .Values.global.runtime.runtimeShutdownTimeoutSeconds }}
+    CACHE_STORAGE_AUTH_ENABLE={{ quote .Values.global.dataSystem.authEnabled }}
+    SSL_ENABLE={{ quote .Values.global.mutualSSLConfig.sslEnable }}
+    DECRYPT_ALGORITHM={{ quote .Values.global.common.decryptAlgorithm }}
+    MIN_INSTANCE_CPU_SIZE={{ quote .Values.global.runtime.minInstanceCpuSize }}
+    MIN_INSTANCE_MEMORY_SIZE={{ quote .Values.global.runtime.minInstanceMemorySize }}
+    MAX_INSTANCE_CPU_SIZE={{ quote .Values.global.runtime.maxInstanceCpuSize }}
+    MAX_INSTANCE_MEMORY_SIZE={{ quote .Values.global.runtime.maxInstanceMemorySize }}
+    LOG_COMPRESS_ENABLE="true"
+    ENABLE_PRINT_RESOURCE_VIEW={{ quote .Values.global.common.enablePrintResourceView }}
+    PROMETHEUS_PUSH_GATEWAY_IP={{ quote .Values.global.observer.proGatewayIP }}
+    PROMETHEUS_PUSH_GATEWAY_PORT={{ quote .Values.global.observer.gatewayPort }}
+    CLUSTER_ID={{ quote .Values.global.clusterId }}
+    INVOKE_LIMITATION_ENABLE={{ quote .Values.global.rateLimit.invokeRateLimit.enable }}
+    LOW_MEMORY_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.lowThreshold }}
+    HIGH_MEMORY_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.highThreshold }}
+    MESSAGE_SIZE_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.msgSize }}
+    RUNTIME_DS_AUTH_ENABLE={{ quote .Values.global.runtime.dataSystem.authEnable }}
+    RUNTIME_DS_ENCRYPT_ENABLE={{ quote .Values.global.runtime.dataSystem.encryptEnable }}
+    RUNTIME_DS_CLIENT_PUBLICKEY=""
+    RUNTIME_DS_CLIENT_PRIVATEKEY=""
+    RUNTIME_DS_SERVER_PUBLICKEY=""
+    ETCD_AUTH_TYPE={{ quote .Values.global.etcdManagement.authType }}
+    SCC_ENABLE={{ quote .Values.global.scc.enable }}
+    IAM_POLICY_CONFIG_PATH="/home/sn/iam-config/iam-policy-config.json"
+    K8S_BASE_URL={{ quote .Values.global.kubernetes.kubeApiBaseUrl }}
+    K8S_NAMESPACE="default"
+    MAX_TOLERATE_META_STORE_FAILED_TIMES={{ quote .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}
+    META_HEALTH_CHECK_INTERVAL_MS={{ quote .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}
+    META_HEALTH_CHECK_TIMEOUTS={{ quote .Values.global.etcdManagement.metaStoreTimeoutMs }}
+    ENABLE_IAM={{ quote .Values.global.iam.enable }}
+    IAM_CREDENTIAL_TYPE={{ quote .Values.global.iam.credentialType }}
+    IAM_BASE_PATH="http://iam-adaptor.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.global.port.iamAdapterHttpPort }}"
+    SYSTEM_AUTH_MODE={{ quote .Values.global.common.systemAuthMode }}
+    ETCD_TARGET_NAME_OVERRIDE="aaa.bbb"
+    CACHE_STORAGE_AUTH_TYPE=""
+    FUNCTION_META_PATH="/home/sn/function-metas"
+    RESOURCE_PATH="/home/sn/resource"
+    LIB_PATH=""
+
+
+    [frontend.args]
+    runtimeConfigPath="/home/sn/config/config.json"
+    jobId='runtime-{{ randNumeric 8 }}'
+    runtimeId='{{ randNumeric 4 }}-{{ now | date "20060102150405" }}'
+    instanceId="frontend-{RUNTIME_POD_NAME}"
+    functionName='0/0-system-faasfrontend/$latest'
+    logLevel="DEBUG"
+    logPath={{ quote .Values.global.log.functionSystem.path}}
+    functionSystemAddress="{RUNTIME_HOST_IP}:32568"
+    driverMode="true"
+    enableEvent={{ quote .Values.global.common.enableEvent }}
+
+
+    [function_manager]
+    bin_path = "/home/sn/manager/bin/goruntime"
+
+    [function_manager.env]
+    POD_IP="{RUNTIME_POD_IP}"
+    NODE_IP="{RUNTIME_HOST_IP}"
+    HOST_IP="{RUNTIME_HOST_IP}"
+    POD_NAME="{RUNTIME_POD_NAME}"
+    ENABLE_SERVER_MODE={{ quote .Values.global.runtime.serverModeEnable }}
+    YR_FUNCTION_LIB_PATH="/home/sn/manager/bin"
+    LD_LIBRARY_PATH = "/home/sn/bin:/home/sn/lib:/home/sn/snlib:/home/sn/manager/bin"
+    INSTANCE_ID="manager-{RUNTIME_POD_NAME}"
+    FS_ADDRESS="{RUNTIME_POD_IP}:32568"
+    # previous ENV in chart
+    RUNTIME_MICROSERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_CLUSTER="cn-dev-scheduler-green"
+    LANG="en_US.UTF-8"
+    RUNTIME_MICROSERVICE_ENVIRONMENT="aaa.bbb"
+    RUNTIME_MICROSERVICE_SERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_BUSINESS="aaa.bbb"
+    RUNTIME_MICROSERVICE_REGION="cn-north-4"
+    RUNTIME_MICROSERVICE_AZ="cn-north-4g"
+    TZ="Asia/Shanghai"
+    YR_LOG_LEVEL="DEBUG"
+    FUNCTION_AGENT_PORT={{ quote .Values.global.port.functionAgentPort }}
+    RUNTIME_MGR_PORT={{ quote .Values.global.port.runtimeMgrPort }}
+    RUNTIME_INIT_PORT={{ quote .Values.global.port.runtimeInitPort }}
+    RUNTIME_PORT_NUM={{ quote .Values.global.port.runtimePortNum }}
+    METRICS_COLLECTOR_TYPE={{ quote .Values.global.runtime.metricsCollectorType }}
+    DISK_USAGE_MONITOR_PATH={{ quote .Values.global.runtime.diskUsageMonitor.path }}
+    DISK_USAGE_LIMIT={{ quote .Values.global.runtime.diskUsageMonitor.limit }}
+    DISK_USAGE_MONITOR_DURATION={{ quote .Values.global.runtime.diskUsageMonitor.duration }}
+    CPU4COMP="5000"
+    MEM4COMP="10240"
+    INIT_LABELS='{"resource.owner":"30450000-0000-4000-8069-949f37caf04c"}'
+    RUNTIME_LOG_DIR={{ quote .Values.global.log.functionSystem.path}}
+    RUNTIME_LOG_LEVEL="INFO"
+    IS_NEW_RUNTIME_PATH="true"
+    JAVA_PRESTART_COUNT="{{ .Values.global.runtime.prestartCount.java8 }}"
+    JAVA11_PRESTART_COUNT="{{ .Values.global.runtime.prestartCount.java11 }}"
+    PYTHON36_PRESTART_COUNT="{{ .Values.global.runtime.prestartCount.python36 }}"
+    PYTHON38_PRESTART_COUNT="{{ .Values.global.runtime.prestartCount.python38 }}"
+    PYTHON39_PRESTART_COUNT="{{ .Values.global.runtime.prestartCount.python39 }}"
+    CPP_PRESTART_COUNT="{{ .Values.global.runtime.prestartCount.cpp }}"
+    JVM_CUSTOM_ARGS="{{ .Values.global.runtime.jvmCustomArgs }}"
+    RUNTIME_GID="1002"
+    RUNTIME_UID="1002"
+    INIT_HANDLER="faasmanager.InitHandler"
+    CALL_HANDLER="faasmanager.CallHandler"
+    CHECKPOINT_HANDLER="faasmanager.CheckpointHandler"
+    SHUTDOWN_HANDLER="faasmanager.ShutdownHandler"
+    SIGNAL_HANDLER="faasmanager.SignalHandler"
+    INIT_ARGS_FILE_PATH="/home/sn/config/config.json"
+    GLOG_log_dir={{ quote .Values.global.log.functionSystem.path}}
+    LOG_PATTERN='{"separator": " | ","placeholders": [{"flags": "%Y-%m-%dT%H:%M:%S.%f"},{"flags": "%l"},{"flags": "%s:%#"},{"env": "POD_NAME"},{"env": "CLUSTER_ID"},{"flags": ""}]}'
+    IS_PROTOMSG_TO_RUNTIME={{ quote .Values.global.runtime.isProtoMsgToRuntime }}
+    MAX_PRIORITY={{ quote .Values.global.common.prioritySchedule.maxPriority }}
+    CLUSTER_NAME="cn-dev"
+    FUNCTION_PROXY_PORT={{ quote .Values.global.port.functionProxyPort }}
+    FUNCTION_PROXY_GRPC_PORT={{ quote .Values.global.port.functionProxyGrpcPort }}
+    {{ if .Values.global.metaStore.enable }}
+    META_STORE_ADDRESS={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    META_STORE_ADDRESS={{ quote .Values.global.etcdManagement.detcd }}
+    {{ end }}
+    {{ if .Values.global.metaStore.enable }}
+    IAM_META_STORE_ADDRESS={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    IAM_META_STORE_ADDRESS={{ quote .Values.global.etcdManagement.metcd }}
+    {{ end }}
+    SslTargetName="aaa.bbb"
+    DS_WORKER_PORT={{ quote .Values.global.port.worker }}
+    ENABLE_TRACE={{ quote .Values.global.observer.enableTrace }}
+    LOG_PATH={{ quote .Values.global.log.functionSystem.path}}
+    LOG_LEVEL="DEBUG"
+    LOG_ROLLING_MAXSIZE="1000"
+    LOG_ROLLING_MAXFILES="3"
+    LOG_ASYNC_LOGBUFSECS="30"
+    LOG_ASYNC_MAXQUEUESIZE="51200"
+    LOG_ASYNC_THREADCOUNT="1"
+    LOG_ALSOLOGTOSTDERR="false"
+    ENABLE_METRICS={{ quote .Values.global.observer.metrics.enable }}
+    STS_CONFIG="{}"
+    METRICS_CONFIG_FILE={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    MEM_THRESHOLD_PERCENTAGE="90"
+    ResourcePath="/home/wisfunction/resource"
+    RUNTIME_HEARTBEAT_ENABLE="true"
+    RUNTIME_MAX_HEARTBEAT_TIMEOUT_TIMES={{ quote .Values.global.runtime.runtimeMaxHeartbeatTimeoutTimes }}
+    MAX_STORAGE_OPERATE_RETRY_TIMES="60"
+    RUNTIME_HEARTBEAT_TIMEOUT_MS={{ quote .Values.global.runtime.runtimeHeartbeatTimeoutMS }}
+    RUNTIME_RECOVER_ENABLE="false"
+    DRIVER_ENABLE={{ quote .Values.global.common.driverEnable }}
+    STATE_STORAGE_TYPE={{ quote .Values.global.common.stateStorageType }}
+    ELECTION_MODE={{ quote .Values.global.common.electionMode }}
+    MAX_GRPC_SIZE={{ quote .Values.global.common.maxGrpcSize }}
+    DS_HEALTH_CHECK_INTERVAL="1000"
+    MAX_DS_HEALTH_CHECK_TIMES="12"
+    DS_HEALTH_CHECK_PATH="/home/sn/datasystem/health"
+    SERVICES_PATH="/home/sn/service-config/services.yaml"
+    SYSTEM_TIMEOUT={{ quote .Values.global.common.systemTimeout }}
+    SERVICE_TTL="60000"
+    RUNTIME_SHUTDOWN_TIMEOUT_SECONDS={{ quote .Values.global.runtime.runtimeShutdownTimeoutSeconds }}
+    CACHE_STORAGE_AUTH_ENABLE={{ quote .Values.global.dataSystem.authEnabled }}
+    SSL_ENABLE={{ quote .Values.global.mutualSSLConfig.sslEnable }}
+    DECRYPT_ALGORITHM={{ quote .Values.global.common.decryptAlgorithm }}
+    MIN_INSTANCE_CPU_SIZE={{ quote .Values.global.runtime.minInstanceCpuSize }}
+    MIN_INSTANCE_MEMORY_SIZE={{ quote .Values.global.runtime.minInstanceMemorySize }}
+    MAX_INSTANCE_CPU_SIZE={{ quote .Values.global.runtime.maxInstanceCpuSize }}
+    MAX_INSTANCE_MEMORY_SIZE={{ quote .Values.global.runtime.maxInstanceMemorySize }}
+    LOG_COMPRESS_ENABLE="true"
+    ENABLE_PRINT_RESOURCE_VIEW={{ quote .Values.global.common.enablePrintResourceView }}
+    PROMETHEUS_PUSH_GATEWAY_IP={{ quote .Values.global.observer.proGatewayIP }}
+    PROMETHEUS_PUSH_GATEWAY_PORT={{ quote .Values.global.observer.gatewayPort }}
+    CLUSTER_ID={{ quote .Values.global.clusterId }}
+    INVOKE_LIMITATION_ENABLE={{ quote .Values.global.rateLimit.invokeRateLimit.enable }}
+    LOW_MEMORY_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.lowThreshold }}
+    HIGH_MEMORY_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.highThreshold }}
+    MESSAGE_SIZE_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.msgSize }}
+    RUNTIME_DS_AUTH_ENABLE={{ quote .Values.global.runtime.dataSystem.authEnable }}
+    RUNTIME_DS_ENCRYPT_ENABLE={{ quote .Values.global.runtime.dataSystem.encryptEnable }}
+    RUNTIME_DS_CLIENT_PUBLICKEY=""
+    RUNTIME_DS_CLIENT_PRIVATEKEY=""
+    RUNTIME_DS_SERVER_PUBLICKEY=""
+    ETCD_AUTH_TYPE={{ quote .Values.global.etcdManagement.authType }}
+    SCC_ENABLE={{ quote .Values.global.scc.enable }}
+    IAM_POLICY_CONFIG_PATH="/home/sn/iam-config/iam-policy-config.json"
+    ENABLE_IAM={{ quote .Values.global.iam.enable }}
+    IAM_BASE_PATH="http://iam-adaptor.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.global.port.iamAdapterHttpPort }}"
+    IAM_CREDENTIAL_TYPE={{ quote .Values.global.iam.credentialType }}
+    K8S_BASE_URL={{ quote .Values.global.kubernetes.kubeApiBaseUrl }}
+    K8S_NAMESPACE="default"
+    MAX_TOLERATE_META_STORE_FAILED_TIMES={{ quote .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}
+    META_HEALTH_CHECK_INTERVAL_MS={{ quote .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}
+    META_HEALTH_CHECK_TIMEOUTS={{ quote .Values.global.etcdManagement.metaStoreTimeoutMs }}
+    SYSTEM_AUTH_MODE={{ quote .Values.global.common.systemAuthMode }}
+    ETCD_TARGET_NAME_OVERRIDE="aaa.bbb"
+    CACHE_STORAGE_AUTH_TYPE=""
+    FUNCTION_META_PATH="/home/sn/function-metas"
+    RESOURCE_PATH="/home/sn/resource"
+    LIB_PATH=""
+
+    [function_manager.args]
+    runtimeConfigPath="/home/sn/config/config.json"
+    jobId='runtime-{{ randNumeric 8 }}'
+    runtimeId='{{ randNumeric 4 }}-{{ now | date "20060102150405" }}'
+    instanceId="manager-{RUNTIME_POD_NAME}"
+    functionName='0/0-system-faasmanager/$latest'
+    logLevel="DEBUG"
+    logPath={{ quote .Values.global.log.functionSystem.path}}
+    functionSystemAddress="{RUNTIME_HOST_IP}:32568"
+    driverMode="true"
+
+
+    [function_scheduler]
+    bin_path = "/home/sn/scheduler/bin/goruntime"
+
+    [function_scheduler.env]
+    POD_IP="{RUNTIME_POD_IP}"
+    NODE_IP="{RUNTIME_HOST_IP}"
+    HOST_IP="{RUNTIME_HOST_IP}"
+    POD_NAME="{RUNTIME_POD_NAME}"
+    ENABLE_SERVER_MODE={{ quote .Values.global.runtime.serverModeEnable }}
+    YR_FUNCTION_LIB_PATH="/home/sn/scheduler/bin"
+    LD_LIBRARY_PATH="/home/sn/bin:/home/sn/lib:/home/sn/snlib:/home/sn/scheduler/bin"
+    INSTANCE_ID="scheduler-{RUNTIME_POD_NAME}"
+    FS_ADDRESS="{RUNTIME_POD_IP}:32568"
+    # previous ENV in chart
+    RUNTIME_MICROSERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_CLUSTER="cn-dev-scheduler-green"
+    LANG="en_US.UTF-8"
+    RUNTIME_MICROSERVICE_ENVIRONMENT="aaa.bbb"
+    RUNTIME_MICROSERVICE_SERVICE_NAME="aaa.bbb"
+    RUNTIME_MICROSERVICE_BUSINESS="aaa.bbb"
+    RUNTIME_MICROSERVICE_REGION="cn-north-4"
+    RUNTIME_MICROSERVICE_AZ="cn-north-4g"
+    TZ="Asia/Shanghai"
+    YR_LOG_LEVEL="DEBUG"
+    FUNCTION_AGENT_PORT={{ quote .Values.global.port.functionAgentPort }}
+    RUNTIME_MGR_PORT={{ quote .Values.global.port.runtimeMgrPort }}
+    RUNTIME_INIT_PORT={{ quote .Values.global.port.runtimeInitPort }}
+    RUNTIME_PORT_NUM={{ quote .Values.global.port.runtimePortNum }}
+    METRICS_COLLECTOR_TYPE={{ quote .Values.global.runtime.metricsCollectorType }}
+    DISK_USAGE_MONITOR_PATH={{ quote .Values.global.runtime.diskUsageMonitor.path }}
+    DISK_USAGE_LIMIT={{ quote .Values.global.runtime.diskUsageMonitor.limit }}
+    DISK_USAGE_MONITOR_DURATION={{ quote .Values.global.runtime.diskUsageMonitor.duration }}
+    CPU4COMP="5000"
+    MEM4COMP="10240"
+    INIT_LABELS='{"resource.owner":"30450000-0000-4000-8069-949f37caf04c"}'
+    RUNTIME_LOG_DIR={{ quote .Values.global.log.functionSystem.path}}
+    RUNTIME_LOG_LEVEL="INFO"
+    IS_NEW_RUNTIME_PATH="true"
+    JAVA_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.java8 }}
+    JAVA11_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.java11 }}
+    PYTHON36_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.python36 }}
+    PYTHON38_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.python38 }}
+    PYTHON39_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.python39 }}
+    CPP_PRESTART_COUNT={{ quote .Values.global.runtime.prestartCount.cpp }}
+    JVM_CUSTOM_ARGS={{ quote .Values.global.runtime.jvmCustomArgs }}
+    RUNTIME_GID="1002"
+    RUNTIME_UID="1002"
+    INIT_HANDLER="faasscheduler.InitHandler"
+    CALL_HANDLER="faasscheduler.CallHandler"
+    CHECKPOINT_HANDLER="faasscheduler.CheckpointHandler"
+    SHUTDOWN_HANDLER="faasscheduler.ShutdownHandler"
+    SIGNAL_HANDLER="faasscheduler.SignalHandler"
+    INIT_ARGS_FILE_PATH="/home/sn/config/config.json"
+    GLOG_log_dir={{ quote .Values.global.log.functionSystem.path}}
+    ERN='{"separator": " | ","placeholders": [{"flags": "%Y-%m-%dT%H:%M:%S.%f"},{"flags": "%l"},{"flags": "%s:%#"},{"env": "POD_NAME"},{"env": "CLUSTER_ID"},{"flags": ""}]}'
+    IS_PROTOMSG_TO_RUNTIME={{ quote .Values.global.runtime.isProtoMsgToRuntime }}
+    MAX_PRIORITY={{ quote .Values.global.common.prioritySchedule.maxPriority }}
+    CLUSTER_NAME="cn-dev"
+    FUNCTION_PROXY_PORT={{ quote .Values.global.port.functionProxyPort }}
+    FUNCTION_PROXY_GRPC_PORT={{ quote .Values.global.port.functionProxyGrpcPort }}
+    {{ if .Values.global.metaStore.enable }}
+    META_STORE_ADDRESS={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    META_STORE_ADDRESS={{ quote .Values.global.etcdManagement.detcd }}
+    {{ end }}
+    {{ if .Values.global.metaStore.enable }}
+    IAM_META_STORE_ADDRESS={{ quote .Values.global.metaStore.address }}
+    {{ else }}
+    IAM_META_STORE_ADDRESS={{ quote .Values.global.etcdManagement.metcd }}
+    {{ end }}
+    SslTargetName="aaa.bbb"
+    DS_WORKER_PORT={{ quote .Values.global.port.worker }}
+    ENABLE_TRACE={{ quote .Values.global.observer.enableTrace }}
+    LOG_PATH={{ quote .Values.global.log.functionSystem.path}}
+    LOG_LEVEL="DEBUG"
+    LOG_ROLLING_MAXSIZE="1000"
+    LOG_ROLLING_MAXFILES="3"
+    LOG_ASYNC_LOGBUFSECS="30"
+    LOG_ASYNC_MAXQUEUESIZE="51200"
+    LOG_ASYNC_THREADCOUNT="1"
+    LOG_ALSOLOGTOSTDERR="false"
+    ENABLE_METRICS={{ quote .Values.global.observer.metrics.enable }}
+    STS_CONFIG="{}"
+    METRICS_CONFIG_FILE={{ quote .Values.global.observer.metrics.metricsConfigFile }}
+    MEM_THRESHOLD_PERCENTAGE="90"
+    ResourcePath="/home/wisfunction/resource"
+    RUNTIME_HEARTBEAT_ENABLE="true"
+    RUNTIME_MAX_HEARTBEAT_TIMEOUT_TIMES={{ quote .Values.global.runtime.runtimeMaxHeartbeatTimeoutTimes }}
+    MAX_STORAGE_OPERATE_RETRY_TIMES="60"
+    RUNTIME_HEARTBEAT_TIMEOUT_MS={{ quote .Values.global.runtime.runtimeHeartbeatTimeoutMS }}
+    RUNTIME_RECOVER_ENABLE="false"
+    DRIVER_ENABLE={{ quote .Values.global.common.driverEnable }}
+    STATE_STORAGE_TYPE={{ quote .Values.global.common.stateStorageType }}
+    ELECTION_MODE={{ quote .Values.global.common.electionMode }}
+    MAX_GRPC_SIZE={{ quote .Values.global.common.maxGrpcSize }}
+    DS_HEALTH_CHECK_INTERVAL="1000"
+    MAX_DS_HEALTH_CHECK_TIMES="12"
+    DS_HEALTH_CHECK_PATH="/home/sn/datasystem/health"
+    SERVICES_PATH="/home/sn/service-config/services.yaml"
+    SYSTEM_TIMEOUT={{ quote .Values.global.common.systemTimeout }}
+    SERVICE_TTL="60000"
+    RUNTIME_SHUTDOWN_TIMEOUT_SECONDS={{ quote .Values.global.runtime.runtimeShutdownTimeoutSeconds }}
+    CACHE_STORAGE_AUTH_ENABLE={{ quote .Values.global.dataSystem.authEnabled }}
+    SSL_ENABLE={{ quote .Values.global.mutualSSLConfig.sslEnable }}
+    DECRYPT_ALGORITHM={{ quote .Values.global.common.decryptAlgorithm }}
+    MIN_INSTANCE_CPU_SIZE={{ quote .Values.global.runtime.minInstanceCpuSize }}
+    MIN_INSTANCE_MEMORY_SIZE={{ quote .Values.global.runtime.minInstanceMemorySize }}
+    MAX_INSTANCE_CPU_SIZE={{ quote .Values.global.runtime.maxInstanceCpuSize }}
+    MAX_INSTANCE_MEMORY_SIZE={{ quote .Values.global.runtime.maxInstanceMemorySize }}
+    LOG_COMPRESS_ENABLE="true"
+    ENABLE_PRINT_RESOURCE_VIEW={{ quote .Values.global.common.enablePrintResourceView }}
+    PROMETHEUS_PUSH_GATEWAY_IP={{ quote .Values.global.observer.proGatewayIP }}
+    PROMETHEUS_PUSH_GATEWAY_PORT={{ quote .Values.global.observer.gatewayPort }}
+    CLUSTER_ID={{ quote .Values.global.clusterId }}
+    INVOKE_LIMITATION_ENABLE={{ quote .Values.global.rateLimit.invokeRateLimit.enable }}
+    LOW_MEMORY_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.lowThreshold }}
+    HIGH_MEMORY_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.highThreshold }}
+    MESSAGE_SIZE_THRESHOLD={{ quote .Values.global.rateLimit.invokeRateLimit.msgSize }}
+    RUNTIME_DS_AUTH_ENABLE={{ quote .Values.global.runtime.dataSystem.authEnable }}
+    RUNTIME_DS_ENCRYPT_ENABLE={{ quote .Values.global.runtime.dataSystem.encryptEnable }}
+    RUNTIME_DS_CLIENT_PUBLICKEY=""
+    RUNTIME_DS_CLIENT_PRIVATEKEY=""
+    RUNTIME_DS_SERVER_PUBLICKEY=""
+    ETCD_AUTH_TYPE={{ quote .Values.global.etcdManagement.authType }}
+    SCC_ENABLE={{ quote .Values.global.scc.enable }}
+    IAM_POLICY_CONFIG_PATH="/home/sn/iam-config/iam-policy-config.json"
+    ENABLE_IAM={{ quote .Values.global.iam.enable }}
+    IAM_BASE_PATH="http://iam-adaptor.{{ .Values.global.namespace }}.svc.cluster.local:{{ .Values.global.port.iamAdapterHttpPort }}"
+    IAM_CREDENTIAL_TYPE={{ quote .Values.global.iam.credentialType }}
+    K8S_BASE_URL={{ quote .Values.global.kubernetes.kubeApiBaseUrl }}
+    K8S_NAMESPACE="default"
+    MAX_TOLERATE_META_STORE_FAILED_TIMES={{ quote .Values.global.etcdManagement.maxTolerateMetaStoreFailedTimes }}
+    META_HEALTH_CHECK_INTERVAL_MS={{ quote .Values.global.etcdManagement.metaStoreCheckHealthIntervalMs }}
+    META_HEALTH_CHECK_TIMEOUTS={{ quote .Values.global.etcdManagement.metaStoreTimeoutMs }}
+    SYSTEM_AUTH_MODE={{ quote .Values.global.common.systemAuthMode }}
+    ETCD_TARGET_NAME_OVERRIDE="aaa.bbb"
+    CACHE_STORAGE_AUTH_TYPE=""
+    FUNCTION_META_PATH="/home/sn/function-metas"
+    RESOURCE_PATH="/home/sn/resource"
+    LIB_PATH=""
+
+    [function_scheduler.args]
+    runtimeConfigPath="/home/sn/config/config.json"
+    jobId='runtime-{{ randNumeric 8 }}'
+    runtimeId='{{ randNumeric 4 }}-{{ now | date "20060102150405" }}'
+    instanceId="scheduler-{RUNTIME_POD_NAME}"
+    functionName='0/0-system-faasscheduler/$latest'
+    logLevel="DEBUG"
+    logPath={{ quote .Values.global.log.functionSystem.path}}
+    functionSystemAddress="{RUNTIME_HOST_IP}:32568"
+    driverMode="true"

@@ -1,0 +1,176 @@
+load("//bazel:yr.bzl", "COPTS", "LOPTS", "cc_strip", "copy_file", "pyx_library")
+load("@rules_python//python:defs.bzl", "py_library", "py_runtime", "py_runtime_pair")
+load("@python3_9//:defs.bzl", "interpreter")
+
+py_runtime(
+    name = "python3_runtime",
+    interpreter = interpreter,
+    python_version = "PY3",
+    visibility = ["//visibility:private"],
+)
+
+py_runtime_pair(
+    name = "python_runtime_pair",
+    py2_runtime = None,
+    py3_runtime = ":python3_runtime",
+    visibility = ["//visibility:private"],
+)
+
+constraint_setting(name = "hermetic")
+
+constraint_value(
+    name = "hermetic_python",
+    constraint_setting = ":hermetic",
+)
+
+toolchain(
+    name = "python_toolchain",
+    exec_compatible_with = [":hermetic_python"],
+    toolchain = ":python_runtime_pair",
+    toolchain_type = "@bazel_tools//tools/python:toolchain_type",
+)
+
+platform(
+    name = "hermetic_python_platform",
+    constraint_values = [":hermetic_python"],
+    parents = ["@local_config_platform//:host"],
+    visibility = ["//visibility:private"],
+)
+
+pyx_library(
+    name = "fnruntime",
+    srcs = glob([
+        "yr/__init__.py",
+        "yr/fnruntime.pyx",
+        "yr/includes/*.pxd",
+        "yr/includes/*.pxi",
+    ]),
+    cc_kwargs = dict(
+        copts = COPTS,
+    ),
+    visibility = ["__subpackages__"],
+    deps = [
+        "//:runtime_lib",
+    ],
+)
+
+copy_file(
+    name = "cp_yr_so",
+    srcs = [
+        "//src/proto:libruntime_py_proto",
+        "@boringssl//:shared",
+        "@datasystem_sdk//:shared",
+        "@metrics_sdk//:shared",
+    ],
+    dstdir = "api/python/yr",
+)
+
+copy_file(
+    name = "cp_yr_proto",
+    srcs = [
+        "//src/proto:libruntime_py_proto",
+    ],
+    dstdir = "api/python/yr",
+)
+
+filegroup(
+    name = "python_sources",
+    srcs = glob([
+        "yr/**/*.py",
+    ]),
+)
+
+cc_strip(
+    name = "py_strip",
+    srcs = ["yr/fnruntime.so"],
+)
+
+genrule(
+    name = "yr_python_pkg",
+    srcs = [
+        "py_strip",
+        "//api/python:cp_yr_so",
+        ":python_sources",
+        "@etcd_source//:etcd",
+        "@etcd_source//:etcdctl",
+    ],
+    outs = ["yr_python_pkg.out"],
+    cmd = """
+        BASE_DIR="$$(pwd)"
+        PYTHON_SERVICE_DIR=$$BASE_DIR/build/output/runtime/service/python
+        PYTHON_SDK_DIR=$$BASE_DIR/build/output/runtime/sdk/python
+        PYTHON_CODE_DIR=$$BASE_DIR/api/python
+        mkdir -p $$PYTHON_SERVICE_DIR/fnruntime
+        mkdir -p $$PYTHON_SDK_DIR/
+        chmod +w $(location py_strip) &&
+        chmod +w $$PYTHON_CODE_DIR/yr &&
+        chmod +w $$PYTHON_SERVICE_DIR/ &&
+        chrpath -r '$$ORIGIN' $(location py_strip) &&
+        PYTHON3_BIN_PATH=$${PYTHON3_BIN_PATH:-python3}
+        PYTHON_VERSION=$$($$PYTHON3_BIN_PATH --version 2>&1) &&
+        echo $$PYTHON_VERSION > $@
+        ARCH=$$(uname -m) &&
+        if [[ "$$PYTHON_VERSION" =~ "3.6" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-36m-$$ARCH-linux-gnu.so
+        elif [[ $$PYTHON_VERSION =~ "3.7" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-37m-$$ARCH-linux-gnu.so
+        elif [[ $$PYTHON_VERSION =~ "3.8" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-38-$$ARCH-linux-gnu.so
+        elif [[ $$PYTHON_VERSION =~ "3.9" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-39-$$ARCH-linux-gnu.so
+        elif [[ $$PYTHON_VERSION =~ "3.10" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-310-$$ARCH-linux-gnu.so
+        elif [[ $$PYTHON_VERSION =~ "3.11" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-311-$$ARCH-linux-gnu.so
+        elif [[ $$PYTHON_VERSION =~ "3.12" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-312-$$ARCH-linux-gnu.so
+        elif [[ $$PYTHON_VERSION =~ "3.13" ]]; then
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/fnruntime.cpython-313-$$ARCH-linux-gnu.so
+        else
+            cp -ar $(location py_strip) $$PYTHON_CODE_DIR/yr/
+        fi
+        ln -f -s libssl.so.3 $$PYTHON_CODE_DIR/yr/libssl.so
+        ln -f -s libcrypto.so.3 $$PYTHON_CODE_DIR/yr/libcrypto.so
+        ln -f -s liblitebus.so.0.0.1 $$PYTHON_CODE_DIR/yr/liblitebus.so
+
+        ln -f -s libspdlog.so.1.12.0 $$PYTHON_CODE_DIR/yr/libspdlog.so.1
+        ln -f -s libspdlog.so.1 $$PYTHON_CODE_DIR/yr/libspdlog.so
+        ln -f -s libspdlog.so.1 $$PYTHON_CODE_DIR/yr/libspdlog.so
+
+        # Copy etcd binaries
+        mkdir -p $$PYTHON_CODE_DIR/yr/third_party/etcd
+        cp -f $(location @etcd_source//:etcd) $$PYTHON_CODE_DIR/yr/third_party/etcd/
+        cp -f $(location @etcd_source//:etcdctl) $$PYTHON_CODE_DIR/yr/third_party/etcd/
+        chmod +x $$PYTHON_CODE_DIR/yr/third_party/etcd/etcd
+        chmod +x $$PYTHON_CODE_DIR/yr/third_party/etcd/etcdctl
+
+        cd $$BASE_DIR
+        echo "$$BASE_DIR" >> $@
+    """,
+    local = 1,
+)
+
+genrule(
+    name = "libruntime_proto_for_test",
+    srcs = [
+        "//src/proto:libruntime_py_proto",
+    ],
+    outs = ["yr/libruntime_pb2.py"],
+    cmd = """
+        cat "$(location //src/proto:libruntime_py_proto)" >$@
+    """,
+    local = 1,
+)
+
+py_library(
+    name = "yr_lib",
+    srcs = glob(
+        ["yr/**/*.py"],
+        exclude = ["yr/tests/*.py"],
+    ),
+    data = [
+        "yr/fnruntime.so",
+        "yr/libruntime_pb2.py",
+    ],
+    visibility = ["__subpackages__"],
+)

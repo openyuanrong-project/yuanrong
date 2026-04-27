@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iam-adaptor
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.global.replicas.iamAdaptor }}
+  selector:
+    matchLabels:
+      app: iam-adaptor
+  template:
+    metadata:
+      labels:
+        app: iam-adaptor
+    spec:
+      volumes:
+        - name: log-volume
+          hostPath:
+            path: "{{ .Values.global.log.hostPath.componentLog }}"
+            type: DirectoryOrCreate
+        - name: data-volume
+          emptyDir:
+            sizeLimit: 5Gi
+        - name: config-volume
+          configMap:
+            defaultMode: 0440
+            name: components-toml-config
+      initContainers:
+        - name: agent-init-container
+          image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.agentInit }}
+          command: ["/bin/sh", "-c", "chown 1002:1002 /home/sn/log && chmod 777 /home/sn/log"]
+          resources:
+            limits:
+              cpu: {{ .Values.global.resources.functionAgentInit.limits.cpu }}
+              memory: {{ .Values.global.resources.functionAgentInit.limits.memory }}
+            requests:
+              cpu: {{ .Values.global.resources.functionAgentInit.requests.cpu }}
+              memory: {{ .Values.global.resources.functionAgentInit.requests.memory }}
+          volumeMounts:
+            - name: log-volume
+              mountPath: {{ .Values.global.log.functionSystem.path}}
+              subPathExpr: $(RUNTIME_POD_NAME)
+          env:
+            - name: RUNTIME_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - CHOWN
+                - NET_RAW
+                - NET_ADMIN
+                - SYS_ADMIN
+                - CHOWN
+                - SETGID
+                - SETUID
+                - DAC_OVERRIDE
+                - FOWNER
+                - FSETID
+              drop:
+                - ALL
+            runAsUser: 0
+      containers:
+        - name: service-container
+          image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.common }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+                umask 0027
+                [ ! -d "{{ .Values.global.log.functionSystem.path}}" ] && mkdir -p "{{ .Values.global.log.functionSystem.path}}"
+                python3 -m yr.cli.main -v launch --env-subst RUNTIME_POD_IP,RUNTIME_HOST_IP,RUNTIME_POD_NAME iam_server
+          ports:
+            - containerPort: {{ .Values.global.port.iamAdapterHttpPort }}
+              protocol: TCP
+          env:
+            - name: RUNTIME_HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: RUNTIME_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: RUNTIME_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          resources:
+            limits:
+              cpu: {{ .Values.global.resources.iamAdapter.limits.cpu }}
+              memory: {{ .Values.global.resources.iamAdapter.limits.memory }}
+            requests:
+              cpu: {{ .Values.global.resources.iamAdapter.requests.cpu }}
+              memory: {{ .Values.global.resources.iamAdapter.requests.memory }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/yuanrong/config.toml
+              subPath: config.toml
+            - name: log-volume
+              mountPath: {{ .Values.global.log.functionSystem.path}}
+              subPathExpr: $(RUNTIME_POD_NAME)
+            - name: data-volume
+              mountPath: /opt/yuanrong/data
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.global.port.iamAdapterHttpPort }}
+            initialDelaySeconds: 3
+            timeoutSeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.global.port.iamAdapterHttpPort }}
+            initialDelaySeconds: 3
+            timeoutSeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 10
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - sleep 1
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1002
+            runAsNonRoot: true
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 300
+      dnsPolicy: ClusterFirst
+      securityContext:
+        fsGroup: {{ .Values.global.runtime.fsGroup }}
+      imagePullSecrets:
+        - name: default-secret
+      schedulerName: default-scheduler

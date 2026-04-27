@@ -1,0 +1,11 @@
+--- src/core/lib/promise/pipe.h	2025-02-15 11:16:53.560046558 +0800
++++ src/core/lib/promise/pipe.h	2025-02-17 21:09:22.969098108 +0800
+@@ -515,7 +515,7 @@
+ template <typename T>
+ class Next {
+  public:
+-  Next(const Next&) = delete;
++  Next(const Next&) = default;
+   Next& operator=(const Next&) = delete;
+   Next(Next&& other) noexcept = default;
+   Next& operator=(Next&& other) noexcept = default;

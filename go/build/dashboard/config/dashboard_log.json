@@ -1,0 +1,13 @@
+{
+    "filepath": "{logConfigPath}",
+    "level": "{logLevel}",
+    "rolling": {
+        "maxsize": 400,
+        "maxbackups": 1,
+        "maxage": 1,
+        "compress": true
+    },
+    "tick": 10,
+    "first": 10,
+    "thereafter": 5
+}

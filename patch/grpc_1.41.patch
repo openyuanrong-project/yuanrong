@@ -1,0 +1,56 @@
+--- src/core/lib/debug/trace.cc
++++ src/core/lib/debug/trace.cc
+@@ -71,6 +71,11 @@
+ }
+
+ void TraceFlagList::Add(TraceFlag* flag) {
++  for (TraceFlag* t = root_tracer_; t != nullptr; t = t->next_tracer_) {
++    if (t == flag) {
++      return;
++    }
++  }
+   flag->next_tracer_ = root_tracer_;
+   root_tracer_ = flag;
+ }
+
+--- src/core/lib/iomgr/error.cc	2024-09-21 15:25:44.000000000 +0800
++++ src/core/lib/iomgr/error.cc	2024-09-26 23:16:35.801534609 +0800
+@@ -37,6 +37,7 @@
+ #include "src/core/lib/profiling/timers.h"
+ #include "src/core/lib/slice/slice_internal.h"
+
++#pragma GCC diagnostic ignored "-Wstringop-overflow"
+ grpc_core::DebugOnlyTraceFlag grpc_trace_error_refcount(false,
+                                                         "error_refcount");
+ grpc_core::DebugOnlyTraceFlag grpc_trace_closure(false, "closure");
+
+--- src/core/ext/filters/client_channel/lb_policy/weighted_target/weighted_target.cc	2024-09-21 15:25:44.000000000 +0800
++++ src/core/ext/filters/client_channel/lb_policy/weighted_target/weighted_target.cc	2024-09-26 23:16:35.753534254 +0800
+@@ -54,7 +54,7 @@
+ class WeightedTargetLbConfig : public LoadBalancingPolicy::Config {
+  public:
+   struct ChildConfig {
+-    uint32_t weight;
++    uint32_t weight{0};
+     RefCountedPtr<LoadBalancingPolicy::Config> config;
+   };
+
+--- BUILD	2025-01-11 16:56:40.245353053 +0800
++++ BUILD	2025-01-11 16:46:52.804674691 +0800
+@@ -403,7 +403,7 @@
+
+ grpc_cc_library(
+     name = "grpc++_public_hdrs",
+-    hdrs = GRPCXX_PUBLIC_HDRS,
++    hdrs = GRPCXX_PUBLIC_HDRS + GRPC_PUBLIC_HDRS + GPR_PUBLIC_HDRS,
+     external_deps = [
+         "absl/synchronization",
+         "protobuf_headers",
+@@ -3285,6 +3285,7 @@
+     ],
+     language = "c++",
+     public_hdrs = GRPCXX_PUBLIC_HDRS,
++    alwayslink = 1,
+     visibility = ["@grpc:alt_grpc++_base_legacy"],
+     deps = [
+         "gpr_base",

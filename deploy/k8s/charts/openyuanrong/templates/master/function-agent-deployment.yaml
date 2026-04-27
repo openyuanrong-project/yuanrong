@@ -1,0 +1,8 @@
+apiVersion: v1
+metadata:
+  name: function-agent
+  namespace: {{ .Values.global.namespace }}
+kind: ConfigMap
+data:
+  function-agent.json: |-
+    {{ include "agent.deployment.template" . | fromYaml | toJson }}

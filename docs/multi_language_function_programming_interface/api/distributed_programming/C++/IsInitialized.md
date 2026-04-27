@@ -1,0 +1,4 @@
+# IsInitialized
+
+```{doxygenfunction} YR::IsInitialized()
+```

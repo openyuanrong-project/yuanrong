@@ -1,0 +1,137 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package runtime_rpc;
+
+import "src/libruntime/fsclient/protobuf/core_service.proto";
+import "src/libruntime/fsclient/protobuf/runtime_service.proto";
+
+option go_package = "grpc/pb;api";
+
+// RuntimeRPC provide bidirectional streaming RPC interface
+service RuntimeRPC {
+  // build bidirection grpc communication channel, different message body type specify different api handler
+  rpc MessageStream (stream StreamingMessage) returns (stream StreamingMessage) {}
+  rpc BatchMessageStream (stream BatchStreamingMessage) returns (stream BatchStreamingMessage) {}
+}
+
+message StreamingMessage {
+  string messageID = 1;
+  oneof body {
+
+    // Create an instance for specify function
+    // handle by core
+    core_service.CreateRequest         createReq     = 2;
+    core_service.CreateResponse        createRsp     = 3;
+
+    // invoke the created instance
+    // handle by core
+    core_service.InvokeRequest         invokeReq     = 4;
+    core_service.InvokeResponse        invokeRsp     = 5;
+
+    // exit the created instance
+    // only support to be called by instance itself
+    // handle by core
+    core_service.ExitRequest           exitReq       = 6;
+    core_service.ExitResponse          exitRsp       = 7;
+
+    // save state of the created instance
+    // handle by core
+    core_service.StateSaveRequest      saveReq       = 8;
+    core_service.StateSaveResponse     saveRsp       = 9;
+
+    // load state of the created instance
+    // handle by core
+    core_service.StateLoadRequest      loadReq       = 10;
+    core_service.StateLoadResponse     loadRsp       = 11;
+
+    // send the signal to instance or core
+    // 1 ~ 63: core defined signal
+    // 64 ~ 1024: custom runtime defined signal
+    // handle by core
+    core_service.KillRequest           killReq       = 12;
+    core_service.KillResponse          killRsp       = 13;
+
+    // send call request result to sender
+    // handle by core
+    core_service.CallResult            callResultReq = 14;
+    core_service.CallResultAck         callResultAck = 15;
+
+    // Call a method or init state of instance
+    // handle by runtime
+    runtime_service.CallRequest        callReq       = 16;
+    runtime_service.CallResponse       callRsp       = 17;
+
+    // NotifyResult is applied to async notify result of create or invoke request invoked by runtime
+    // handle by runtime
+    runtime_service.NotifyRequest      notifyReq     = 18;
+    runtime_service.NotifyResponse     notifyRsp     = 19;
+
+    // Checkpoint request a state to save for failure recovery and state migration
+    // handle by runtime
+    runtime_service.CheckpointRequest  checkpointReq = 20;
+    runtime_service.CheckpointResponse checkpointRsp = 21;
+
+    // Recover state
+    // handle by runtime
+    runtime_service.RecoverRequest     recoverReq    = 22;
+    runtime_service.RecoverResponse    recoverRsp    = 23;
+
+    // request an instance to shutdown
+    // handle by runtime
+    runtime_service.ShutdownRequest    shutdownReq   = 24;
+    runtime_service.ShutdownResponse   shutdownRsp   = 25;
+
+    // receive the signal send by other runtime or driver
+    // handle by runtime
+    runtime_service.SignalRequest      signalReq     = 26;
+    runtime_service.SignalResponse     signalRsp     = 27;
+
+    // check whether the runtime is alive
+    // handle by runtime
+    runtime_service.HeartbeatRequest   heartbeatReq  = 28;
+    runtime_service.HeartbeatResponse  heartbeatRsp  = 29;
+
+    // Create group instance for specify function
+    // handle by core
+    core_service.CreateRequests        createReqs    = 30;
+    core_service.CreateResponses       createRsps    = 31;
+
+    // Create resource group to reserve multiple bundle of resource
+    core_service.CreateResourceGroupRequest  rGroupReq = 32;
+    core_service.CreateResourceGroupResponse rGroupRsp = 33;
+
+    // receive the prepare snap call before functionsystem to make sandbox checkpoint
+    // handle by runtime
+    runtime_service.PrepareSnapRequest prepareSnapReq = 34;
+    runtime_service.PrepareSnapResponse prepareSnapRsp = 35;
+
+    // received after runtime was snap started
+    // handle by runtime
+    runtime_service.SnapStartedRequest snapStartedReq = 36;
+    runtime_service.SnapStartedResponse snapStartedRsp = 37;
+
+    // Send stream event data
+    core_service.EventRequest          eventReq     = 38;
+  }
+  map<string, string> metaData = 100;
+}
+
+message BatchStreamingMessage {
+    repeated StreamingMessage messages = 1;
+}

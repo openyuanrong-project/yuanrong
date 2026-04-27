@@ -1,0 +1,101 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package bus_adapter;
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/busadapter;busadapter";
+
+message QueryTerminatingLongRunPod {
+  string nodeIP = 1;
+}
+
+message WorkerRouter {
+  string workerID = 1;
+  string workerAddr = 2;
+  string nodeIP = 3;
+  string functionKeyWithResource = 4;
+  bool isMinInstance = 5;
+  bool isDirectFunc = 6;
+  bool hasInitializer = 7;
+}
+
+message QueryTerminatingLongRunPodResponse {
+  map<string, WorkerRouter> workers = 1;
+  string nodeIP = 2;
+}
+
+message AsyncResponse {
+  int32 statusCode = 1;
+  bytes body = 2;
+  map<string, string> headers = 3;
+}
+
+message CallResponse {
+  // Success: 0, Failed for others
+  uint32 ErrorCode = 1;
+  // Message for error
+  string ErrorMessage = 2;
+  // response data
+  bytes RawData = 3;
+  // logs
+  string Logs = 4;
+  // request ID
+  uint64 RequestID = 5;
+  // this summary counts init duration
+  string Summary = 6;
+  string FunctionKey = 7;
+  string InstanceID = 8;
+  map<string, string> Labels = 9;
+  // DcCallStack distributed convergence call stack
+  bytes DcCallStack = 10;
+}
+
+message PosixCallResult {
+  // Success: 0, Failed for others
+  uint32 ErrorCode = 1;
+  // Message for error
+  string ErrorMessage = 2;
+  // response data
+  bytes RawData = 3;
+  // logs
+  string Logs = 4;
+  // request ID
+  string RequestID = 5;
+  // this summary counts init duration
+  string Summary = 6;
+  string FunctionKey = 7;
+  string InstanceID = 8;
+  map<string, string> Labels = 9;
+  // DcCallStack distributed convergence call stack
+  bytes DcCallStack = 10;
+}
+
+message Message {
+  enum MessageType {
+    REGISTER = 0;
+    CALL_RESPONSE = 2;
+    POSIX_CALL_RESPONSE = 42;
+  }
+  MessageType type = 1;
+  CallResponse callResponse = 4;
+  PosixCallResult posixCallResult = 41;
+}
+
+message HttpResponse {
+  uint32 code = 1;
+  string message = 2;
+}

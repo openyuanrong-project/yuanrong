@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--日志级别以及优先级排序: OFF > FATAL > ERROR > WARN > INFO >
+DEBUG > TRACE > ALL -->
+<configuration status="error" monitorInterval="60">
+    <appenders>
+        <console name="Console" target="SYSTEM_OUT">
+            <PatternLayout charset="UTF-8" pattern=" | %l | %enc{%m}{CRLF}%n" />
+        </console>
+        <console name="Console" target="SYSTEM_ERR">
+            <ThresholdFilter level="error" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout charset="UTF-8" pattern=" %l | %enc{%m}{CRLF}%n" />
+        </console>
+        <RollingFile name="RollingFileLog" fileName="${sys:logPath}/${sys:logId}_runtime.log"
+            filePattern="${sys:logPath}/$${date:yyyy-MM}/${sys:logId}_runtime-%d{yyyy-MM-dd}-%i.log.gz">
+            <ThresholdFilter level="${sys:logLevel}" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout
+                charset="UTF-8" pattern="[%d{HH:mm:ss:SSS}{GMT+8}] | [%p] | %l | %t | runtime-java | ${sys:runtimeId} | %enc{%m}{CRLF}%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="40 MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="20"/>
+        </RollingFile>
+        <Async name="AsyncRollingFileLog">
+            <AppenderRef ref="RollingFileLog" />
+        </Async>
+    </appenders>
+    <loggers>
+        <root level="${sys:logLevel}">
+            <appender-ref ref="AsyncRollingFileLog" />
+        </root>
+    </loggers>
+</configuration>

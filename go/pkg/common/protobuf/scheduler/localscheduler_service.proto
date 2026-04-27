@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package scheduler;
+
+import "scheduler_common.proto";
+
+option go_package = "grpc/pb/scheduler;scheduler";
+
+service LocalSchedulerService {
+    // domain scheduler forwards scheduler request to local scheduler
+    rpc ForwardSchedule (scheduler.ForwardScheduleRequest) returns (scheduler.ForwardScheduleResponse);
+    // PullMetrics
+    rpc PullMetrics (scheduler.PullMetricsRequest) returns (scheduler.PullMetricsResponse);
+    // NotifyLocalScheduler notify leader address to local scheduler
+    rpc NotifyLocalScheduler (NotifyLocalSchedulerRequest) returns (NotifyLocalSchedulerResponse);
+    // RegisterWorker register worker to local scheduler
+    rpc RegisterWorker (scheduler.RegisterWorkerRequest) returns (scheduler.RegisterWorkerResponse);
+    // UnregisterWorker unregister worker from local scheduler
+    rpc UnregisterWorker (scheduler.UnregisterWorkerRequest) returns (scheduler.UnregisterWorkerResponse);
+}
+
+message NotifyLocalSchedulerRequest {
+    string Address = 1;
+}
+
+message NotifyLocalSchedulerResponse {
+}

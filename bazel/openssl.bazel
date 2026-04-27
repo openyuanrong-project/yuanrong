@@ -1,0 +1,77 @@
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "configure_make")
+load("@yuanrong_multi_language_runtime//bazel:yr.bzl", "filter_files_with_suffix")
+
+# Read https://wiki.openssl.org/index.php/Compilation_and_Installation
+
+filegroup(
+    name = "all_srcs",
+    srcs = glob(
+        include = ["**"],
+        exclude = ["*.bazel"],
+    ),
+)
+
+CONFIGURE_OPTIONS = [
+    "enable-ssl3",
+    "enable-ssl3-method",
+]
+
+LIB_NAME = "openssl"
+
+MAKE_TARGETS = [
+    "build_libs",
+    "install_dev",
+]
+
+alias(
+    name = "ssl",
+    actual = "boringssl_sdk",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "crypto",
+    actual = "boringssl_sdk",
+    visibility = ["//visibility:public"],
+)
+
+configure_make(
+    name = "openssl",
+    configure_command = "config",
+    configure_in_place = True,
+    configure_options = CONFIGURE_OPTIONS,
+    lib_name = LIB_NAME,
+    lib_source = ":all_srcs",
+    out_shared_libs = [
+        "libssl.so.3",
+        "libcrypto.so.3",
+    ],
+    targets = MAKE_TARGETS,
+    args = ["-j"],
+)
+
+filegroup(
+    name = "gen_dir",
+    srcs = [":openssl"],
+    output_group = "gen_dir",
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "boringssl_sdk",
+    hdrs = glob(["install/include/**/*.h"]),
+    strip_include_prefix = "install/include",
+    srcs = [
+        "install/lib/libssl.so.3",
+        "install/lib/libcrypto.so.3",
+    ],
+    visibility = ["//visibility:public"],
+    alwayslink = True,
+)
+
+filter_files_with_suffix(
+    name = "shared",
+    srcs = glob(["install/lib/lib*.so*"]),
+    suffix = ".so",
+    visibility = ["//visibility:public"],
+)

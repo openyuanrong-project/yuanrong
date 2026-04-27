@@ -1,0 +1,11 @@
+--- BUILD	2025-01-04 14:52:25.790212266 +0800
++++ BUILD	2025-01-04 15:20:39.636186725 +0800
+@@ -2365,7 +2365,7 @@
+     name = "grpc_core_credentials_header",
+     hdrs = ["include/grpc/credentials.h"],
+     language = "c++",
+-    visibility = ["@grpc:core_credentials"],
++    visibility = ["@grpc:public"],
+ )
+
+ grpc_cc_library(

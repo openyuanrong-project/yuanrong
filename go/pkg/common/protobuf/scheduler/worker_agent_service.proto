@@ -1,0 +1,178 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package scheduler;
+
+import "core_service.proto";
+
+option go_package = "grpc/pb/scheduler;scheduler";
+
+service WorkerAgentService {
+    rpc DeployInstance (DeployInstanceRequest) returns (DeployInstanceResponse);
+    rpc KillInstance (KillInstanceRequest) returns (KillInstanceResponse);
+    // GetMetrics local scheduler get metrics from worker
+    rpc GetMetrics (GetWorkerMetricsRequest) returns (GetWorkerMetricsResponse);
+    // while bus detected the heartbeat of runtime disconnected, QueryRuntimeException will be invoked
+    rpc QueryRuntimeException(QueryExceptionRequest) returns (Exception);
+    // when a user uses a cache instance, the system invokes the
+    rpc DeployCacheInstance (DeployCacheInstanceRequest) returns (DeployCacheInstanceResponse);
+}
+
+message DeployInstanceRequest {
+    string LogicInstanceID = 1;
+    string BusAddress = 2;
+    string Urn = 3;
+    string Handler = 4;
+    string EntryFile = 5;
+    int64  Timeout = 6;
+    string EnvKey = 7;
+    string Environment = 8;
+    string EncryptedUserData = 9;
+    string Language = 10;
+    string CodeSha256 = 11;
+    string DomainID = 12;
+    ResourceMetaData ResourceMetadata = 13;
+    Initializer Initializer = 14;
+    LogTankService LogTankService = 15;
+    TraceService TraceService = 16;
+    FuncMountConfig FuncMountConfig = 17;
+    FuncDeploySpec FuncDeploySpec = 18;
+    repeated string                        labels   = 19;
+    map<string, core_service.AffinityType> affinity = 20;
+    map<string, string> HookHandler = 21;
+    string TraceID = 22;
+}
+
+message ResourceMetaData {
+    int64 CPU = 1;
+    int64 Memory = 2;
+    map<string, double> CustomResource = 3;
+}
+
+message Initializer {
+    string Handler = 1;
+    int64 Timeout = 2;
+}
+
+message LogTankService {
+    string GroupID = 1;
+    string StreamID = 2;
+}
+
+message TraceService {
+    string TraceAK = 1;
+    string TraceSK = 2;
+    string ProjectName = 3;
+}
+
+message FuncMountConfig {
+    int32 UserID = 1;
+    int32 GroupID = 2;
+}
+
+message FuncDeploySpec {
+    string BucketID = 1;
+    string ObjectID = 2;
+    string Layers = 3;
+    string DeployDir = 4;
+    string StorageType = 5;
+}
+
+message DeployInstanceResponse {
+    string TimeInfo  = 1;
+    string RuntimeID = 2;
+    string RuntimeIP = 3;
+    string GrpcPort  = 4;
+    string HostIP    = 5;
+    string NodeID    = 6;
+}
+
+message KillInstanceRequest {
+    string TenantID = 1;
+    string BusinessID = 2;
+    string FuncName = 3;
+    string FuncVersion = 4;
+    string RuntimeID = 5;
+    ResourceMetaData ResourceMetaData = 6;
+    repeated string  Labels           = 7;
+    string JobID = 8;
+}
+
+message KillInstanceResponse {
+    bool Success = 1;
+}
+
+message GetWorkerMetricsRequest {
+}
+
+message MetricsData {
+    double Total = 1;
+    double Inuse = 2;
+}
+
+message ResourceMetrics {
+    map<string, MetricsData> Resources = 1;
+}
+
+message FunctionMetrics {
+    map<string, ResourceMetrics> InstanceResources = 1;
+}
+
+message GetWorkerMetricsResponse {
+    ResourceMetrics SystemResources = 1;
+    // Function instances resource on this node.
+    map<string, FunctionMetrics> FunctionResources = 2;
+}
+
+message QueryExceptionRequest {
+    string RuntimeID = 1;
+}
+
+message Exception {
+    string body = 1;
+    int64 type = 2;
+}
+
+message DeployCacheInstanceRequest {
+    string BusAddress = 1;
+    string Urn = 2;
+    string Handler = 3;
+    string EntryFile = 4;
+    int64  Timeout = 5;
+    string EnvKey = 6;
+    string Environment = 7;
+    string EncryptedUserData = 8;
+    string Language = 9;
+    string CodeSha256 = 10;
+    string DomainID = 11;
+    ResourceMetaData ResourceMetadata = 12;
+    Initializer Initializer = 13;
+    LogTankService LogTankService = 14;
+    TraceService TraceService = 15;
+    FuncMountConfig FuncMountConfig = 16;
+    FuncDeploySpec FuncDeploySpec = 17;
+    repeated string                        labels   = 18;
+    map<string, core_service.AffinityType> affinity = 19;
+    map<string, string> HookHandler = 20;
+    string TraceID = 21;
+    int32 CacheNum = 22;
+}
+
+message DeployCacheInstanceResponse {
+    bool Success = 1;
+}

@@ -1,0 +1,723 @@
+--- src/google/protobuf/implicit_weak_message.h	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/implicit_weak_message.h	2025-02-15 11:26:21.577140418 +0800
+@@ -35,7 +35,7 @@
+ class PROTOBUF_EXPORT ImplicitWeakMessage : public MessageLite {
+  public:
+   ImplicitWeakMessage() : ImplicitWeakMessage(nullptr) {}
+-  explicit constexpr ImplicitWeakMessage(ConstantInitialized)
++  explicit ImplicitWeakMessage(ConstantInitialized)
+       : data_(nullptr) {}
+   ImplicitWeakMessage(const ImplicitWeakMessage&) = delete;
+   ImplicitWeakMessage& operator=(const ImplicitWeakMessage&) = delete;
+
+--- src/google/protobuf/implicit_weak_message.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/implicit_weak_message.cc	2025-02-15 11:26:49.509981027 +0800
+@@ -26,7 +26,7 @@
+ }
+ 
+ struct ImplicitWeakMessageDefaultType {
+-  constexpr ImplicitWeakMessageDefaultType()
++  ImplicitWeakMessageDefaultType()
+       : instance(ConstantInitialized{}) {}
+   ~ImplicitWeakMessageDefaultType() {}
+   union {
+
+--- src/google/protobuf/extension_set.h	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/extension_set.h	2025-02-15 13:18:45.325086296 +0800
+@@ -166,7 +166,7 @@
+ // off to the ExtensionSet for parsing.  Etc.
+ class PROTOBUF_EXPORT ExtensionSet {
+  public:
+-  constexpr ExtensionSet() : ExtensionSet(nullptr) {}
++  ExtensionSet() : ExtensionSet(nullptr) {}
+   ExtensionSet(const ExtensionSet& rhs) = delete;
+ 
+   // Arena enabled constructors: for internal use only.
+@@ -175,7 +175,7 @@
+ 
+   // TODO: make constructor private, and migrate `ArenaInitialized`
+   // to `InternalVisibility` overloaded constructor(s).
+-  explicit constexpr ExtensionSet(Arena* arena);
++  explicit ExtensionSet(Arena* arena);
+   ExtensionSet(ArenaInitialized, Arena* arena) : ExtensionSet(arena) {}
+ 
+   ExtensionSet& operator=(const ExtensionSet&) = delete;
+@@ -911,10 +911,6 @@
+ 
+   static void DeleteFlatMap(const KeyValue* flat, uint16_t flat_capacity);
+ };
+-
+-constexpr ExtensionSet::ExtensionSet(Arena* arena)
+-    : arena_(arena), flat_capacity_(0), flat_size_(0), map_{nullptr} {}
+-
+ // These are just for convenience...
+ inline void ExtensionSet::SetString(int number, FieldType type,
+                                     std::string value,
+@@ -930,6 +926,8 @@
+                                     const FieldDescriptor* descriptor) {
+   AddString(number, type, descriptor)->assign(std::move(value));
+ }
++
++
+ // ===================================================================
+ // Glue for generated extension accessors
+
+
+--- src/google/protobuf/extension_set.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/extension_set.cc	2025-02-15 13:17:44.241248042 +0800
+@@ -104,6 +104,10 @@
+   }
+ }
+ 
++ExtensionSet::ExtensionSet(Arena* arena)
++    : arena_(arena), flat_capacity_(0), flat_size_(0), map_{nullptr} {}
++
++
+ void ExtensionSet::RegisterExtension(const MessageLite* extendee, int number,
+                                      FieldType type, bool is_repeated,
+                                      bool is_packed,
+
+--- src/google/protobuf/compiler/plugin.pb.h	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/compiler/plugin.pb.h	2025-02-15 13:04:24.391177349 +0800
+@@ -803,7 +803,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOC_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -1071,7 +1071,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOC_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+
+
+--- src/google/protobuf/compiler/plugin.pb.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/compiler/plugin.pb.cc	2025-02-15 13:04:04.486578342 +0800
+@@ -76,7 +76,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOC_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CodeGeneratorResponse_FileDefaultTypeInternal _CodeGeneratorResponse_File_default_instance_;
+
+-inline constexpr CodeGeneratorResponse::Impl_::Impl_(
++inline CodeGeneratorResponse::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         file_{},
+@@ -99,7 +99,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOC_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 CodeGeneratorResponseDefaultTypeInternal _CodeGeneratorResponse_default_instance_;
+
+-inline constexpr CodeGeneratorRequest::Impl_::Impl_(
++inline CodeGeneratorRequest::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         file_to_generate_{},
+
+
+--- src/google/protobuf/descriptor.pb.h	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/descriptor.pb.h	2025-02-15 13:00:35.017274581 +0800
+@@ -1,6 +1,6 @@
+ // Generated by the protocol buffer compiler.  DO NOT EDIT!
+ // source: google/protobuf/descriptor.proto
+-// Protobuf C++ Version: 4.25.5
++// Protobuf C++ Version: 4.25.1
+
+ #ifndef GOOGLE_PROTOBUF_INCLUDED_google_2fprotobuf_2fdescriptor_2eproto_2epb_2eh
+ #define GOOGLE_PROTOBUF_INCLUDED_google_2fprotobuf_2fdescriptor_2eproto_2epb_2eh
+@@ -17,7 +17,7 @@
+ #error "your headers."
+ #endif  // PROTOBUF_VERSION
+
+-#if 4025005 < PROTOBUF_MIN_PROTOC_VERSION
++#if 4025001 < PROTOBUF_MIN_PROTOC_VERSION
+ #error "This file was generated by an older version of protoc which is"
+ #error "incompatible with your Protocol Buffer headers. Please"
+ #error "regenerate this file with a newer version of protoc."
+@@ -1151,7 +1151,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -1416,7 +1416,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -2158,7 +2158,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -3062,7 +3062,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -3254,7 +3254,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -3439,7 +3439,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -4021,7 +4021,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -4402,7 +4402,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -4827,7 +4827,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -5269,7 +5269,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -5975,7 +5975,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -6615,7 +6615,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -6839,7 +6839,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -7271,7 +7271,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -7677,7 +7677,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -8095,7 +8095,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -9601,7 +9601,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -9871,7 +9871,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -10239,7 +10239,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -10654,7 +10654,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -10850,7 +10850,7 @@
+   using DestructorSkippable_ = void;
+   struct PROTOBUF_EXPORT Impl_ {
+
+-        inline explicit constexpr Impl_(
++        inline explicit Impl_(
+             ::google::protobuf::internal::ConstantInitialized) noexcept;
+         inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                               ::google::protobuf::Arena* arena);
+@@ -19672,3 +19672,4 @@
+ #include "google/protobuf/port_undef.inc"
+
+ #endif  // GOOGLE_PROTOBUF_INCLUDED_google_2fprotobuf_2fdescriptor_2eproto_2epb_2eh
++
+
+--- src/google/protobuf/descriptor.pb.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/descriptor.pb.cc	2025-02-15 12:52:50.103283528 +0800
+@@ -50,7 +50,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UninterpretedOption_NamePartDefaultTypeInternal _UninterpretedOption_NamePart_default_instance_;
+
+-inline constexpr SourceCodeInfo_Location::Impl_::Impl_(
++inline SourceCodeInfo_Location::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         path_{},
+@@ -84,7 +84,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SourceCodeInfo_LocationDefaultTypeInternal _SourceCodeInfo_Location_default_instance_;
+
+-inline constexpr GeneratedCodeInfo_Annotation::Impl_::Impl_(
++inline GeneratedCodeInfo_Annotation::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         path_{},
+@@ -142,7 +142,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FieldOptions_EditionDefaultDefaultTypeInternal _FieldOptions_EditionDefault_default_instance_;
+
+-inline constexpr FeatureSet::Impl_::Impl_(
++inline FeatureSet::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         field_presence_{static_cast< ::google::protobuf::FeatureSet_FieldPresence >(0)},
+@@ -253,7 +253,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DescriptorProto_ReservedRangeDefaultTypeInternal _DescriptorProto_ReservedRange_default_instance_;
+
+-inline constexpr UninterpretedOption::Impl_::Impl_(
++inline UninterpretedOption::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         name_{},
+@@ -289,7 +289,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UninterpretedOptionDefaultTypeInternal _UninterpretedOption_default_instance_;
+
+-inline constexpr SourceCodeInfo::Impl_::Impl_(
++inline SourceCodeInfo::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : location_{},
+         _cached_size_{0} {}
+@@ -313,7 +313,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SourceCodeInfoDefaultTypeInternal _SourceCodeInfo_default_instance_;
+
+-inline constexpr GeneratedCodeInfo::Impl_::Impl_(
++inline GeneratedCodeInfo::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : annotation_{},
+         _cached_size_{0} {}
+@@ -362,7 +362,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FeatureSetDefaults_FeatureSetEditionDefaultDefaultTypeInternal _FeatureSetDefaults_FeatureSetEditionDefault_default_instance_;
+
+-inline constexpr ServiceOptions::Impl_::Impl_(
++inline ServiceOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         uninterpreted_option_{},
+@@ -388,7 +388,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ServiceOptionsDefaultTypeInternal _ServiceOptions_default_instance_;
+
+-inline constexpr OneofOptions::Impl_::Impl_(
++inline OneofOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         uninterpreted_option_{},
+@@ -413,7 +413,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 OneofOptionsDefaultTypeInternal _OneofOptions_default_instance_;
+
+-inline constexpr MethodOptions::Impl_::Impl_(
++inline MethodOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         uninterpreted_option_{},
+@@ -440,7 +440,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MethodOptionsDefaultTypeInternal _MethodOptions_default_instance_;
+
+-inline constexpr MessageOptions::Impl_::Impl_(
++inline MessageOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         uninterpreted_option_{},
+@@ -470,7 +470,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MessageOptionsDefaultTypeInternal _MessageOptions_default_instance_;
+
+-inline constexpr FileOptions::Impl_::Impl_(
++inline FileOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         uninterpreted_option_{},
+@@ -535,7 +535,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FileOptionsDefaultTypeInternal _FileOptions_default_instance_;
+
+-inline constexpr FieldOptions::Impl_::Impl_(
++inline FieldOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         targets_{},
+@@ -571,7 +571,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FieldOptionsDefaultTypeInternal _FieldOptions_default_instance_;
+
+-inline constexpr FeatureSetDefaults::Impl_::Impl_(
++inline FeatureSetDefaults::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         defaults_{},
+@@ -597,7 +597,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FeatureSetDefaultsDefaultTypeInternal _FeatureSetDefaults_default_instance_;
+
+-inline constexpr ExtensionRangeOptions::Impl_::Impl_(
++inline ExtensionRangeOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         declaration_{},
+@@ -624,7 +624,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ExtensionRangeOptionsDefaultTypeInternal _ExtensionRangeOptions_default_instance_;
+
+-inline constexpr EnumValueOptions::Impl_::Impl_(
++inline EnumValueOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         uninterpreted_option_{},
+@@ -651,7 +651,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 EnumValueOptionsDefaultTypeInternal _EnumValueOptions_default_instance_;
+
+-inline constexpr EnumOptions::Impl_::Impl_(
++inline EnumOptions::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         uninterpreted_option_{},
+@@ -839,7 +839,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DescriptorProto_ExtensionRangeDefaultTypeInternal _DescriptorProto_ExtensionRange_default_instance_;
+
+-inline constexpr ServiceDescriptorProto::Impl_::Impl_(
++inline ServiceDescriptorProto::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         method_{},
+@@ -867,7 +867,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ServiceDescriptorProtoDefaultTypeInternal _ServiceDescriptorProto_default_instance_;
+
+-inline constexpr EnumDescriptorProto::Impl_::Impl_(
++inline EnumDescriptorProto::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         value_{},
+@@ -897,7 +897,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 EnumDescriptorProtoDefaultTypeInternal _EnumDescriptorProto_default_instance_;
+
+-inline constexpr DescriptorProto::Impl_::Impl_(
++inline DescriptorProto::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         field_{},
+@@ -932,7 +932,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DescriptorProtoDefaultTypeInternal _DescriptorProto_default_instance_;
+
+-inline constexpr FileDescriptorProto::Impl_::Impl_(
++inline FileDescriptorProto::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : _cached_size_{0},
+         dependency_{},
+@@ -974,7 +974,7 @@
+ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_EXPORT
+     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 FileDescriptorProtoDefaultTypeInternal _FileDescriptorProto_default_instance_;
+
+-inline constexpr FileDescriptorSet::Impl_::Impl_(
++inline FileDescriptorSet::Impl_::Impl_(
+     ::_pbi::ConstantInitialized) noexcept
+       : file_{},
+         _cached_size_{0} {}
+@@ -13419,3 +13419,4 @@
+ }  // namespace google
+ // @@protoc_insertion_point(global_scope)
+ #include "google/protobuf/port_undef.inc"
++
+
+--- src/google/protobuf/compiler/java/names.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/compiler/java/names.cc	2025-02-15 16:03:45.618024969 +0800
+@@ -35,9 +35,9 @@
+   return options.opensource_runtime ? "" : "com.google.protos";
+ }
+
+-bool IsReservedName(absl::string_view name) {
+-  static const auto& kReservedNames =
+-      *new absl::flat_hash_set<absl::string_view>({
++bool IsReservedName(const std::string& name) {
++  static const auto kReservedNames =
++      std::unordered_set<std::string>({
+           "abstract",   "assert",       "boolean",   "break",      "byte",
+           "case",       "catch",        "char",      "class",      "const",
+           "continue",   "default",      "do",        "double",     "else",
+@@ -49,17 +49,17 @@
+           "switch",     "synchronized", "this",      "throw",      "throws",
+           "transient",  "try",          "void",      "volatile",   "while",
+       });
+-  return kReservedNames.contains(name);
++  return kReservedNames.find(name) != kReservedNames.end();
+ }
+
+-bool IsForbidden(absl::string_view field_name) {
++bool IsForbidden(const std::string& field_name) {
+   // Names that should be avoided (in UpperCamelCase format).
+   // Using them will cause the compiler to generate accessors whose names
+   // collide with methods defined in base classes.
+   // Keep this list in sync with specialFieldNames in
+   // java/core/src/main/java/com/google/protobuf/DescriptorMessageInfoFactory.java
+-  static const auto& kForbiddenNames =
+-      *new absl::flat_hash_set<absl::string_view>({
++  static const auto kForbiddenNames =
++      std::unordered_set<std::string>({
+         // java.lang.Object:
+           "Class",
+           // com.google.protobuf.MessageLiteOrBuilder:
+@@ -75,7 +75,7 @@
+           // obsolete. kept for backwards compatibility of generated code
+           "CachedSize",
+       });
+-  return kForbiddenNames.contains(UnderscoresToCamelCase(field_name, true));
++  return kForbiddenNames.find(UnderscoresToCamelCase(field_name, true)) != kForbiddenNames.end();
+ }
+
+ std::string FieldName(const FieldDescriptor* field) {
+@@ -91,7 +91,7 @@
+   if (IsForbidden(field_name)) {
+     // Append a trailing "#" to indicate that the name should be decorated to
+     // avoid collision with other names.
+-    absl::StrAppend(&field_name, "#");
++    field_name += "#";
+   }
+   return field_name;
+ }
+@@ -158,7 +158,7 @@
+ std::string UnderscoresToCamelCaseCheckReserved(const FieldDescriptor* field) {
+   std::string name = UnderscoresToCamelCase(field);
+   if (IsReservedName(name)) {
+-    absl::StrAppend(&name, "_");
++    name += "_";
+   }
+   return name;
+ }
+
+
+--- src/google/protobuf/compiler/csharp/csharp_helpers.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/compiler/csharp/csharp_helpers.cc	2025-02-15 15:55:49.371692774 +0800
+@@ -254,7 +254,7 @@
+
+ std::string GetPropertyName(const FieldDescriptor* descriptor) {
+   // Names of members declared or overridden in the message.
+-  static const auto& reserved_member_names = *new absl::flat_hash_set<absl::string_view>({
++  static const auto reserved_member_names = std::unordered_set<std::string>({
+     "Types",
+     "Descriptor",
+     "Equals",
+@@ -277,7 +277,7 @@
+   // warnings, but not errors; changing the name now could be a breaking change.
+   if (property_name == descriptor->containing_type()->name()
+       || reserved_member_names.find(property_name) != reserved_member_names.end()) {
+-    absl::StrAppend(&property_name, "_");
++    property_name += "_";
+   }
+   return property_name;
+ }
+
+
+--- src/google/protobuf/compiler/csharp/names.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/compiler/csharp/names.cc	2025-02-15 15:49:24.163100344 +0800
+@@ -30,7 +30,7 @@
+
+ namespace {
+
+-absl::string_view StripDotProto(absl::string_view proto_file) {
++std::string StripDotProto(const std::string &proto_file) {
+   int lastindex = proto_file.find_last_of('.');
+   return proto_file.substr(0, lastindex);
+ }
+@@ -130,12 +130,12 @@
+                       namespace_suffix.empty() ? "" : "/", relative_filename);
+ }
+
+-std::string UnderscoresToPascalCase(absl::string_view input) {
++std::string UnderscoresToPascalCase(const std::string& input) {
+   return UnderscoresToCamelCase(input, true);
+ }
+
+ // TODO: can we reuse a utility function?
+-std::string UnderscoresToCamelCase(absl::string_view input,
++std::string UnderscoresToCamelCase(const std::string& input,
+                                    bool cap_next_letter, bool preserve_period) {
+   std::string result;
+
+
+
+--- src/google/protobuf/compiler/csharp/names.h	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/compiler/csharp/names.h	2025-02-15 15:47:44.700107116 +0800
+@@ -101,15 +101,15 @@
+                                         absl::string_view base_namespace,
+                                         std::string* error);
+
+-std::string UnderscoresToPascalCase(absl::string_view input);
++std::string UnderscoresToPascalCase(const std::string&  input);
+
+ // Note that we wouldn't normally want to export this (we're not expecting
+ // it to be used outside libprotoc itself) but this exposes it for testing.
+-std::string PROTOC_EXPORT UnderscoresToCamelCase(absl::string_view input,
++std::string PROTOC_EXPORT UnderscoresToCamelCase(const std::string& input,
+                                                  bool cap_next_letter,
+                                                  bool preserve_period);
+
+-inline std::string UnderscoresToCamelCase(absl::string_view input,
++inline std::string UnderscoresToCamelCase(const std::string& input,
+                                           bool cap_next_letter) {
+   return UnderscoresToCamelCase(input, cap_next_letter, false);
+ }
+
+
+--- src/google/protobuf/repeated_ptr_field.h	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/repeated_ptr_field.h	2025-02-15 18:37:29.919620015 +0800
+@@ -174,7 +174,7 @@
+       std::is_base_of<MessageLite, Value<Handler>>::value,
+       internal::GenericTypeHandler<MessageLite>, Handler>::type;
+
+-  constexpr RepeatedPtrFieldBase()
++  RepeatedPtrFieldBase()
+       : tagged_rep_or_elem_(nullptr),
+         current_size_(0),
+         total_size_(kSSOCapacity),
+@@ -1020,7 +1020,7 @@
+       internal::RepeatedPtrOverPtrsIterator<const Element* const,
+                                             const void* const>;
+
+-  constexpr RepeatedPtrField();
++  RepeatedPtrField();
+
+   // Arena enabled constructors: for internal use only.
+   RepeatedPtrField(internal::InternalVisibility, Arena* arena)
+@@ -1344,7 +1344,7 @@
+     : public internal::StringTypeHandler {};
+
+ template <typename Element>
+-constexpr RepeatedPtrField<Element>::RepeatedPtrField()
++RepeatedPtrField<Element>::RepeatedPtrField()
+     : RepeatedPtrFieldBase() {
+   StaticValidityCheck();
+ }
+
+--- src/google/protobuf/compiler/cpp/message.cc	2024-09-19 03:47:20.000000000 +0800
++++ src/google/protobuf/compiler/cpp/message.cc	2025-02-17 19:24:42.572096251 +0800
+@@ -1760,7 +1760,7 @@
+ #ifdef PROTOBUF_EXPLICIT_CONSTRUCTORS
+   // TODO: check if/when there is a need for an outline dtor.
+   format(R"cc(
+-    inline explicit constexpr Impl_(
++    inline explicit Impl_(
+         ::$proto_ns$::internal::ConstantInitialized) noexcept;
+     inline explicit Impl_($pbi$::InternalVisibility visibility,
+                           ::$proto_ns$::Arena* arena);
+@@ -2946,7 +2946,7 @@
+   p->Emit("\n");
+   p->Emit({{"init", [&] { GenerateImplMemberInit(p, InitType::kConstexpr); }}},
+           R"cc(
+-            inline constexpr $classname$::Impl_::Impl_(
++            inline $classname$::Impl_::Impl_(
+                 ::_pbi::ConstantInitialized) noexcept
+                 //~
+                 $init$ {}

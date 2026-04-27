@@ -1,0 +1,51 @@
+ARG docker_image
+FROM ${docker_image}
+RUN yum install -y shadow-utils tar \
+    xz sudo which iputils iptables iproute ipset unzip wget 
+ARG SN_ID
+ENV USER_UID=${SN_ID} \
+    USER_NAME=sn
+
+ENV GROUP_ID=${USER_UID} \
+    GROUP_NAME=${USER_NAME} \
+    HOME=/home/${USER_NAME} \
+    FUNCTIONSYSTEM_OUTPUT_DIR=openyuanrong
+
+ENV FUNCTIONAGENT=${HOME}/bin/function_agent
+
+RUN mkdir -p ${HOME}/bin/ && \
+    mkdir -p ${HOME}/lib/ && \
+    groupadd -g ${GROUP_ID} ${GROUP_NAME} && \
+    useradd -K MAIL_DIR=/dev/null -u ${USER_UID} -g ${GROUP_ID} -s /sbin/nologin ${USER_NAME} && \
+    chown -R ${USER_UID}:${GROUP_ID} ${HOME}
+
+RUN chmod u+s $(which ip) && \
+    chmod u+s $(which ping) && \
+    chmod u+s $(which iptables) && \
+    chmod u+s $(which ipset)
+
+# install operator binary
+COPY --chown=sn:sn ${FUNCTIONSYSTEM_OUTPUT_DIR}/functionsystem/bin/function_agent ${HOME}/bin
+COPY --chown=sn:sn ${FUNCTIONSYSTEM_OUTPUT_DIR}/deploy/k8s/build/functionsystem/entrypoints/health-check ${HOME}/bin
+COPY --chown=sn:sn ${FUNCTIONSYSTEM_OUTPUT_DIR}/functionsystem/lib/* ${HOME}/lib/
+
+RUN chmod -R 700 ${HOME} && \
+    chmod -R 500 ${HOME}/bin && \
+    chmod -R 500 ${HOME}/lib && \
+    setcap 'cap_net_admin,cap_net_raw+ep-i'           ${FUNCTIONAGENT} && \
+    echo "${HOME}/lib" >> /etc/ld.so.conf.d/snlib.conf && ldconfig
+
+# install yr cli
+RUN mkdir -p /etc/yuanrong/cli && \
+    chown -R sn:sn /etc/yuanrong && \
+    yum install -y python3-pip python3-mock
+
+WORKDIR /etc/yuanrong/cli
+COPY --chown=sn:sn ${FUNCTIONSYSTEM_OUTPUT_DIR}/runtime/service/python/yr/cli/ /etc/yuanrong/cli/yr/cli/
+
+USER ${USER_UID}
+RUN pip3.9 config --user set global.index-url https://mirrors.huaweicloud.com/repository/pypi/simple && \
+    pip3.9 config --user set global.trusted-host mirrors.huaweicloud.com && \
+    pip3.9 install --user click==8.1.8 tomli_w==1.2.0 jinja2==3.1.6
+
+# ENTRYPOINT ["/home/sn/bin/entrypoint"]

@@ -1,0 +1,260 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package common;
+
+option go_package = "yuanrong.org/kernel/pkg/common/faas_common/grpc/pb/common;common";
+
+message Arg {
+  enum ArgType {
+    VALUE      = 0;
+    OBJECT_REF = 1;
+  }
+  ArgType type  = 1;
+  bytes   value = 2;
+  repeated string nested_refs = 3;
+}
+
+enum ErrorCode {
+  ERR_NONE                        = 0;
+  ERR_PARAM_INVALID               = 1001;
+  ERR_RESOURCE_NOT_ENOUGH         = 1002;
+  ERR_INSTANCE_NOT_FOUND          = 1003;
+  ERR_INSTANCE_DUPLICATED         = 1004;
+  ERR_INVOKE_RATE_LIMITED         = 1005;
+  ERR_RESOURCE_CONFIG_ERROR       = 1006;
+  ERR_INSTANCE_EXITED             = 1007;
+  ERR_EXTENSION_META_ERROR        = 1008;
+  ERR_INSTANCE_SUB_HEALTH         = 1009;
+  ERR_GROUP_SCHEDULE_FAILED       = 1010;
+  ERR_GROUP_EXIT_TOGETHER         = 1011;
+  ERR_CREATE_RATE_LIMITED         = 1012;
+  ERR_INSTANCE_EVICTED            = 1013;
+  ERR_AUTHORIZE_FAILED            = 1014;
+  ERR_FUNCTION_META_NOT_FOUND     = 1015;
+  ERR_INSTANCE_INFO_INVALID       = 1016;
+  ERR_SCHEDULE_CANCELED           = 1017;
+  ERR_SCHEDULE_PLUGIN_CONFIG      = 1018;
+  ERR_SUB_STATE_INVALID           = 1019;
+  ERR_USER_CODE_LOAD              = 2001;
+  ERR_USER_FUNCTION_EXCEPTION     = 2002;
+  ERR_REQUEST_BETWEEN_RUNTIME_BUS = 3001;
+  ERR_INNER_COMMUNICATION         = 3002;
+  ERR_INNER_SYSTEM_ERROR          = 3003;
+  ERR_DISCONNECT_FRONTEND_BUS     = 3004;
+  ERR_ETCD_OPERATION_ERROR        = 3005;
+  ERR_BUS_DISCONNECTION           = 3006;
+  ERR_REDIS_OPERATION_ERROR       = 3007;
+  ERR_K8S_UNAVAILABLE             = 3008;
+  ERR_FUNCTION_AGENT_OPERATION_ERROR = 3009;
+  ERR_STATE_MACHINE_ERROR         = 3010;
+  ERR_LOCAL_SCHEDULER_OPERATION_ERROR = 3011;
+  ERR_RUNTIME_MANAGER_OPERATION_ERROR = 3012;
+  ERR_INSTANCE_MANAGER_OPERATION_ERROR= 3013;
+  ERR_LOCAL_SCHEDULER_ABNORMAL    = 3014;
+  ERR_DS_UNAVAILABLE              = 3015;
+  ERR_NPU_FAULT_ERROR             = 3016;
+}
+
+enum HealthCheckCode {
+	HEALTHY             = 0;
+	HEALTH_CHECK_FAILED = 1;
+	SUB_HEALTH          = 2;
+}
+
+message SmallObject {
+  string id    = 1;
+  bytes  value = 2;  // sbuffer
+}
+
+message StackTraceInfo {
+    string type                                   = 1;  // type of exception thrown by user code
+    string message                                = 2;  // message in user code thrown exception
+    repeated StackTraceElement stackTraceElements = 3;  // stack trace elements in user code thrown exception
+    string language                               = 4;  // language of user code
+}
+
+message StackTraceElement {
+    string className               = 1; // class name of user code exception
+    string methodName              = 2; // method name of user code exception
+    string fileName                = 3; // file name of user code exception
+    int64 lineNumber               = 4; // line number of user code exception
+    map<string, string> extensions = 5; // extensions for different language
+}
+
+message TLSConfig {
+    bool dsAuthEnable = 1;
+    bool dsEncryptEnable = 2;
+    bytes dsClientPublicKey = 3;
+    bytes dsClientPrivateKey = 4;
+    bytes dsServerPublicKey = 5;
+    bool serverAuthEnable = 6;
+    bytes rootCertData = 7;
+    bytes moduleCertData = 8;
+    bytes moduleKeyData = 9;
+    string token = 10;
+    bool enableServerMode = 11;
+    string serverNameOverride = 12;
+    string posixPort = 13;
+    string salt = 14;
+    string accessKey = 15; // component-level access key
+    string securityKey = 16; // component-level security key
+}
+
+message HeteroDeviceInfo
+{
+  int64 deviceId = 1;
+  string deviceIp = 2;
+  int64 rankId = 3;
+}
+
+message ServerInfo
+{
+  repeated HeteroDeviceInfo devices = 1;
+  string serverId = 2;
+}
+
+message FunctionGroupRunningInfo
+{
+  repeated ServerInfo serverList = 1;
+  int64 instanceRankId = 2;
+  int64 worldSize = 3;
+  string deviceName = 4;
+}
+
+// message used in unix domain socket
+message SocketMessage {
+  string magicNumber = 1; // header info(magicNumber/version/packetType/packetID) used to check
+  string version = 2;
+  string packetType = 3;
+  string packetID = 4;
+  BusinessMessage businessMsg = 5;
+}
+
+message BusinessMessage {
+  MessageType type = 1;
+  oneof payload {
+    FunctionLog functionLog = 2;
+  }
+}
+
+// Used in domain socket between runtime and runtime manager
+enum MessageType {
+  LogProcess = 0;
+}
+
+// user function log, one kind of businessMessage payload
+message FunctionLog {
+  string level = 1; // log level
+  string timestamp = 2;
+  string content = 3; // log content
+  string invokeID = 4;
+  string traceID = 5;
+  string stage = 6; // log stage
+  bool isStart = 7; // first log sign
+  bool isFinish = 8; // last log sign
+  string logType = 9; // "tail": return log to user when invoke finishes, "": do not return log
+  int32 errorCode = 10;
+  string functionInfo = 11; // user function version urn
+  string instanceId = 12;
+  string logSource = 13; // std or logger
+  string logGroupId = 14; // used in FG
+  string logStreamId = 15; // used in FG
+}
+
+message RuntimeInfo {
+  string serverIpAddr = 1;
+  int32  serverPort   = 2;
+  string route        = 3; // for low-reliability instance, format is "ip:port"
+}
+
+message Bundle {
+    map<string, double>  resources   = 1;
+    // custom label for reserved unit
+    repeated string      labels      = 2;  // "key:value" or "key2"
+}
+
+enum BindStrategy {
+  BIND_None = 0;
+  BIND_Spread = 1;
+  BIND_Pack = 2;
+}
+
+enum GroupPolicy {
+    None = 0;
+    Spread = 1;
+    StrictSpread = 2;
+    Pack = 3;
+    StrictPack = 4;
+}
+
+message ResourceGroupSpec {
+    string name         = 1;
+    // indicated which rg is the resource group was created from, default is primary
+    string owner        = 2;
+    // indicated which app submitted(job/app)
+    string appID        = 3;
+    string tenantID     = 4;
+    // multiple units which is reserved defined in a resource group
+    repeated Bundle bundles = 5;
+    message Option {
+        // resource group schedule priority
+         int64  priority                 = 1;
+         GroupPolicy groupPolicy         = 2;
+         // etc:
+         // "lifetime" : "detached"
+         map<string, string>  extension  = 100;
+    }
+    Option opt = 6;
+}
+
+message InstanceTermination {
+  string instanceID = 1;
+}
+
+message FunctionMasterObserve {}
+
+message FunctionMasterEvent {
+  string address = 1;
+}
+
+message SubscriptionPayload {
+  oneof Content {
+    InstanceTermination instanceTermination = 1;  // Subscribe to instance termination event
+    FunctionMasterObserve functionMaster = 2; // Subscribe to function-master election changed
+  }
+}
+
+message UnsubscriptionPayload {
+  oneof Content {
+    InstanceTermination instanceTermination = 1;  // Unsubscribe specified instance's termination event
+    FunctionMasterObserve functionMaster = 2; // UnSubscribe to function-master election changed
+  }
+}
+
+message NotificationPayload {
+  oneof Content {
+    InstanceTermination instanceTermination = 1;  // Instance termination event notification
+    FunctionMasterEvent functionMasterEvent = 2; // function-master election changed event
+  }
+}
+
+enum SnapType {
+  DUMPSTATE = 0;
+  SNAPSHOT = 1;
+}

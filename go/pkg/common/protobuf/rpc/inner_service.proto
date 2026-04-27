@@ -1,0 +1,119 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package inner_service;
+
+import "common.proto";
+import "core_service.proto";
+import "bus_service.proto";
+import "runtime_service.proto";
+
+option go_package = "grpc/pb/inner;inner";
+
+// Inner service provides APIs for bus to bus interaction
+service InnerService {
+  // forward a recovery request to rebuild instance owned by other bus-proxy
+  rpc ForwardRecover (ForwardRecoverRequest) returns (ForwardRecoverResponse) {}
+  // notify the result of forward by other proxy request
+  rpc NotifyResult (NotifyRequest) returns (NotifyResponse) {}
+  // forward a killing request to signal instance owned by other bus-proxy
+  rpc ForwardKill (ForwardKillRequest) returns (ForwardKillResponse) {}
+  // forward a calling result request to other bus-proxy
+  rpc ForwardCallResult (ForwardCallResultRequest) returns (ForwardCallResultResponse) {}
+  // forward a invoke request to other bus-proxy
+  rpc ForwardInvoke (ForwardInvokeRequest) returns (ForwardInvokeResponse) {}
+  // forward a queryInstance request to other bus-proxy
+  rpc QueryInstance (bus_service.QueryInstanceRequest) returns (bus_service.QueryInstanceResponse) {}
+  // to check bus-proxy liveliness
+  rpc LiveProbe (Probe) returns (Probe) {}
+  // forward a initCall request to other bus-proxy
+  rpc ForwardInitCall (ForwardInitCallRequest) returns (ForwardInitCallResponse) {}
+}
+
+message Probe {}
+
+message NotifyRequest {
+  string           requestID = 1;
+  common.ErrorCode code      = 2;
+  string           message   = 3;
+}
+
+message NotifyResponse {}
+
+message ForwardRecoverRequest {
+  string instanceID  = 1;
+  string runtimeIP   = 2;
+  string runtimePort = 3;
+  string runtimeID   = 4;
+  string function    = 5;
+}
+
+message ForwardRecoverResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message ForwardKillRequest {
+  core_service.KillRequest req         = 1;
+  string                   instanceID  = 2;
+  string                   runtimeIP   = 3;
+  string                   runtimePort = 4;
+  string                   runtimeID   = 5;
+}
+
+message ForwardKillResponse {
+  common.ErrorCode code    = 1;
+  string           message = 2;
+}
+
+message ForwardCallResultRequest {
+  core_service.CallResult           req         = 1;
+  string                            instanceID  = 2;
+  string                            runtimeID   = 3;
+}
+
+message ForwardCallResultResponse {
+  common.ErrorCode code           = 1;
+  string           message        = 2;
+}
+
+message ForwardInvokeRequest {
+  core_service.InvokeRequest      req            = 1;
+  string                          srcInstanceID  = 2;
+  string                          srcIP          = 3;
+  string                          srcNode        = 4;
+}
+
+message ForwardInvokeResponse {
+  common.ErrorCode code           = 1;
+  string           message        = 2;
+}
+
+message ForwardInitCallRequest {
+  runtime_service.CallRequest     req             = 1;
+  string                          runtimeID       = 2;
+  string                          instanceID      = 3;
+  string                          runtimeIP       = 4;
+  string                          runtimePort     = 5;
+  string                          tenantID        = 6;
+}
+
+message ForwardInitCallResponse {
+  common.ErrorCode code           = 1;
+  string           message        = 2;
+}

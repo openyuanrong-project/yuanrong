@@ -1,0 +1,10 @@
+--- java_tools/src/tools/singlejar/zip_headers.h	2024-09-26 23:49:46.396271343 +0800
++++ java_tools/src/tools/singlejar/zip_headersbak.h	2024-09-26 23:50:44.868695633 +0800
+@@ -51,6 +51,7 @@
+ #define attr_packed  __attribute__((packed))
+ #endif
+
++#pragma GCC diagnostic ignored "-Wstringop-overflow"
+ class ziph {
+  public:
+   static const uint8_t *byte_ptr(const void *ptr) {

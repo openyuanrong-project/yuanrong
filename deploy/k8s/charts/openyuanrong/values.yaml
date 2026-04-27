@@ -1,0 +1,575 @@
+# Default values for YuanRong.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  timeout: "900"
+  litebusDataKey: "AB05D39677C54E231CC4224812F1C51E95D72792F1F1A4C338F4404D80017860"
+  namespace: "default"
+  # cluster ID
+  clusterId: ""
+  # Configure priorityClass.
+  # If the value is false, the default priorityClass is system-cluster-critical.
+  # If the value is true, a priorityClass with preemptionPolicy Never is created.
+  enableNonPreemptive: false
+  imageRegistry: ImageRepo
+  images:
+    common: functionsystem:version_replace
+    agentInit: function-agent-init:version_replace
+    functionAgent: function-agent:version_replace
+    datasystem: datasystem:version_replace
+    runtimeManager: runtime-manager:version_replace
+  resources:
+    functionProxy:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+    frontend:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+    functionScheduler:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+    metaService:
+      limits:
+        cpu: "2"
+        memory: "6Gi"
+      requests:
+        cpu: "1"
+        memory: "3Gi"  
+    functionMaster:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+    iamAdapter:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+    functionAgentInit:
+      limits:
+        cpu: "300m"
+        memory: "800Mi"
+      requests:
+        cpu: "300m"
+        memory: "800Mi"
+    functionAgentRuntime:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+    functionAgentProxy:
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+    functionAgent:
+      limits:
+        cpu: "1"
+        memory: "500Mi"
+      requests:
+        cpu: "500m"
+        memory: "500Mi"
+  # component port
+  port:
+    iamAdapterHttpPort: 31218
+    frontendPort: 8888
+    frontendNodePort: 31222
+    functionSchedulerPort: 9994
+    metaService: 31182
+    functionProxyPort: 22423
+    functionProxyGrpcPort: 32568
+    functionAgentPort: 58866
+    runtimeMgrPort: 21005
+    runtimeInitPort: 21006
+    runtimePortNum: 65535
+    functionMasterPort: 22668
+    worker: 31501
+  # Number of pods
+  replicas:
+    functionAgent: 0
+    functionMaster: 1
+    iamAdaptor: 1
+    functionScheduler: 2
+    frontend: 1
+    functionManager: 1
+    metaService: 1
+  # common log config
+  log:
+    # log output host path
+    hostPath:
+      # logs of components
+      componentLog: /var/paas/sys/log/cff/default/componentlogs
+      # logs of runtime
+      serviceLog: /var/paas/sys/log/cff/default/servicelogs
+      # logs of user functions std
+      userLog: /var/paas/sys/log/cff/default/processrouters/stdlogs
+      enable: true
+    functionSystem:
+      path: /home/sn/log
+      level: DEBUG
+      pattern: ""
+      compress: true
+      rolling:
+        # single file size, unit：M
+        maxSize: 1000
+        # Number of rollback files
+        maxfiles: 3
+      async:
+        # Cache time, unit: second
+        logBufSecs: 30
+    # runtime log config
+    runtime:
+      path: /home/snuser/log
+      level: INFO
+      expiration:
+        # Enable runtime log expiration
+        enable: true
+        # Check the time interval for expired logs, unit in seconds, default is 10 minutes: 60 * 10. It needs to be explicitly less than the timeThreshold, otherwise it is illegal.
+        cleanupInterval: 600
+        # The maximum retention time for expired log files, in seconds, is 5 days by default: 60 * 60 * 24 * 5.
+        timeThreshold: 432000
+        # The maximum number of expired log files to be retained, in units of pieces, is 512 by default.
+        maxFileCount: 512
+        # enable log prefix reuse, default is false
+        logReuseEnable: false
+      userLogExportMode: "file"
+    # for user function standard output logs
+    userOutput:
+      path: /home/snuser/log/instances
+      level: INFO
+  # affinity config for control plane component (function-master、iam-server、meta-service、admin、repo)
+  controlPlane:
+    nodeSelector: {}
+    tolerations: []
+    nodeAffinity: {}
+  # affinity config for function-proxy
+  functionProxy:
+    nodeSelector: {}
+    tolerations: []
+    nodeAffinity: {}
+
+  # iam
+  iam:
+    enable: false
+    # credential type 'token' or 'AK/SK'
+    credentialType: "AK/SK"
+    # unit: second
+    tokenExpiredTimeSpan: 86400
+    iamEndpoint: ""
+
+  # network config
+  network:
+    elbId: ""
+
+  # rate limit
+  rateLimit:
+    # If true, busproxy will start to limit invoke requests
+    invokeRateLimit:
+      enable: true
+      lowThreshold: 0.6
+      highThreshold: 0.8
+      msgSize: 20480
+
+  # opentelemetry
+  observer:
+    trace:
+      enable: false
+      traceConfig: "{\"otlpGrpcExporter\":{\"enable\":false,\"endpoint\":\"\"}}"
+      runtimeTraceConfig: "{\"otlpGrpcExporter\":{\"enable\":false,\"endpoint\":\"\"}}"
+    enableTrace: false
+    # common metrics config
+    metrics:
+      enable: false
+      sslEnable: false
+      # metric config for component, metrics dir please configure it to /home/sn/metrics
+      # example: "{\"backends\":[{\"immediatelyExport\":{\"name\":\"LingYun\",\"enable\":false,\"exporters\":[{\"prometheusPushExporter\":{\"enable\":true,\"initConfig\":{\"ip\":\"prometheus-pushgateway.default.svc.cluster.local\",\"port\":9091}}}]}},{\"batchExport\":{\"name\":\"LakeHouse\",\"enable\":true,\"exporters\":[{\"prometheusPushExporter\":{\"enable\":true,\"batchSize\":2,\"batchIntervalSec\":10,\"failureQueueMaxSize\":3,\"failureDataDir\":\"/home/sn/metrics/failure\",\"failureDataFileMaxCapacity\":1,\"initConfig\":{\"ip\":\"yr-test-collector.default.svc.cluster.local\",\"port\":5000}}},{\"fileExporter\":{\"enable\":true,\"batchSize\":2,\"batchIntervalSec\":10,\"failureQueueMaxSize\":3,\"failureDataDir\":\"/home/sn/metrics/failure\",\"failureDataFileMaxCapacity\":1,\"initConfig\":{\"fileDir\":\"\",\"rolling\":{\"enable\":true,\"maxFiles\":3,\"maxSize\":10000},\"contentType\":\"STANDARD\"}}}]}}]}"
+      metricsConfig: ""
+      metricsConfigFile: ""
+      # metric config for runtime, metrics dir please configure it to /home/snuser/metrics
+      # example: "{\"backends\":[{\"immediatelyExport\":{\"name\":\"LingYun\",\"enable\":false,\"exporters\":[{\"prometheusPushExporter\":{\"enable\":true,\"initConfig\":{\"ip\":\"prometheus-pushgateway.default.svc.cluster.local\",\"port\":9091}}}]}},{\"batchExport\":{\"name\":\"LakeHouse\",\"enable\":true,\"exporters\":[{\"prometheusPushExporter\":{\"enable\":true,\"batchSize\":2,\"batchIntervalSec\":10,\"failureQueueMaxSize\":3,\"failureDataDir\":\"/home/snuser/metrics/failure\",\"failureDataFileMaxCapacity\":1,\"initConfig\":{\"ip\":\"yr-test-collector.default.svc.cluster.local\",\"port\":5000}}},{\"fileExporter\":{\"enable\":true,\"batchSize\":2,\"batchIntervalSec\":10,\"failureQueueMaxSize\":3,\"failureDataDir\":\"/home/sn/metrics/failure\",\"failureDataFileMaxCapacity\":1,\"initConfig\":{\"fileDir\":\"\",\"rolling\":{\"enable\":true,\"maxFiles\":3,\"maxSize\":10000},\"contentType\":\"STANDARD\"}}}]}}]}"
+      runtimeMetricsConfig: ""
+      runtimeMetricsConfigFile: ""
+      path:
+        file: /home/sn/metrics/file
+        failure: /home/sn/metrics/failure
+      # metrics output host path
+      hostPath:
+        # metrics failed to report
+        failureMetrics: /var/paas/sys/metrics/cff/default/failureMetrics
+        failureFileEnable: true
+    # prometheus pushgateway ip
+    proGatewayIP: "prometheus-pushgateway.default.svc.cluster.local"
+    # prometheus pushgateway port
+    gatewayPort: 9091
+  redisManagement:
+    serverAddr: ""
+    password: ""
+    port: 6379
+    connectTimeout: 1 # second
+    commandTimeout: 1 # second
+    needAuth: false
+  pool:
+    poolSize: 1
+    gracePeriodSeconds: 30
+    accelerator: ""
+    # failure threshold for function-agent readiness probe
+    readinessProbeFailureThreshold: 3
+    # failure threshold for function-agent liveness probe
+    livenessProbeFailureThreshold: 3
+    # affinity config for default pool
+    nodeSelector: { }
+    tolerations: [ ]
+    nodeAffinity: { }
+    requestCpu: 500
+    requestMemory: 1024
+    requestEphemeralStorage: 2048
+    limitCpu: 500
+    limitMemory: 1024
+    limitEphemeralStorage: 2048
+  # tenant isolation
+  tenantIsolation:
+    # tenant affinity
+    affinity:
+      enable: false
+      tenantPodReuseTimeWindow: -1
+    # network isolation
+    ipv4:
+      enable: false
+      # function-agent POD port whitelist based on iptables
+      tcpPortWhitelist: "31501"
+      udpPortWhitelist: ""
+    # third party whitelist
+    # Explanation:
+    #   Rules: Record like 'domain,IP,port1/protocol,port2/protocol;' Separate multiple records with semicolons.
+    #   Please note that the IP address may be 'None'. If no IP address is specified, please enter 'None' and the cluster will resolve it based on the service domain. The current default configuration does not specify an IP address.
+    thirdPartyWhitelist: kubernetes.default.svc.cluster.local,None,443/TCP,;minio.default.svc.cluster.local,None,9000/TCP;ds-core-etcd.default.svc.cluster.local,None,2379/TCP,2380/TCP;ds-core-etcd-headless.default.svc.cluster.local,None,2379/TCP,2380/TCP;
+  # runtime config
+  runtime:
+    snuserLibPath: /home/snuser/snlib
+    virtualEnvIdleTimeLimit: -1
+    requestAckAccMaxSec: 60
+    serverModeEnable: true
+    cleanStreamProducerEnable: true
+    metricsCollectorType: proc
+    runtimeShutdownTimeoutSeconds: 600
+    # kill -SIGKILL process after kill -SIGINT
+    killProcessTimeoutSeconds: 0
+    runtimeHeartbeatTimeoutMS: 5000
+    runtimeMaxHeartbeatTimeoutTimes: 5
+    minInstanceCpuSize: "300"
+    maxInstanceCpuSize: "16000"
+    minInstanceMemorySize: "128"
+    # 1024*1024*1024 MB
+    maxInstanceMemorySize: "1073741824"
+    migratePrefix: ""
+    taintToleranceList: ""
+    migrateEnable: false
+    npuCollectionMode: "all"
+    gpuCollectionEnable: false
+    useAscendCustomConfig: false
+    massifEnable: false
+    # runtime ds-client connection timeout(s)
+    runtimeDsConnectTimeout: 60
+    fsGroup: 1002
+    # disk usage check config
+    diskUsageMonitor:
+      # notify instances failed in the POD
+      notifyFailureEnable: false
+      # force delete pod when disk usage exceed limit
+      forceDeletePODEnable: true
+      # custom disk monitor path, you can config multi dirs, such as: /dir1;/dir2;/dir3
+      path: /tmp
+      # disk usage limit(MB), -1 means disable
+      limit: -1
+      # disk usage limit(MB) for /home/snuser, -1 means disable
+      snuserDirSizeLimit: -1
+      # disk usage limit(MB) for temp dir( /tmp & /var/tmp ), -1 means disable
+      tmpDirSizeLimit: -1
+      # disk usage monitor duration(ms)
+      duration: 1000
+    prestartCount:
+      java8: 0
+      java11: 0
+      python36: 0
+      python37: 0
+      python38: 0
+      python39: 0
+      python310: 0
+      python311: 0
+      cpp: 0
+    # jvm prestart custom args
+    # example '["-XX:+UseG1GC","-XX:+TieredCompilation"]'
+    jvmCustomArgs: '[]'
+    # default args for runtime
+    defaultArgs:
+      java8: '["-XX:InitialRAMPercentage=35.0", "-XX:+UseConcMarkSweepGC", "-XX:+CMSClassUnloadingEnabled", "-XX:+CMSIncrementalMode", "-XX:+CMSScavengeBeforeRemark", "-XX:+UseCMSInitiatingOccupancyOnly", "-XX:CMSInitiatingOccupancyFraction=70", "-XX:CMSFullGCsBeforeCompaction=5", "-XX:MaxGCPauseMillis=200", "-XX:+ExplicitGCInvokesConcurrent", "-XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses"]'
+      java11: '["-XX:+UseG1GC", "-XX:MaxRAMPercentage=80.0", "-XX:+TieredCompilation"]'
+      java17: '["-XX:+UseZGC", "-XX:+AlwaysPreTouch", "-XX:+UseCountedLoopSafepoints", "-XX:+TieredCompilation", "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED", "--add-opens=java.base/java.net=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED", "--add-opens=java.base/java.math=ALL-UNNAMED", "--add-opens=java.base/java.time=ALL-UNNAMED", "--add-opens=java.base/java.text=ALL-UNNAMED", "--enable-preview"]'
+      java21: '["-XX:+UseZGC", "-XX:+ZGenerational", -XX:+AlwaysPreTouch", "-XX:+UseCountedLoopSafepoints", "-XX:+TieredCompilation", "--add-opens=java.base/java.util=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED", "--add-opens=java.base/java.net=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED", "--add-opens=java.base/java.math=ALL-UNNAMED", "--add-opens=java.base/java.time=ALL-UNNAMED", "--add-opens=java.base/java.text=ALL-UNNAMED", "--enable-preview"]'
+    # runtime and ds worker authentication config
+    dataSystem:
+      authEnable: false
+      encryptEnable: false
+    oomKill:
+      # Memory detection interval for runtime process, unit in mili seconds, default is 1000 ms
+      memoryDetectionInterval: 1000
+      # Enable runtime oom detection kill
+      enable: false
+      # the control limit for the runtime OOM kill based on process memory usage, unit is MB.
+      # For example:
+      #  - a value of -5 sets the memory limit to -5MB (e.g., for a 300-128 function, the memory ceiling is 123MB), enabling proactive OOM prevention.
+      #  - a value of  5 sets the memory limit to +5MB (e.g., for a 300-128 function, the memory ceiling is 133MB), allowing for some degree of overcommit.
+      controlLimit: 0
+      # Number of consecutive times the memory usage must exceed the control limit before triggering OOM kill
+      consecutiveDetectionCount: 3
+    # The type of data transferred to runtime
+    isProtoMsgToRuntime: true
+  # runtime and ds worker authentication config
+  curve:
+    # Worker's public key in the curve encryption environment.
+    workerPublicKey: ""
+    # Worker's private key in the curve encryption environment.
+    workerKeySecret: ""
+    # Agent's public key in the curve encryption environment.
+    agentPublicKey: ""
+    # Agent's private key in the curve encryption environment.
+    agentKeySecret: ""
+    # client's private key in the curve encryption environment.
+    clientPrivateKey: ""
+    # Client's public key in the curve encryption environment.
+    clientPublicKey: ""
+
+  ## kubernetes config
+  kubernetes:
+    # kube-apiserver's address
+    kubeApiBaseUrl: https://kubernetes.default.svc.cluster.local:443
+    svcCIDR: "10.43.0.0/16"
+    podCIDR: "10.42.0.0/16"
+    hostCIDR: ""
+    kubeClientRetryTime: 5
+    kubeClientRetryCycMs: 3000
+    healthMonitorMaxFailure: 5
+    healthMonitorRetryInterval: 3000
+
+  # meta-store
+  metaStore:
+    enable: false
+    address: "meta-store.default.svc.cluster.local:22770"
+    mode: "local"
+
+  sts:
+    # Sts server address use by sts sdk, format is host:port.
+    serverDomain: ""
+    # Sts config use by sts sdk
+    configPath: ""
+    # in encrypt_kit=sts scenario, the sts sdk load encrypt info locally, normally is false
+    # when sts server unavailable for a very long time, can set true to start datasystem independent from sts server.
+    loaderLocal: true
+    # Whether to enable STS, which refers to the deployment of STS
+    enable: false
+
+
+  # common config
+  common:
+    # system auth mode: { "", "AK/SK" }
+    systemAuthMode: ""
+    # code deploy dir, default /dcache
+    deployDir: /dcache
+    # CBC STS GCM NO_CRYPTO
+    decryptAlgorithm: NO_CRYPTO
+    # function master election mode ("k8s" or "etcd")
+    electionMode: "txn"
+    # package storage type : {"s3", "local"}
+    storageType: s3
+    stateStorageType: "datasystem"
+    # If true, bootstrap will start system function, need system-function-config.json file
+    functionBootstrapEnable: true
+    # function bootstrap retry period. (default 5000ms)
+    functionBootstrapRetryPeriod: 5000
+    # If true, bootstrap will start system function, need create secret(localauth) before deploy
+    secretKeyEnable: false
+    # Posix max grpc size (MB)
+    maxGrpcSize: 11
+    # If true, function proxy will listen on functionProxyGrpcPort, and accept driver's request
+    driverEnable: true
+    # Timeout between function-system components, default 60000 (ms)
+    systemTimeout: 60000
+    # domain heartbeat timeout, default 6000 (ms)
+    domainHeartbeatTimeout: 6000
+    # The TTL time of busproxy, default 60000 (ms)
+    busproxyServiceTTL: 60000
+    # whether print resource view when schedule failed, which will affect performance in big scale
+    enablePrintResourceView: false
+    # whether enable horizontal scale or not when resources are not enough
+    enableHorizontalScale: false
+    # enable stream event mode
+    enableEvent: false
+    # The max retry times for function agent mgr send request to function-agent [0-100]
+    functionAgentMgrRetryTimes: 9
+    # The retry interval for function agent mgr send request to function-agent(Unit:ms) [5000-60000]
+    functionAgentMgrRetryInterval: 20000
+    # if some node has one of these labels, and the worker is not deployed or fault, won't add taint to this node
+    # example: label1=key1;label2=key2
+    workerTaintExcludes: ""
+    # When node is tainted with the key, instances on the node will be evicted
+    evictedTaintKey: ""
+    # self taint key prefix (when scaler add/remove node taint with prefix)
+    selfTaintPrefix: ""
+    # grace period when delete pod (s)
+    deletePodGracePeriodSeconds: 25
+    # enable function-master host network
+    masterHostNetworkEnable: false
+    # upper limit of concurrent num
+    concurrentNumUpperLimit: 1000
+    # enable the relaxed scheduling policy. When the relaxed number of available nodes or pods is selected,
+    # the scheduling progress exits without traversing all nodes or pods.(default -1)
+    scheduleRelaxed: -1
+    # enable fake suspend resume: resume by sending to original owner proxy instead of rescheduling
+    enableFakeSuspendResume: false
+    prioritySchedule:
+      # instance schedule maximum priority
+      # if 0 indicates default schedule strategy, other value greater than 0 indicates priority schedule strategy
+      maxPriority: 0
+      # only valid while maxPriority > 0
+      enablePreemption: false
+      # Explain Req Aggregate Strategy
+      # three options : no_aggregate strictly relaxed
+      # no_aggregate: Requests are not aggregated based on resource usage(CPU and Memory)
+      # strictly: Aggregate requests in the first-in, first-out mode.
+      # relaxed：Requests are not aggregated in a first-in, first-out order to some extent.
+      aggregatedStrategy: "no_aggregate"
+    # schedule plugins need to be registered
+    schedulePlugins:
+      local: "[\"Label\", \"ResourceSelector\", \"Default\", \"Heterogeneous\"]"
+      domain: "[\"Label\", \"ResourceSelector\", \"Default\", \"Heterogeneous\"]"
+    # config code aging time, unit:seconds [0-3600], code package will be clear if code is not referred by any instance and exceed this time
+    codeAgingTime: 0
+    # Limit of the function package deployed by users
+    zipFile:
+      # Maximum zip file size
+      # if the file size is more than 500 MB, the cluster may break down.
+      zipFileSizeMax: 300
+      # Maximum unzip file size
+      unzipFileSizeMax: 600
+      # Maximum number of files
+      fileCountsMax: 30000
+      # Maximum directory level
+      dirDepthMax: 20
+      # enable signature validation
+      signatureValidationEnable: false
+    # Limit of the layer deployed by users
+    layer:
+      # Maximum number of layers
+      layerMaxNumber: 5
+    # proxy only partial watch instances
+    isPartialWatchInstances: false
+    # cluster list for function instance
+    instanceClusterList: ""
+    # The maximum number of versions that can be published for a function.
+    maxFunctionVersion: 8
+    # The maximum number of labels that can be created for the same function version
+    maxInstanceLabel: 100
+
+  etcdManagement:
+    useSecret: false
+    secretName: "etcd-client-secret"
+    detcd: ds-core-etcd.default.svc.cluster.local:2379
+    # auth type contains: Noauth PWD TLS STS
+    authType: "Noauth"
+    # The configuration value should be consistent with the DNS content of the Subject Alternate Names of the TLS certificate.
+    targetNameOverride: ""
+    # meta-etcd addr
+    metcd: ds-core-etcd.default.svc.cluster.local:2379
+    # meta etcd parameters
+    # maximum number of etcd healthy check failures that can be tolerated
+    maxTolerateMetaStoreFailedTimes: 12
+    # meta store health check interval
+    metaStoreCheckHealthIntervalMs: 5000
+    # the timeout of etcd healthcheck rpc
+    metaStoreTimeoutMs: 10000
+    sslEnable: false
+    metaEtcdEnable: true
+
+  # obs configurations management
+  obsManagement:
+    # obs bucket name
+    obsBucketName: "bucket-test-log1"
+    # s3 addr
+    s3Endpoint: minio.default.svc.cluster.local:9000
+    # s3 accessKey
+    s3AccessKey: "root"
+    # s3 encrypted secretKey
+    s3SecretKey: ""
+    # obs protocol: https, http
+    protocol: "http"
+    # credential type: credential_type_rotating_credentials / credential_type_permanent_credentials
+    credentialType: "credential_type_permanent_credentials"
+
+  # mutual ssl configuration
+  mutualSSLConfig:
+    sslEnable: false
+    sslBasePath: "/home/sn/resource/https"
+    rootCA: ""
+    moduleCert: ""
+    moduleKey: ""
+    certPwd: ""
+    serverName: "test"
+    secretName: "https-secret"
+    sslDecryptTool: "SCC" # SCC, LOCAL, None
+
+  # system upgrade configs
+  systemUpgradeConfig:
+    enable: true
+    azID: 1
+    systemUpgradeKey: "/hms-caas/edgems/upgrade-zones"
+    systemUpgradeWatchAddress: "ds-core-etcd.default.svc.cluster.local:2379"
+
+  ##dataSystem config
+  dataSystem:
+    # Specifies whether auth is enable
+    authEnabled: false
+    # auth ak
+    ak: ""
+    # encrypted auth sk
+    sk: ""
+    # ds auth type (ZMQ AK/SK)
+    authType: ""
+  scc:
+    # If true, SCC encrypt and decrypt will be enabled and using scc secret key
+    enable: false
+    secretName: "scc-ks-secret"
+    primaryContent: ""
+    standbyContext: ""
+    # AES256_CBC, AES128_GCM, AES256_GCM,
+    # SM4_CBC, SM4_CTR,
+    algorithm: "AES256_GCM"
+
+  tenant:
+    credential: "967221D8F1630ACBB7EFF58B:6D62A66AF4BE5368FF8AECEF5E572CC3759781822FB02224E8151C6ED151A6D4A0435550678F4A914318E3389116BFB963FC0FEABA3B18A04EC85B804CB4A371AB082962DDD7D2B6C48A0295AB66B4AE4E74F124F4A0D3475A92E05B175F84F0D7282418048AC909104C509CF13EF841B36619888BD339CB10CCE90374170D0A425BF39B8C887E31185CFB61C161D58024EB6E604721AF34473EA3F65C509959758C761EFDBF5DE9E60F95AADA63739BCA7DE7EBFE9D75900365AE93947DAA6DF6F885039A13564B9F9E787DCCDDCEA3FF35A1A91E4064F2D3FB5878D905537A2285A8E677AFE7C815CF87D006AC0DF6601021369987D37CC5E2889F294A151E81D413A4E641EA6CC68A"
+
+  # ETCD configuration for datasystem
+  etcd:
+    etcdAddress: ds-core-etcd.default.svc.cluster.local:2379
+    enableComponentAuth: false
+  cacheStorageInfoPrefix: ""

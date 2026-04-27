@@ -1,0 +1,167 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: function-manager
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.global.replicas.functionManager }}
+  selector:
+    matchLabels:
+      app: function-manager
+  template:
+    metadata:
+      labels:
+        app: function-manager
+    spec:
+      volumes:
+        - name: volume-config
+          configMap:
+            name: manager-config
+            items:
+              - key: config.json
+                path: config.json
+            defaultMode: 420
+        - name: iam-policy-config-volume
+          configMap:
+            name: iam-policy-config
+            items:
+              - key: iam-policy-config.json
+                path: iam-policy-config.json
+            defaultMode: 416
+        - name: log-volume
+          hostPath:
+            path: "{{ .Values.global.log.hostPath.componentLog }}"
+            type: DirectoryOrCreate
+        - name: data-volume
+          emptyDir:
+            sizeLimit: 5Gi
+        - name: config-volume
+          configMap:
+            defaultMode: 0440
+            name: components-toml-config
+      initContainers:
+        - name: agent-init-container
+          image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.agentInit }}
+          command: ["/bin/sh", "-c", "chown 1002:1002 /home/sn/log && chmod 777 /home/sn/log"]
+          resources:
+            limits:
+              cpu: {{ .Values.global.resources.functionAgentInit.limits.cpu }}
+              memory: {{ .Values.global.resources.functionAgentInit.limits.memory }}
+            requests:
+              cpu: {{ .Values.global.resources.functionAgentInit.requests.cpu }}
+              memory: {{ .Values.global.resources.functionAgentInit.requests.memory }}
+          volumeMounts:
+            - name: log-volume
+              mountPath: {{ .Values.global.log.functionSystem.path}}
+              subPathExpr: $(RUNTIME_POD_NAME)
+          env:
+            - name: RUNTIME_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              add:
+                - CHOWN
+                - NET_RAW
+                - NET_ADMIN
+                - SYS_ADMIN
+                - CHOWN
+                - SETGID
+                - SETUID
+                - DAC_OVERRIDE
+                - FOWNER
+                - FSETID
+              drop:
+                - ALL
+            runAsUser: 0
+      containers:
+        - name: service-container
+          image: {{ .Values.global.imageRegistry }}{{ .Values.global.images.common }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+                [ ! -d {{quote .Values.global.log.functionSystem.path}} ] && mkdir -p {{quote .Values.global.log.functionSystem.path}}
+                python3 -m yr.cli.main -v launch --inherit-env --env-subst RUNTIME_POD_IP,RUNTIME_HOST_IP,RUNTIME_POD_NAME function_manager
+          ports:
+            - containerPort: {{ .Values.global.port.functionSchedulerPort }}
+              protocol: TCP
+          env:
+            - name: RUNTIME_HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: RUNTIME_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: RUNTIME_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          resources:
+            limits:
+              cpu: {{ .Values.global.resources.functionScheduler.limits.cpu }}
+              memory: {{ .Values.global.resources.functionScheduler.limits.memory }}
+            requests:
+              cpu: {{ .Values.global.resources.functionScheduler.requests.cpu }}
+              memory: {{ .Values.global.resources.functionScheduler.requests.memory }}
+          volumeMounts:
+            - name: volume-config
+              mountPath: /home/sn/config
+            - name: log-volume
+              mountPath: {{ .Values.global.log.functionSystem.path}}
+              subPathExpr: $(RUNTIME_POD_NAME)
+            - name: data-volume
+              mountPath: /opt/yuanrong/data
+            - name: iam-policy-config-volume
+              mountPath: /home/sn/iam-config
+            - name: config-volume
+              mountPath: /etc/yuanrong/config.toml
+              subPath: config.toml
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.global.port.functionSchedulerPort }}
+            initialDelaySeconds: 6
+            timeoutSeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.global.port.functionSchedulerPort }}
+            initialDelaySeconds: 6
+            timeoutSeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 10
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - kill -15 $(ps aux | grep -i function_proxy | awk '{print $2}') 2>/dev/null
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1002
+            runAsNonRoot: true
+      restartPolicy: Always
+      serviceAccountName: function-manager
+      terminationGracePeriodSeconds: 300
+      dnsPolicy: ClusterFirst
+      securityContext:
+        fsGroup: {{ .Values.global.runtime.fsGroup }}
+      imagePullSecrets:
+        - name: default-secret
+  revisionHistoryLimit: 5

@@ -1,0 +1,213 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: default
+data:
+  config.json: |-
+    {
+      "instanceNum": 2,
+      "azID": "5",
+      "cpu": 5000,
+      "memory": 10240,
+      "clusterID": "cluster001",
+      "clusterName": "ers-cceturbo-caas-gy-arm-az4",
+      "regionName": "gy",
+      "defaultTenantId": "244177614494719500",
+      "alarmConfig": {
+        "enableAlarm": true,
+        "minInsStartInterval": 15,
+        "minInsCheckInterval": 15,
+        "alarmLogConfig": {
+          "enableAlarm": true,
+          "filepath": "/home/snuser/alarms",
+          "level": "Info",
+          "tick": 0,
+          "first": 0,
+          "thereafter": 0,
+          "singlesize": 500,
+          "threshold": 3,
+          "disable": false
+        },
+        "xiangYunFourConfig": {
+          "site": "aaa.bbb",
+          "tenantID": "T014",
+          "applicationID": "aaa.bbb",
+          "serviceID": "aaa.bbb"
+        }
+      },
+      "runtime": {
+        "systemAuthConfig": {
+          "enable": true,
+          "accessKey": "",
+          "secretKey": ""
+        },
+        "logConfig": {
+          "filepath": "/home/sn/log",
+          "level": "INFO",
+          "tick": 0,
+          "first": 0,
+          "thereafter": 0,
+          "singlesize": 100,
+          "threshold": 10,
+          "disable": false
+        },
+        "enableServerMode": true,
+        "enableSigaction": false
+      },
+      "nodeSelector": {
+        "node-role": "edge"
+      },
+      "http": {
+        "resptimeout": 5,
+        "workerInstanceReadTimeOut": 600,
+        "maxRequestBodySize": 6
+      },
+      "httpsConfig": {
+        "httpsEnable": false,
+        "tlsProtocol": "TLSv1.2",
+        "tlsCiphers": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+      },
+      "localAuth": {
+        "aKey": "",
+        "sKey": ""
+      },
+      "businessType": 0,
+      "systemAuth": "",
+      "diskMonitorEnable": false,
+      "authenticationEnable": false,
+      "authConfig": {
+        "saConfig": {
+          "serviceId": "aaa.bbb",
+          "publicKeyUrl": "",
+          "acceptLeeWayInSeconds": 5,
+          "clientIdWhiteList": [
+            "2010000192"
+          ]
+        },
+        "clientTokenAuthDomain": "",
+        "oauthConfig": {
+          "domain": "",
+          "clientId": "101489783",
+          "clientSecret": "",
+          "dmqConfig": {
+            "messageUrl": "",
+            "timeout": 10,
+            "getMessageSleepMills": 500,
+            "receiptMessageUrl": "",
+            "dmqPullMessageRoutineNum": 0,
+            "dmqRoutineNum": 0,
+            "topic": "oauth2.atinvalid"
+          }
+        },
+        "authUserServiceIds": [
+          "EyeAdjustment",
+          "WallPaperAIGC"
+        ],
+        "policyAuthConfig": {
+          "tenant_group": "{\"system\":{\"0\":[\"func0\"]},\"external\":{}}",
+          "whitelist": "{}",
+          "policy": {
+            "allow": "{\"invoke\":{\"external\":{\"external\":[\"white_list\",\"=\"]}}}",
+            "deny": "{\"tenant_list\":[]}"
+          }
+        },
+        "crossClusterAuthConfig": {
+          "enable": false,
+          "encryptedSecret": {
+            "":""
+          }
+        }
+      },
+      "shareKeys": {
+        "accessKey": ""
+      },
+      "trafficLimitDisable": true,
+      "functionCapability": 1,
+      "urpcConfig": {
+        "enabled": false,
+        "port": 19996,
+        "workerNum": 10,
+        "pollingNum": 0,
+        "poolSize": 500000
+      },
+      "smsConfig": {
+        "accessKey": "",
+        "secretKey": "",
+        "masterKeySk": "",
+        "urpcEnable": false,
+        "skExpireTime": 600,
+        "authServiceSaId": "clouddevelopproxy",
+        "saIdPermissions": "{\"media_cloud_enhance_service_Camera\": {\"appId\":\"102190845\", \"projectId\":\"244177614494719500\"}, \"media_cloud_enhance_service_WallPaperAIGC\": {\"appId\":\"102190845\", \"projectId\":\"244177614494719500\"}, \"media_cloud_enhance_service_EyeAdjustment\": {\"appId\":\"102190845\", \"projectId\":\"244177614494719500\"}}",
+        "delaySessionTTL": 0
+      },
+      "taskServerAuthConfig": {
+        "enable": false,
+        "accessKey": "",
+        "secretKey": ""
+      },
+      "dataSystemConfig": {
+        "isAuthEnable": false,
+        "uploadWriteMode": "NoneL2Cache",
+        "executeWriteMode": "NoneL2Cache",
+        "uploadTTLSec": 86400,
+        "executeTTLSec": 1800,
+        "timeoutMs": 60000,
+        "cluster": ""
+      },
+      "dataEncryptConfig": {
+        "enable": true,
+        "tenantMap": {
+        }
+      },
+      "autoScaleConfig": {
+        "slaQuota": 1000,
+        "scaleDownTime": 60000,
+        "burstScaleNum": 1000
+      },
+      "leaseSpan": 5000,
+      "functionLimitRate": 5000,
+      "dockerRootPath": "/var/lib/docker",
+      "routerEtcd": {
+        "servers": ["{{ .Values.global.etcdManagement.detcd }}"],
+        {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+        "sslEnable": true,
+        {{- else }}
+        "sslEnable": false,
+        {{- end}}
+        "user":"",
+        "password":"",
+        "authType": {{ quote .Values.global.etcdManagement.authType }},
+        "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+        "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+      },
+      "metaEtcd": {
+        "servers": ["{{ .Values.global.etcdManagement.detcd }}"],
+        {{- if eq .Values.global.etcdManagement.authType "TLS" }}
+        "sslEnable": true,
+        {{- else }}
+        "sslEnable": false,
+        {{- end}}
+        "user":"",
+        "password":"",
+        "authType": {{ quote .Values.global.etcdManagement.authType }},
+        "useSecret": {{ .Values.global.etcdManagement.useSecret }},
+        "secretName": {{ quote .Values.global.etcdManagement.secretName }}
+      },
+      "tlsConfig": {
+        "caContent": "${CA_CONTENT}",
+        "keyContent": "${KEY_CONTENT}",
+        "certContent": "${CERT_CONTENT}"
+      },
+      "defaultTenantLimitQuota": 1800,
+      "memoryEvaluatorConfig": {
+        "requestMemoryEvaluator": 2
+      },
+      "memoryControlConfig": {
+        "lowerMemoryPercent": 0.6,
+        "highMemoryPercent": 0.8,
+        "statefulHighMemoryPercent": 0.85,
+        "bodyThreshold": 40000,
+        "memDetectIntervalMs": 20
+      }
+    }
