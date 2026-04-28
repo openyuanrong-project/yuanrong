@@ -5,43 +5,43 @@
   [![Version](https://img.shields.io/badge/version-0.8.0.dev-orange)](https://gitcode.com/openeuler/yuanrong/releases)
   [![Documentation](https://img.shields.io/badge/docs-latest-green)](https://docs.openyuanrong.org/zh-cn/latest/index.html)
 
-  [English](README_EN.md) | 简体中文
+  English | [简体中文](README_ZH.md)
 
 </div>
 
-openYuanrong 是一个 Serverless 分布式计算引擎，致力于以一套统一 Serverless 架构支持 AI、大数据、微服务等各类分布式应用。它提供多语言函数编程接口，以单机编程体验简化分布式应用开发；提供分布式动态调度和数据共享等能力，实现分布式应用的高性能运行和集群的高效资源利用。
+openYuanrong is a serverless distributed compute engine that unifies diverse workloads, from AI and big data to microservices, on a single, streamlined architecture. It provides multi-language function interfaces that simplify the development of complex distributed applications to feel just like writing a local program. Powered by dynamic scheduling and efficient data sharing, openYuanrong ensures high-performance execution and maximum cluster resource utilization.
 
-## 简介
+## Overview
 
 <div style="text-align: center;">
-  <img src="./docs/images/introduction.png">
+  <img src="./docs/images/introduction_en.png" width="718" height="392">
 </div>
 
-openYuanrong 由多语言函数运行时、函数系统和数据系统组成，支持按需灵活单独或组合使用。
+openYuanrong supports modular, on-demand usage of a multi-language function runtime, function system, and data system.
 
-- **多语言函数运行时**：提供函数分布式编程，支持 Python、Java、C++ 语言，实现类单机编程高性能分布式运行。
-- **函数系统**：提供大规模分布式动态调度，支持函数实例极速弹性扩缩和跨节点迁移，实现集群资源高效利用。
-- **数据系统**：提供异构分布式多级缓存，支持 Object、Stream 语义，实现函数实例间高性能数据共享及传递。
+- **Multi-language Function Runtime**: Build powerful, distributed applications in Python, Java, and C++ as easily as you would write a program for a single machine.
+- **Function System**: Maximize cluster resource utilization with dynamic scheduling, which seamlessly scales and migrates function instances across nodes.
+- **Data System**: Accelerate data transfer between function instances using a multi-level distributed caching system that supports both object and stream semantics.
 
-**函数**是 openYuanrong 的核心概念抽象，它对传统 Serverless 函数概念进行了通用化扩展，起到了类似单机 OS 中进程的作用，可以表达任意分布式应用的运行实例，同时天然支持相互调用。
+In openYuanrong, the function is a core abstraction that extends the serverless model. It behaves like a process in a single-machine OS, representing a running instance of a distributed application while offering native support for cross-function invocation.
 
-openYuanrong 分为三个代码仓库：
+openYuanrong consists of three code repositories:
 
-- yuanrong：对应多语言函数运行时，即当前仓。
-- [yuanrong-functionsystem](https://github.com/openyuanrong-project/yuanrong-functionsystem)：对应函数系统。
-- [yuanrong-datasystem](https://github.com/openyuanrong-project/yuanrong-datasystem)：对应数据系统。
+- yuanrong: The multi-language function runtime (current repository).
+- [yuanrong-functionsystem](https://github.com/openyuanrong-project/yuanrong-functionsystem): Refers to the function system repository.
+- [yuanrong-datasystem](https://github.com/openyuanrong-project/yuanrong-datasystem): Refers to the data system repository.
 
-## 入门
+## Getting Started
 
-查看 [openYuanrong 文档](https://docs.openyuanrong.org/zh-cn/latest/index.html) 了解如何使用 openYuanrong 开发分布式应用。
+Check the [openYuanrong documentation](https://docs.openyuanrong.org/zh-cn/latest/index.html) to learn how to develop distributed applications with openYuanrong.
 
-- 安装：`pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.7.0/linux/x86_64/openyuanrong-0.7.0-cp39-cp39-manylinux_2_34_x86_64.whl`，[更多安装信息](https://docs.openyuanrong.org/zh-cn/latest/deploy/installation.html)。
-- [快速入门](https://docs.openyuanrong.org/zh-cn/latest/getting_started.html)
+- Installation：`pip install https://openyuanrong.obs.cn-southwest-2.myhuaweicloud.com/release/0.7.0/linux/x86_64/openyuanrong-0.7.0-cp39-cp39-manylinux_2_34_x86_64.whl`，[More Details](https://docs.openyuanrong.org/zh-cn/latest/deploy/installation.html).
+- [Quick Start Guide](https://docs.openyuanrong.org/zh-cn/latest/getting_started.html)
 
-## 贡献
+## Contributing
 
-我们欢迎您对 openYuanrong 做各种形式的贡献，请参阅我们的[贡献者指南](https://docs.openyuanrong.org/zh-cn/latest/contributor_guide/index.html)。
+We welcome all forms of contributions to openYuanrong. Please refer to our [contributor guide](https://docs.openyuanrong.org/zh-cn/latest/contributor_guide/index.html).
 
-## 许可证
+## License
 
 [Apache License 2.0](./LICENSE)
